@@ -1,4 +1,15 @@
-import { School, User, SchoolClass, Student, Announcement } from "./types";
+import {
+  School,
+  User,
+  SchoolClass,
+  Student,
+  Announcement,
+  AttendanceRecord,
+  AttendanceStatus,
+  Homework,
+  ExamMark,
+  ChatMessage,
+} from "./types";
 import { supabase } from "./supabase";
 
 // Local storage keys
@@ -541,4 +552,343 @@ export function addAnnouncement(
   const list = getStorage<Announcement[]>(KEY_ANNOUNCEMENTS, SEED_ANNOUNCEMENTS);
   setStorage(KEY_ANNOUNCEMENTS, [newAnn, ...list]);
   return newAnn;
+}
+
+// ----------------------------------------------------
+// TEACHER MODULE: KEYS & SEEDS
+// ----------------------------------------------------
+const KEY_ATTENDANCE = "attendlix_attendance_records";
+const KEY_OFFLINE_ATTENDANCE_QUEUE = "attendlix_offline_attendance_queue";
+const KEY_HOMEWORK = "attendlix_homework_list";
+const KEY_EXAM_MARKS = "attendlix_exam_marks_list";
+const KEY_MESSAGES = "attendlix_chat_messages";
+
+// Seed Homework
+const SEED_HOMEWORK: Homework[] = [
+  {
+    id: "hw-01",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    subject: "Mathematics",
+    title: "Exercise 4.2 - Algebraic Equations",
+    description: "Complete Questions 1 through 6 in your neat notebooks. Show all rough work.",
+    due_date: new Date(Date.now() + 86400000).toISOString().split("T")[0],
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "hw-02",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    subject: "Urdu",
+    title: "سبق 'قائد اعظم رحمتہ اللہ علیہ' کے سوالات",
+    description: "کتاب کے صفحہ نمبر 45 پر دیے گئے سوال نمبر 1 تا 4 کے جوابات تحریر کریں۔",
+    due_date: new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0],
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "hw-03",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    subject: "Science",
+    title: "Photosynthesis Diagram & Definitions",
+    description: "Draw the labeled diagram of plant cell photosynthesis and memorize definitions.",
+    due_date: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
+    created_at: new Date().toISOString(),
+  },
+];
+
+// Seed Exam Marks
+const SEED_EXAM_MARKS: ExamMark[] = [
+  {
+    id: "exm-01",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    student_id: "std-01",
+    student_name: "Hamza Naveed",
+    roll_no: "01",
+    exam_name: "Monthly Test (October)",
+    subject: "Mathematics",
+    total_marks: 50,
+    obtained_marks: 46,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "exm-02",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    student_id: "std-02",
+    student_name: "Ayesha Noor",
+    roll_no: "02",
+    exam_name: "Monthly Test (October)",
+    subject: "Mathematics",
+    total_marks: 50,
+    obtained_marks: 49,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "exm-03",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    student_id: "std-03",
+    student_name: "Bilal Zubair",
+    roll_no: "03",
+    exam_name: "Monthly Test (October)",
+    subject: "Mathematics",
+    total_marks: 50,
+    obtained_marks: 38,
+    created_at: new Date().toISOString(),
+  },
+];
+
+// Seed Messages
+const SEED_MESSAGES: ChatMessage[] = [
+  {
+    id: "msg-01",
+    school_id: SEED_SCHOOL_ID,
+    student_id: "std-01",
+    student_name: "Hamza Naveed",
+    sender_role: "PARENT",
+    content: "Assalam-o-Alaikum teacher sahiba, Hamza had high fever yesterday. He has completed his English homework though.",
+    is_quiet_hours_delayed: false,
+    created_at: new Date(Date.now() - 3600000 * 3).toISOString(),
+  },
+  {
+    id: "msg-02",
+    school_id: SEED_SCHOOL_ID,
+    student_id: "std-01",
+    student_name: "Hamza Naveed",
+    sender_role: "TEACHER",
+    content: "Walaikum Assalam. JazakAllah for informing! Hamza may take rest, we will assist him with missed classwork.",
+    is_quiet_hours_delayed: false,
+    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+  },
+  {
+    id: "msg-03",
+    school_id: SEED_SCHOOL_ID,
+    student_id: "std-03",
+    student_name: "Bilal Zubair",
+    sender_role: "PARENT",
+    content: "Respected Teacher, will there be extra coaching for Mathematics before the mid-term exams?",
+    is_quiet_hours_delayed: false,
+    created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+  },
+];
+
+// ----------------------------------------------------
+// ATTENDANCE & OFFLINE QUEUE
+// ----------------------------------------------------
+export function getDailyAttendance(school_id: string, class_id: string, date: string): Record<string, AttendanceStatus> {
+  initializeStore();
+  const all = getStorage<AttendanceRecord[]>(KEY_ATTENDANCE, []);
+  const matching = all.filter((r) => r.school_id === school_id && r.class_id === class_id && r.date === date);
+
+  const res: Record<string, AttendanceStatus> = {};
+  matching.forEach((r) => {
+    res[r.student_id] = r.status;
+  });
+  return res;
+}
+
+export function saveClassAttendance(
+  school_id: string,
+  class_id: string,
+  date: string,
+  records: { student_id: string; status: AttendanceStatus; student_name?: string; roll_no?: string }[],
+  isOffline: boolean = false
+): { savedCount: number; absentCount: number; isOffline: boolean } {
+  initializeStore();
+
+  const newRecords: AttendanceRecord[] = records.map((r) => ({
+    id: "att-" + Math.random().toString(36).substring(2, 9),
+    school_id,
+    class_id,
+    student_id: r.student_id,
+    student_name: r.student_name,
+    roll_no: r.roll_no,
+    date,
+    status: r.status,
+    synced_at: new Date().toISOString(),
+    is_offline_pending: isOffline,
+  }));
+
+  // Store in main attendance records (upsert by student_id & date)
+  const existing = getStorage<AttendanceRecord[]>(KEY_ATTENDANCE, []);
+  const studentIds = new Set(records.map((r) => r.student_id));
+  const filtered = existing.filter((r) => !(r.school_id === school_id && r.date === date && studentIds.has(r.student_id)));
+  setStorage(KEY_ATTENDANCE, [...newRecords, ...filtered]);
+
+  // If offline, also enqueue into the offline queue
+  if (isOffline) {
+    const queue = getStorage<any[]>(KEY_OFFLINE_ATTENDANCE_QUEUE, []);
+    queue.push({
+      batch_id: "batch-" + Date.now(),
+      school_id,
+      class_id,
+      date,
+      records: newRecords,
+      timestamp: new Date().toISOString(),
+    });
+    setStorage(KEY_OFFLINE_ATTENDANCE_QUEUE, queue);
+  }
+
+  const absentCount = records.filter((r) => r.status === "ABSENT").length;
+  return { savedCount: records.length, absentCount, isOffline };
+}
+
+export function getOfflineAttendanceQueue(): any[] {
+  initializeStore();
+  return getStorage<any[]>(KEY_OFFLINE_ATTENDANCE_QUEUE, []);
+}
+
+export function syncOfflineAttendanceQueue(): { syncedBatches: number; totalRecords: number } {
+  initializeStore();
+  const queue = getStorage<any[]>(KEY_OFFLINE_ATTENDANCE_QUEUE, []);
+  if (queue.length === 0) return { syncedBatches: 0, totalRecords: 0 };
+
+  const existing = getStorage<AttendanceRecord[]>(KEY_ATTENDANCE, []);
+  let totalRecords = 0;
+
+  queue.forEach((batch) => {
+    totalRecords += batch.records?.length || 0;
+  });
+
+  // Mark all records as synced
+  const updatedExisting = existing.map((r) => ({ ...r, is_offline_pending: false }));
+  setStorage(KEY_ATTENDANCE, updatedExisting);
+
+  // Clear queue
+  setStorage(KEY_OFFLINE_ATTENDANCE_QUEUE, []);
+  return { syncedBatches: queue.length, totalRecords };
+}
+
+// ----------------------------------------------------
+// HOMEWORK
+// ----------------------------------------------------
+export function getHomeworkList(school_id: string, class_id: string): Homework[] {
+  initializeStore();
+  const all = getStorage<Homework[]>(KEY_HOMEWORK, SEED_HOMEWORK);
+  return all.filter((h) => (h.school_id === school_id || school_id === SEED_SCHOOL_ID) && h.class_id === class_id);
+}
+
+export function addHomework(
+  school_id: string,
+  class_id: string,
+  data: { subject: string; title: string; description: string; due_date: string; teacher_id?: string }
+): Homework {
+  initializeStore();
+  const newHw: Homework = {
+    id: "hw-" + Math.random().toString(36).substring(2, 9),
+    school_id,
+    class_id,
+    teacher_id: data.teacher_id,
+    subject: data.subject.trim(),
+    title: data.title.trim(),
+    description: data.description.trim(),
+    due_date: data.due_date,
+    created_at: new Date().toISOString(),
+  };
+
+  const existing = getStorage<Homework[]>(KEY_HOMEWORK, SEED_HOMEWORK);
+  setStorage(KEY_HOMEWORK, [newHw, ...existing]);
+  return newHw;
+}
+
+// ----------------------------------------------------
+// EXAMS & MARKS
+// ----------------------------------------------------
+export function getExamMarks(school_id: string, class_id: string, exam_name: string, subject: string): ExamMark[] {
+  initializeStore();
+  const all = getStorage<ExamMark[]>(KEY_EXAM_MARKS, SEED_EXAM_MARKS);
+  return all.filter(
+    (m) =>
+      (m.school_id === school_id || school_id === SEED_SCHOOL_ID) &&
+      m.class_id === class_id &&
+      m.exam_name === exam_name &&
+      m.subject === subject
+  );
+}
+
+export function saveExamMarksBatch(
+  school_id: string,
+  class_id: string,
+  exam_name: string,
+  subject: string,
+  total_marks: number,
+  marksList: { student_id: string; student_name: string; roll_no: string; obtained_marks: number }[]
+): ExamMark[] {
+  initializeStore();
+  const newMarks: ExamMark[] = marksList.map((m) => ({
+    id: "exm-" + Math.random().toString(36).substring(2, 9),
+    school_id,
+    class_id,
+    student_id: m.student_id,
+    student_name: m.student_name,
+    roll_no: m.roll_no,
+    exam_name,
+    subject,
+    total_marks,
+    obtained_marks: m.obtained_marks,
+    created_at: new Date().toISOString(),
+  }));
+
+  const existing = getStorage<ExamMark[]>(KEY_EXAM_MARKS, SEED_EXAM_MARKS);
+  // remove duplicates for same student, exam, subject
+  const studentIds = new Set(marksList.map((m) => m.student_id));
+  const filtered = existing.filter(
+    (e) => !(e.school_id === school_id && e.class_id === class_id && e.exam_name === exam_name && e.subject === subject && studentIds.has(e.student_id))
+  );
+
+  setStorage(KEY_EXAM_MARKS, [...newMarks, ...filtered]);
+  return newMarks;
+}
+
+// ----------------------------------------------------
+// PARENT-TEACHER MESSAGES (WITH QUIET HOURS)
+// ----------------------------------------------------
+export function isQuietHoursActive(): { isActive: boolean; hoursText: string } {
+  const now = new Date();
+  const currentHour = now.getHours(); // 0 - 23
+  // Quiet hours: 8:00 PM (20:00) to 7:00 AM (07:00)
+  const isQuiet = currentHour >= 20 || currentHour < 7;
+  return {
+    isActive: isQuiet,
+    hoursText: "8:00 PM – 7:00 AM",
+  };
+}
+
+export function getStudentMessages(school_id: string, student_id: string): ChatMessage[] {
+  initializeStore();
+  const all = getStorage<ChatMessage[]>(KEY_MESSAGES, SEED_MESSAGES);
+  return all.filter((m) => (m.school_id === school_id || school_id === SEED_SCHOOL_ID) && m.student_id === student_id);
+}
+
+export function getAllTeacherMessages(school_id: string): ChatMessage[] {
+  initializeStore();
+  return getStorage<ChatMessage[]>(KEY_MESSAGES, SEED_MESSAGES);
+}
+
+export function sendTeacherMessage(
+  school_id: string,
+  student_id: string,
+  student_name: string,
+  content: string,
+  sender_role: "TEACHER" | "PARENT" = "TEACHER"
+): ChatMessage {
+  initializeStore();
+  const quietInfo = isQuietHoursActive();
+
+  const msg: ChatMessage = {
+    id: "msg-" + Math.random().toString(36).substring(2, 9),
+    school_id,
+    student_id,
+    student_name,
+    sender_role,
+    content: content.trim(),
+    is_quiet_hours_delayed: quietInfo.isActive,
+    created_at: new Date().toISOString(),
+  };
+
+  const existing = getStorage<ChatMessage[]>(KEY_MESSAGES, SEED_MESSAGES);
+  setStorage(KEY_MESSAGES, [msg, ...existing]);
+  return msg;
 }

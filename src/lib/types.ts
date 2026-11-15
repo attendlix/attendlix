@@ -58,3 +58,55 @@ export interface Announcement {
   recipients_count?: number;
   created_at: string;
 }
+
+export type AttendanceStatus = "PRESENT" | "ABSENT" | "LEAVE";
+
+export interface AttendanceRecord {
+  id: string;
+  school_id: string;
+  class_id: string;
+  student_id: string;
+  student_name?: string;
+  roll_no?: string;
+  date: string;
+  status: AttendanceStatus;
+  synced_at: string;
+  is_offline_pending?: boolean;
+}
+
+export interface Homework {
+  id: string;
+  school_id: string;
+  class_id: string;
+  teacher_id?: string;
+  subject: string;
+  title: string;
+  description: string;
+  due_date: string;
+  created_at: string;
+}
+
+export interface ExamMark {
+  id: string;
+  school_id: string;
+  class_id: string;
+  student_id: string;
+  student_name?: string;
+  roll_no?: string;
+  exam_name: string;
+  subject: string;
+  total_marks: number;
+  obtained_marks: number;
+  created_at: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  school_id: string;
+  student_id: string;
+  student_name?: string;
+  sender_role: "TEACHER" | "PARENT" | "PRINCIPAL";
+  content: string;
+  is_quiet_hours_delayed?: boolean;
+  created_at: string;
+}

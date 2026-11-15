@@ -120,3 +120,111 @@ CREATE POLICY "Announcements strictly scoped by school_id"
     ON public.announcements
     FOR ALL
     USING (school_id = NULLIF(current_setting('app.current_school_id', true), '')::UUID OR auth.role() = 'service_role');
+-- ==============================================================================
+-- ATTENDLIX: Step 3 - Teacher Module Database Schema (Supabase / PostgreSQL)
+-- ==============================================================================
+
+-- 1. Create Additional Enums
+DO $$ BEGIN
+    CREATE TYPE attendance_status AS ENUM ('PRESENT', 'ABSENT', 'LEAVE');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE message_sender_role AS ENUM ('TEACHER', 'PARENT', 'PRINCIPAL');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- 2. Attendance Table (Daily Class Attendance with Offline Sync Support)
+CREATE TABLE IF NOT EXISTS public.attendance (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+    class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+    date DATE DEFAULT CURRENT_DATE NOT NULL,
+    status attendance_status DEFAULT 'PRESENT' NOT NULL,
+    marked_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    synced_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    whatsapp_alert_sent BOOLEAN DEFAULT false NOT NULL,
+    CONSTRAINT unique_student_daily_attendance UNIQUE (school_id, student_id, date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_attendance_school ON public.attendance(school_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_class_date ON public.attendance(class_id, date);
+CREATE INDEX IF NOT EXISTS idx_attendance_student ON public.attendance(student_id);
+
+-- 3. Homework Table
+CREATE TABLE IF NOT EXISTS public.homework (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+    class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+    teacher_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    subject VARCHAR(100) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    due_date DATE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_homework_class ON public.homework(class_id);
+CREATE INDEX IF NOT EXISTS idx_homework_school ON public.homework(school_id);
+
+-- 4. Exam Marks Table
+CREATE TABLE IF NOT EXISTS public.exam_marks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+    class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+    exam_name VARCHAR(100) NOT NULL, -- e.g. "Monthly Test (Oct)", "Mid-Term Exam"
+    subject VARCHAR(100) NOT NULL,
+    total_marks NUMERIC(5, 2) NOT NULL,
+    obtained_marks NUMERIC(5, 2) NOT NULL,
+    entered_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT unique_student_exam_subject UNIQUE (school_id, class_id, student_id, exam_name, subject)
+);
+
+CREATE INDEX IF NOT EXISTS idx_exam_marks_lookup ON public.exam_marks(school_id, class_id, exam_name, subject);
+
+-- 5. Parent-Teacher Messages (Per Student Thread with Quiet Hours)
+CREATE TABLE IF NOT EXISTS public.messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+    sender_role message_sender_role NOT NULL,
+    sender_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    content TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT false NOT NULL,
+    is_quiet_hours_delayed BOOLEAN DEFAULT false NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_messages_student ON public.messages(student_id);
+CREATE INDEX IF NOT EXISTS idx_messages_school ON public.messages(school_id);
+
+-- ==============================================================================
+-- RLS POLICIES FOR TEACHER TABLES
+-- ==============================================================================
+
+ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.homework ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.exam_marks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Attendance scoped by school_id"
+    ON public.attendance FOR ALL
+    USING (school_id = NULLIF(current_setting('app.current_school_id', true), '')::UUID OR auth.role() = 'service_role');
+
+CREATE POLICY "Homework scoped by school_id"
+    ON public.homework FOR ALL
+    USING (school_id = NULLIF(current_setting('app.current_school_id', true), '')::UUID OR auth.role() = 'service_role');
+
+CREATE POLICY "Exam marks scoped by school_id"
+    ON public.exam_marks FOR ALL
+    USING (school_id = NULLIF(current_setting('app.current_school_id', true), '')::UUID OR auth.role() = 'service_role');
+
+CREATE POLICY "Messages scoped by school_id"
+    ON public.messages FOR ALL
+    USING (school_id = NULLIF(current_setting('app.current_school_id', true), '')::UUID OR auth.role() = 'service_role');
