@@ -148,19 +148,21 @@ export default function StudentDashboard() {
     <div className="min-h-screen bg-[#FAFAFA] text-[#111827] flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900 pb-12">
       {/* Top Header */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link href="/" className="flex items-center gap-2 group">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
               <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white shadow-2xs">
                 <GraduationCap className="w-4 h-4" />
               </div>
-              <span className="font-bold tracking-tight text-slate-900 text-base">Attendlix</span>
+              <span className="font-bold tracking-tight text-slate-900 text-sm sm:text-base hidden xs:inline">Attendlix</span>
             </Link>
-            <div className="h-4 w-px bg-slate-200 mx-1" />
-            <span className="text-xs font-semibold text-slate-700">Student & Parent Portal</span>
+            <div className="h-4 w-px bg-slate-200 mx-0.5 flex-shrink-0" />
+            <span className="text-xs font-semibold text-slate-700 truncate">
+              {currentStudent?.name || "Student & Parent Portal"}
+            </span>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <LanguageToggle />
 
             <div className="text-right hidden sm:block">
@@ -169,7 +171,7 @@ export default function StudentDashboard() {
             </div>
             <button
               onClick={handleLogout}
-              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors flex-shrink-0"
               title="Sign Out"
             >
               <LogOut className="w-4 h-4" />
@@ -177,8 +179,8 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* Tab Selector */}
-        <div className="max-w-4xl mx-auto px-2 flex items-center justify-around border-t border-slate-200 bg-white">
+        {/* Tab Selector (Horizontally scrollable on mobile) */}
+        <div className="max-w-4xl mx-auto px-2 flex items-center overflow-x-auto scrollbar-none sm:justify-around border-t border-slate-200 bg-white">
           {[
             { id: "overview", label: t.tabOverview || "Overview", icon: School },
             { id: "attendance_hw", label: t.tabHomework || "Diary & Work", icon: BookOpen },
@@ -193,14 +195,14 @@ export default function StudentDashboard() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex-1 py-2.5 sm:py-3 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 text-xs font-semibold transition-all border-b-2 ${
+                className={`flex-1 min-w-[68px] sm:min-w-0 py-2.5 sm:py-3 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 text-xs font-semibold transition-all border-b-2 flex-shrink-0 min-h-[44px] ${
                   active
                     ? "border-emerald-600 text-emerald-700 bg-emerald-50/40"
                     : "border-transparent text-slate-600 hover:text-slate-900"
                 }`}
               >
-                <Icon className={`w-4 h-4 ${active ? "text-emerald-600" : "text-slate-400"}`} />
-                <span>{tab.label}</span>
+                <Icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-emerald-600" : "text-slate-400"}`} />
+                <span className="whitespace-nowrap">{tab.label}</span>
               </button>
             );
           })}
@@ -470,9 +472,9 @@ export default function StudentDashboard() {
                       {!isPaid ? (
                         <button
                           onClick={() => setPaymentModal({ record: fee, method: "JAZZCASH", txnId: "" })}
-                          className="w-full sm:w-auto px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs flex items-center justify-center gap-1.5 transition-all"
+                          className="w-full sm:w-auto px-4 py-2.5 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs flex items-center justify-center gap-1.5 transition-all"
                         >
-                          <CreditCard className="w-3.5 h-3.5" />
+                          <CreditCard className="w-4 h-4" />
                           <span>Pay via JazzCash / Easypaisa</span>
                         </button>
                       ) : (
@@ -554,13 +556,13 @@ export default function StudentDashboard() {
                   placeholder="Type message to class teacher..."
                   value={newMessageText}
                   onChange={(e) => setNewMessageText(e.target.value)}
-                  className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="flex-1 px-3.5 py-2.5 min-h-[44px] text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <button
                   type="submit"
-                  className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-2xs transition-all"
+                  className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-2xs transition-all flex items-center justify-center flex-shrink-0"
                 >
-                  <Send className="w-3.5 h-3.5 text-emerald-400" />
+                  <Send className="w-4 h-4 text-emerald-400" />
                 </button>
               </form>
             </div>
@@ -707,20 +709,20 @@ export default function StudentDashboard() {
       {/* MODAL: PAY VIA JAZZCASH / EASYPAISA */}
       {/* ========================================================================= */}
       {paymentModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-6 space-y-4 animate-scaleUp">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto animate-scaleUp">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-base">Pay School Fee</h3>
               <button
                 onClick={() => setPaymentModal(null)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-semibold"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-base font-semibold"
               >
                 ✕
               </button>
             </div>
 
             <form onSubmit={handleCompletePayment} className="space-y-4 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500 font-medium">Month</span>
                   <span className="font-bold text-slate-900">{paymentModal.record.month} {paymentModal.record.year}</span>
@@ -740,7 +742,7 @@ export default function StudentDashboard() {
                   <button
                     type="button"
                     onClick={() => setPaymentModal({ ...paymentModal, method: "JAZZCASH" })}
-                    className={`p-2.5 rounded-xl border text-center font-bold text-xs transition-all ${
+                    className={`p-2.5 min-h-[44px] rounded-xl border text-center font-bold text-xs transition-all flex items-center justify-center ${
                       paymentModal.method === "JAZZCASH"
                         ? "bg-rose-50 border-rose-500 text-rose-700 shadow-2xs"
                         : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
@@ -751,7 +753,7 @@ export default function StudentDashboard() {
                   <button
                     type="button"
                     onClick={() => setPaymentModal({ ...paymentModal, method: "EASYPAISA" })}
-                    className={`p-2.5 rounded-xl border text-center font-bold text-xs transition-all ${
+                    className={`p-2.5 min-h-[44px] rounded-xl border text-center font-bold text-xs transition-all flex items-center justify-center ${
                       paymentModal.method === "EASYPAISA"
                         ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-2xs"
                         : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
@@ -763,11 +765,11 @@ export default function StudentDashboard() {
               </div>
 
               {/* School Payment Instructions */}
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1 text-[11px] text-slate-600">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1 text-[11px] text-slate-600">
                 <span className="font-bold text-slate-800 block">
                   Send PKR {paymentModal.record.amount} to School Account:
                 </span>
-                <div>Account / Till Number: <strong className="text-slate-900">0300-4567890</strong></div>
+                <div>Account / Till Number: <strong className="text-slate-900 font-mono">0300-4567890</strong></div>
                 <div>Title: <strong className="text-slate-900">{schoolData?.name || "School"}</strong></div>
               </div>
 
@@ -782,7 +784,7 @@ export default function StudentDashboard() {
                   placeholder="e.g. JC-992011 or 089421"
                   value={paymentModal.txnId}
                   onChange={(e) => setPaymentModal({ ...paymentModal, txnId: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
                 />
               </div>
 
@@ -790,13 +792,13 @@ export default function StudentDashboard() {
                 <button
                   type="button"
                   onClick={() => setPaymentModal(null)}
-                  className="px-3.5 py-2 rounded-lg border border-slate-200 text-slate-600 font-semibold"
+                  className="px-4 py-2.5 min-h-[44px] rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-2xs"
+                  className="px-5 py-2.5 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-2xs"
                 >
                   Verify & Mark Paid
                 </button>

@@ -93,14 +93,14 @@ export default function LandingPage() {
           </nav>
 
           {/* Right Action: Language Toggle + Login + CTA */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             {/* Language Switcher Badge */}
             <LanguageToggle />
 
             {/* Login Link */}
             <Link
               href="/login"
-              className="px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors"
+              className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors whitespace-nowrap min-h-[36px] flex items-center"
             >
               {lang === "en" ? "Sign In" : "لاگ ان"}
             </Link>
@@ -108,9 +108,9 @@ export default function LandingPage() {
             {/* Register CTA Button */}
             <Link
               href="/register"
-              className="px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm shadow-emerald-600/20 transition-all hover:scale-[1.01]"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm shadow-emerald-600/20 transition-all hover:scale-[1.01] whitespace-nowrap min-h-[36px] flex items-center"
             >
-              {lang === "en" ? "Register School" : "اسکول رجسٹر کریں"}
+              {lang === "en" ? "Register" : "رجسٹر کریں"}
             </Link>
           </div>
         </div>
@@ -192,21 +192,24 @@ export default function LandingPage() {
           <div className="relative rounded-2xl p-2 sm:p-3 bg-slate-900/5 ring-1 ring-slate-900/10 shadow-2xl backdrop-blur-sm">
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-inner">
               {/* Fake Window Header */}
-              <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-rose-400" />
-                  <div className="w-3 h-3 rounded-full bg-amber-400" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-400" />
-                  <span className="ml-3 text-xs font-semibold text-slate-600 flex items-center gap-1.5">
-                    <School className="w-3.5 h-3.5 text-emerald-600" />
-                    Beacon Grammar Academy — Attendlix Portal
+              <div className="bg-slate-50 border-b border-slate-200 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="w-2.5 h-2.5 rounded-full bg-rose-400" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                  </div>
+                  <span className="ml-1 sm:ml-2 text-[11px] sm:text-xs font-semibold text-slate-600 flex items-center gap-1 truncate">
+                    <School className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                    <span className="truncate">Beacon Grammar Academy</span>
                   </span>
                 </div>
                 {/* Offline Sync Status Badge */}
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-medium border border-emerald-200">
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] sm:text-[11px] font-medium border border-emerald-200 whitespace-nowrap">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                    Offline Sync Active (Zero Data Loss)
+                    <span className="hidden sm:inline">Offline Sync Active (Zero Data Loss)</span>
+                    <span className="sm:hidden">Offline Sync</span>
                   </span>
                 </div>
               </div>
@@ -439,7 +442,7 @@ export default function LandingPage() {
         </div>
 
         {/* Role Tabs */}
-        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+        <div className="flex items-center justify-start sm:justify-center gap-2 overflow-x-auto pb-3 px-2 scrollbar-none">
           {[
             { id: "principal", label: "Principals & Owners", icon: Building2 },
             { id: "teacher", label: "Teachers & Staff", icon: Users },
@@ -452,7 +455,7 @@ export default function LandingPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveRole(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all min-h-[44px] ${
                   active
                     ? "bg-slate-900 text-white shadow-md"
                     : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GraduationCap, ArrowRight, ShieldCheck, CheckCircle2, Sparkles, AlertCircle } from "lucide-react";
 import { registerSchool } from "@/lib/store";
+import { LanguageToggle } from "@/context/LanguageContext";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -40,17 +41,21 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans selection:bg-emerald-100 selection:text-emerald-900">
-      {/* Brand Header */}
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-3">
+    <div className="min-h-screen bg-[#FAFAFA] flex flex-col justify-center py-6 sm:py-12 px-3 sm:px-6 lg:px-8 font-sans selection:bg-emerald-100 selection:text-emerald-900">
+      {/* Top Header */}
+      <div className="w-full max-w-xl mx-auto flex items-center justify-between pb-3">
         <Link href="/" className="inline-flex items-center gap-2 group">
-          <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-sm shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-            <GraduationCap className="w-6 h-6" />
+          <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-2xs">
+            <GraduationCap className="w-5 h-5" />
           </div>
-          <span className="text-2xl font-bold tracking-tight text-slate-900">
+          <span className="text-xl font-bold tracking-tight text-slate-900">
             Attendlix<span className="text-emerald-600">.</span>
           </span>
         </Link>
+        <LanguageToggle />
+      </div>
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-2 pt-1">
         <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
           Register Your School Tenant
         </h2>
@@ -59,8 +64,8 @@ export default function RegisterPage() {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl px-4 sm:px-0">
-        <div className="bg-white py-8 px-6 sm:px-10 shadow-sm rounded-2xl border border-slate-200/80">
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-xl px-1 sm:px-0">
+        <div className="bg-white py-6 sm:py-8 px-4 sm:px-10 shadow-sm rounded-2xl border border-slate-200/80">
           {error && (
             <div className="mb-6 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -81,7 +86,7 @@ export default function RegisterPage() {
                   placeholder="e.g. Beacon Grammar High School"
                   value={formData.schoolName}
                   onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                  className="w-full px-3.5 py-3 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 min-h-[44px]"
                 />
               </div>
 
@@ -96,7 +101,7 @@ export default function RegisterPage() {
                   placeholder="e.g. Dr. Asim Farooq"
                   value={formData.principalName}
                   onChange={(e) => setFormData({ ...formData, principalName: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                  className="w-full px-3.5 py-3 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 min-h-[44px]"
                 />
               </div>
 
@@ -108,7 +113,7 @@ export default function RegisterPage() {
                 <select
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 bg-white"
+                  className="w-full px-3.5 py-3 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 bg-white min-h-[44px]"
                 >
                   <option value="Lahore">Lahore</option>
                   <option value="Karachi">Karachi</option>
@@ -135,7 +140,7 @@ export default function RegisterPage() {
                   placeholder="0300-1234567"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                  className="w-full px-3.5 py-3 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 min-h-[44px]"
                 />
               </div>
 
@@ -150,7 +155,7 @@ export default function RegisterPage() {
                   placeholder="principal@school.edu.pk"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                  className="w-full px-3.5 py-3 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 min-h-[44px]"
                 />
               </div>
 
@@ -165,7 +170,7 @@ export default function RegisterPage() {
                   placeholder="Minimum 6 characters"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                  className="w-full px-3.5 py-3 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 min-h-[44px]"
                 />
               </div>
             </div>
@@ -185,7 +190,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full mt-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px]"
             >
               {loading ? (
                 <span>Creating School Tenant...</span>

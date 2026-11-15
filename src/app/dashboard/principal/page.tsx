@@ -38,6 +38,8 @@ import {
   Trash2,
   Edit3,
   Calendar,
+  Menu,
+  X,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -90,6 +92,8 @@ export default function PrincipalDashboard() {
   const [timetableSlots, setTimetableSlots] = useState<TimetableSlot[]>([]);
   const [showPeriodModal, setShowPeriodModal] = useState<boolean>(false);
   const [editingPeriod, setEditingPeriod] = useState<TimetableSlot | null>(null);
+  const [principalTimetableDay, setPrincipalTimetableDay] = useState<DayOfWeek>("MON");
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [periodFormData, setPeriodFormData] = useState<{
     day_of_week: DayOfWeek;
     start_time: string;
@@ -421,48 +425,58 @@ export default function PrincipalDashboard() {
       ];
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-[#111827] flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900 pb-12">
+    <div className="min-h-screen bg-[#FAFAFA] text-[#111827] flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900 pb-12 overflow-x-hidden w-full">
       {/* Top Principal Navigation Bar */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-sm">
-                <GraduationCap className="w-5 h-5" />
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            {/* Mobile Hamburger Drawer Button */}
+            <button
+              type="button"
+              onClick={() => setMobileDrawerOpen(true)}
+              className="md:hidden p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 min-h-[40px] min-w-[40px] flex items-center justify-center flex-shrink-0"
+              aria-label="Open Navigation Menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-2xs">
+                <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <span className="font-bold tracking-tight text-slate-900 text-lg">Attendlix</span>
+              <span className="font-bold tracking-tight text-slate-900 text-base sm:text-lg">Attendlix</span>
             </Link>
 
-            <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block" />
+            <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block flex-shrink-0" />
 
-            <div className="hidden sm:flex items-center gap-2 text-xs">
-              <span className="font-semibold text-slate-800">{schoolData?.name || "School"}</span>
-              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium border border-slate-200">
+            <div className="hidden sm:flex items-center gap-2 text-xs truncate">
+              <span className="font-semibold text-slate-800 truncate">{schoolData?.name || "School"}</span>
+              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium border border-slate-200 flex-shrink-0">
                 {schoolData?.city || "Pakistan"}
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200">
+              <span className="hidden lg:inline-block px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200 flex-shrink-0">
                 Tenant: {currentUser?.school_id.substring(0, 10)}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <LanguageToggle />
 
             <div className="hidden md:flex flex-col text-right">
-              <span className="text-xs font-semibold text-slate-800">{currentUser?.name}</span>
+              <span className="text-xs font-semibold text-slate-800 truncate max-w-[140px]">{currentUser?.name}</span>
               <span
                 className={`text-[10px] font-bold tracking-wide uppercase ${
                   isAccountant ? "text-amber-600" : "text-emerald-600"
                 }`}
               >
-                {isAccountant ? "Accountant / Fee Officer" : "Principal / Owner"}
+                {isAccountant ? "Accountant" : "Principal"}
               </span>
             </div>
 
             <button
               onClick={handleLogout}
-              className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors"
+              className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
               title="Sign Out"
             >
               <LogOut className="w-4 h-4" />
@@ -470,8 +484,8 @@ export default function PrincipalDashboard() {
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center gap-1 sm:gap-2 overflow-x-auto scrollbar-none py-1 border-t border-slate-100">
+        {/* Tab Navigation Pill Bar (Smooth Horizontal Scroll on Mobile) */}
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none py-1.5 border-t border-slate-100">
           {availableTabs.map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -479,19 +493,103 @@ export default function PrincipalDashboard() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all min-h-[38px] ${
                   active
                     ? "bg-slate-900 text-white shadow-2xs"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${active ? "text-emerald-400" : "text-slate-400"}`} />
+                <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${active ? "text-emerald-400" : "text-slate-400"}`} />
                 <span>{tab.label}</span>
               </button>
             );
           })}
         </div>
       </header>
+
+      {/* MOBILE SLIDE-OVER DRAWER MENU */}
+      {mobileDrawerOpen && (
+        <div className="fixed inset-0 z-50 flex">
+          <div
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"
+            onClick={() => setMobileDrawerOpen(false)}
+          />
+          <div className="relative max-w-[280px] w-full bg-white shadow-2xl z-50 flex flex-col justify-between p-4 space-y-4 overflow-y-auto">
+            <div className="space-y-4">
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white shadow-2xs">
+                    <GraduationCap className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-slate-900 text-sm block">Attendlix</span>
+                    <span className="text-[10px] text-slate-500 truncate block max-w-[160px]">
+                      {schoolData?.name || "School Portal"}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMobileDrawerOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 min-h-[40px] min-w-[40px] flex items-center justify-center"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* User Profile Banner in Drawer */}
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+                <div className="font-bold text-slate-900 text-xs">{currentUser?.name}</div>
+                <div className="text-[10px] font-semibold text-emerald-700 uppercase">
+                  {isAccountant ? "Accountant / Fee Officer" : "Principal / Owner"}
+                </div>
+                <div className="text-[10px] text-slate-400 truncate">Campus: {schoolData?.city || "Pakistan"}</div>
+              </div>
+
+              {/* Navigation Links in Drawer */}
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 block mb-1">
+                  Navigation
+                </span>
+                {availableTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const active = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id as any);
+                        setMobileDrawerOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-left transition-all min-h-[44px] ${
+                        active
+                          ? "bg-slate-900 text-white shadow-2xs"
+                          : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-emerald-400" : "text-slate-400"}`} />
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Drawer Footer Actions */}
+            <div className="border-t border-slate-100 pt-3 space-y-2">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full py-2.5 px-3 rounded-xl border border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100 text-xs font-bold flex items-center justify-center gap-2 min-h-[44px] transition-all"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
@@ -771,8 +869,112 @@ export default function PrincipalDashboard() {
               </div>
             </div>
 
-            {/* Monthly Fee Status Table */}
-            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+            {/* Monthly Fee Records (Mobile Cards on < 768px, Table on >= 768px) */}
+            
+            {/* 1. Mobile Cards View (< 768px) */}
+            <div className="space-y-3 block md:hidden">
+              {feeRecordsList.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-500 bg-white rounded-2xl border border-slate-200">
+                  No fee records found for the selected filters.
+                </div>
+              ) : (
+                feeRecordsList.map((rec) => {
+                  const isPaid = rec.status === "PAID";
+                  return (
+                    <div
+                      key={rec.id}
+                      className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="font-extrabold text-slate-900 text-sm">{rec.student_name}</div>
+                          <div className="text-xs text-slate-500">
+                            Roll #{rec.roll_no} • {rec.class_name} ({rec.section})
+                          </div>
+                        </div>
+                        {isPaid ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-xs border border-emerald-200">
+                            <Check className="w-3 h-3" />
+                            <span>PAID</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 font-bold text-xs border border-rose-200">
+                            <AlertTriangle className="w-3 h-3" />
+                            <span>UNPAID</span>
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                        <span className="text-slate-500 font-medium">Monthly Fee:</span>
+                        <span className="font-extrabold text-slate-900 text-sm">
+                          PKR {(rec.amount || 4500).toLocaleString()}
+                        </span>
+                      </div>
+
+                      {isPaid && rec.payment_method && (
+                        <div className="flex items-center justify-between text-xs text-slate-600 bg-slate-50 p-2 rounded-lg">
+                          <span>Method:</span>
+                          <span className="font-bold text-slate-800">
+                            {rec.payment_method} {rec.transaction_id && `(TID: ${rec.transaction_id})`}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                        {!isPaid ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setMarkPaidModal({ record: rec, method: "CASH", txnId: "" })}
+                              className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition-all flex items-center justify-center gap-1.5 min-h-[44px]"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>Mark Paid</span>
+                            </button>
+
+                            {rec.parent_whatsapp && (
+                              <a
+                                href={getFeeReminderWhatsAppUrl({
+                                  studentName: rec.student_name || "Student",
+                                  parentPhone: rec.parent_whatsapp || "",
+                                  schoolName: schoolData?.name || "School",
+                                  month: rec.month,
+                                  amount: rec.amount,
+                                  paymentPhone: schoolData?.phone,
+                                })}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex-1 py-2.5 px-3 rounded-xl bg-green-50 hover:bg-green-100 text-green-800 border border-green-200 font-bold text-xs shadow-2xs transition-all flex items-center justify-center gap-1.5 min-h-[44px]"
+                              >
+                                <MessageSquare className="w-4 h-4 text-green-600" />
+                                <span>WhatsApp</span>
+                              </a>
+                            )}
+                          </>
+                        ) : (
+                          <div className="w-full flex items-center justify-between">
+                            <span className="text-xs text-emerald-700 font-semibold">
+                              ✓ Paid on {rec.paid_at ? new Date(rec.paid_at).toLocaleDateString() : "This Month"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleRevertFeeToUnpaid(rec.id)}
+                              className="text-xs text-slate-400 hover:text-rose-600 underline py-1 px-2"
+                            >
+                              Revert
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* 2. Desktop Table View (>= 768px) */}
+            <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-2xs">
               <table className="w-full text-left text-xs sm:text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
                   <tr>
@@ -844,7 +1046,7 @@ export default function PrincipalDashboard() {
                                     onClick={() =>
                                       setMarkPaidModal({ record: rec, method: "CASH", txnId: "" })
                                     }
-                                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition-all"
+                                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition-all min-h-[36px]"
                                   >
                                     Mark Paid
                                   </button>
@@ -862,7 +1064,7 @@ export default function PrincipalDashboard() {
                                       })}
                                       target="_blank"
                                       rel="noreferrer"
-                                      className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-xs flex items-center gap-1 shadow-2xs transition-all"
+                                      className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-xs flex items-center gap-1 shadow-2xs transition-all min-h-[36px]"
                                     >
                                       <MessageSquare className="w-3.5 h-3.5" />
                                       <span className="hidden sm:inline">WhatsApp Nudge</span>
@@ -910,7 +1112,54 @@ export default function PrincipalDashboard() {
               </button>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+            {/* Classes (Mobile Cards on < 768px, Table on >= 768px) */}
+
+            {/* 1. Mobile Cards (< 768px) */}
+            <div className="space-y-3 block md:hidden">
+              {classesList.map((cls) => (
+                <div
+                  key={cls.id}
+                  className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 font-bold text-xs flex items-center justify-center">
+                        {cls.name.charAt(0)}
+                      </div>
+                      <span className="font-extrabold text-slate-900 text-sm">{cls.name}</span>
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 text-xs font-bold border border-slate-200">
+                      Section {cls.section}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-slate-600 pt-1 border-t border-slate-100">
+                    <span>In-Charge Teacher:</span>
+                    <span className="font-semibold text-slate-800">{cls.class_teacher_name || "Unassigned"}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-slate-600">
+                    <span>Enrolled Students:</span>
+                    <span className="font-extrabold text-slate-900">{cls.student_count || 0}</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStudentFormData((prev) => ({ ...prev, class_id: cls.id }));
+                      setShowStudentModal(true);
+                    }}
+                    className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 min-h-[44px] transition-all"
+                  >
+                    <UserPlus className="w-4 h-4 text-emerald-400" />
+                    <span>+ Admit Student to this Class</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* 2. Desktop Table (>= 768px) */}
+            <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-2xs">
               <table className="w-full text-left text-xs sm:text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
                   <tr>
@@ -1057,7 +1306,53 @@ export default function PrincipalDashboard() {
               </div>
             )}
 
-            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+            {/* Staff (Mobile Cards on < 768px, Table on >= 768px) */}
+
+            {/* 1. Mobile Cards (< 768px) */}
+            <div className="space-y-3 block md:hidden">
+              {staffList.map((st) => (
+                <div
+                  key={st.id}
+                  className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-extrabold text-slate-900 text-sm">{st.name}</div>
+                      <div className="text-xs text-slate-500 font-mono mt-0.5">ID: {st.identifier}</div>
+                    </div>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full font-bold text-xs ${
+                        st.role === "TEACHER"
+                          ? "bg-blue-50 text-blue-700 border border-blue-200"
+                          : "bg-amber-50 text-amber-700 border border-amber-200"
+                      }`}
+                    >
+                      {st.role}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-slate-600 pt-1 border-t border-slate-100">
+                    <span>Contact / WhatsApp:</span>
+                    <span className="font-semibold text-slate-800">{st.phone || "—"}</span>
+                  </div>
+
+                  {st.phone && (
+                    <a
+                      href={formatWhatsAppUrl(st.phone, `Assalam-o-Alaikum ${st.name}, from ${schoolData?.name}.`)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full py-2.5 px-3 rounded-xl bg-green-50 hover:bg-green-100 text-green-800 border border-green-200 font-bold text-xs flex items-center justify-center gap-1.5 min-h-[44px] transition-all"
+                    >
+                      <MessageSquare className="w-4 h-4 text-green-600" />
+                      <span>Chat on WhatsApp</span>
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* 2. Desktop Table (>= 768px) */}
+            <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-2xs">
               <table className="w-full text-left text-xs sm:text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
                   <tr>
@@ -1211,7 +1506,55 @@ export default function PrincipalDashboard() {
               </div>
             )}
 
-            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+            {/* Students List (Mobile Cards on < 768px, Table on >= 768px) */}
+
+            {/* 1. Mobile Cards (< 768px) */}
+            <div className="space-y-3 block md:hidden">
+              {studentsList.map((std) => (
+                <div
+                  key={std.id}
+                  className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 font-bold text-xs flex items-center justify-center">
+                        {std.roll_no}
+                      </div>
+                      <div>
+                        <div className="font-extrabold text-slate-900 text-sm">{std.name}</div>
+                        <div className="text-xs text-slate-500 font-mono">ID: {std.student_id}</div>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 text-xs font-semibold">
+                      {std.class_name} ({std.section})
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-slate-600 pt-1 border-t border-slate-100">
+                    <span>Parent WhatsApp:</span>
+                    <span className="font-semibold text-slate-800">{std.parent_whatsapp}</span>
+                  </div>
+
+                  {std.parent_whatsapp && (
+                    <a
+                      href={formatWhatsAppUrl(
+                        std.parent_whatsapp,
+                        `Mohtaram Parent of ${std.name}, update from ${schoolData?.name}:`
+                      )}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full py-2.5 px-3 rounded-xl bg-green-50 hover:bg-green-100 text-green-800 border border-green-200 font-bold text-xs flex items-center justify-center gap-1.5 min-h-[44px] transition-all"
+                    >
+                      <MessageSquare className="w-4 h-4 text-green-600" />
+                      <span>Message Parent on WhatsApp</span>
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* 2. Desktop Table (>= 768px) */}
+            <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-2xs">
               <table className="w-full text-left text-xs sm:text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
                   <tr>
@@ -1434,8 +1777,147 @@ export default function PrincipalDashboard() {
               </span>
             </div>
 
-            {/* Weekly Grid (Monday to Saturday) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
+            {/* Responsive Timetable: Mobile Day Selector (< 1280px) & Desktop Grid (>= 1280px) */}
+            
+            {/* 1. Mobile Day Selector View (< 1280px) */}
+            <div className="space-y-4 block xl:hidden">
+              {/* Day Selector Pills */}
+              <div className="bg-white p-2.5 rounded-2xl border border-slate-200 shadow-2xs">
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+                  {(["MON", "TUE", "WED", "THU", "FRI", "SAT"] as DayOfWeek[]).map((d) => {
+                    const active = principalTimetableDay === d;
+                    const labels: Record<DayOfWeek, { en: string; ur: string }> = {
+                      MON: { en: "Monday", ur: "پیر" },
+                      TUE: { en: "Tuesday", ur: "منگل" },
+                      WED: { en: "Wednesday", ur: "بدھ" },
+                      THU: { en: "Thursday", ur: "جمعرات" },
+                      FRI: { en: "Friday", ur: "جمعہ" },
+                      SAT: { en: "Saturday", ur: "ہفتہ" },
+                    };
+                    const count = timetableSlots.filter((s) => s.day_of_week === d).length;
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setPrincipalTimetableDay(d)}
+                        className={`flex-1 min-w-[70px] sm:min-w-[90px] py-2 px-2.5 rounded-xl text-center transition-all min-h-[44px] flex flex-col items-center justify-center ${
+                          active
+                            ? "bg-slate-900 text-white shadow-2xs"
+                            : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span className="text-xs font-bold leading-tight">
+                          {isRtl ? labels[d].ur : labels[d].en}
+                        </span>
+                        <span
+                          className={`text-[10px] mt-0.5 ${
+                            active ? "text-emerald-400 font-bold" : "text-slate-400"
+                          }`}
+                        >
+                          {count} {count === 1 ? "Period" : "Periods"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Selected Day Periods List */}
+              {(() => {
+                const dayLabels: Record<DayOfWeek, { en: string; ur: string }> = {
+                  MON: { en: "Monday", ur: "پیر" },
+                  TUE: { en: "Tuesday", ur: "منگل" },
+                  WED: { en: "Wednesday", ur: "بدھ" },
+                  THU: { en: "Thursday", ur: "جمعرات" },
+                  FRI: { en: "Friday", ur: "جمعہ" },
+                  SAT: { en: "Saturday", ur: "ہفتہ" },
+                };
+                const activeSlots = timetableSlots.filter((s) => s.day_of_week === principalTimetableDay);
+
+                return (
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+                    <div className="p-4 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+                      <div>
+                        <span className="font-extrabold text-slate-900 text-sm block">
+                          {isRtl ? dayLabels[principalTimetableDay].ur : dayLabels[principalTimetableDay].en} Schedule
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {classesList.find((c) => c.id === selectedTimetableClass)?.name} (
+                          {classesList.find((c) => c.id === selectedTimetableClass)?.section}) • {activeSlots.length} periods
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openCreatePeriod(principalTimetableDay)}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs flex items-center gap-1 min-h-[36px]"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Period</span>
+                      </button>
+                    </div>
+
+                    <div className="p-3 sm:p-4 space-y-3">
+                      {activeSlots.length === 0 ? (
+                        <div className="py-10 text-center text-slate-400 space-y-2">
+                          <Clock className="w-8 h-8 mx-auto opacity-30" />
+                          <p className="text-xs font-medium">
+                            No periods scheduled for {isRtl ? dayLabels[principalTimetableDay].ur : dayLabels[principalTimetableDay].en}.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => openCreatePeriod(principalTimetableDay)}
+                            className="mt-2 px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold hover:bg-emerald-100 min-h-[40px]"
+                          >
+                            + Assign Period Now
+                          </button>
+                        </div>
+                      ) : (
+                        activeSlots.map((slot) => (
+                          <div
+                            key={slot.id}
+                            className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-300 transition-all space-y-2 shadow-2xs"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 font-mono text-xs font-bold">
+                                {slot.start_time} - {slot.end_time}
+                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => openEditPeriod(slot)}
+                                  className="p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-200 min-h-[36px] min-w-[36px] flex items-center justify-center"
+                                  title="Edit Period"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePeriod(slot.id)}
+                                  className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 min-h-[36px] min-w-[36px] flex items-center justify-center"
+                                  title="Delete Period"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="font-extrabold text-slate-900 text-sm">{slot.subject}</div>
+
+                            <div className="text-xs text-slate-600 flex items-center gap-1.5 pt-1 border-t border-slate-200/60">
+                              <Users className="w-3.5 h-3.5 text-slate-400" />
+                              <span>Teacher: {slot.teacher_name || "Assigned Teacher"}</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* 2. Desktop Grid (>= 1280px) */}
+            <div className="hidden xl:grid grid-cols-6 gap-3.5">
               {(["MON", "TUE", "WED", "THU", "FRI", "SAT"] as DayOfWeek[]).map((day) => {
                 const dayLabels = {
                   MON: { en: "Monday", ur: "پیر" },
@@ -1542,20 +2024,20 @@ export default function PrincipalDashboard() {
       {/* MODAL: 1-CLICK MARK AS PAID */}
       {/* ========================================================================= */}
       {markPaidModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-6 space-y-4 animate-scaleUp">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto animate-scaleUp">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-base">Record Fee Payment</h3>
               <button
                 onClick={() => setMarkPaidModal(null)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-semibold"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-base font-semibold"
               >
                 ✕
               </button>
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
                 <div className="font-bold text-slate-900 text-sm">{markPaidModal.record.student_name}</div>
                 <div className="text-slate-500">
                   {markPaidModal.record.class_name} ({markPaidModal.record.section}) • Roll #{markPaidModal.record.roll_no}
@@ -1566,14 +2048,14 @@ export default function PrincipalDashboard() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Payment Method *</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Payment Method *</label>
                 <div className="grid grid-cols-3 gap-2">
                   {(["CASH", "JAZZCASH", "EASYPAISA"] as const).map((method) => (
                     <button
                       key={method}
                       type="button"
                       onClick={() => setMarkPaidModal({ ...markPaidModal, method })}
-                      className={`p-2 rounded-lg border text-center font-bold text-xs transition-all ${
+                      className={`p-2.5 min-h-[44px] rounded-xl border text-center font-bold text-xs transition-all flex items-center justify-center ${
                         markPaidModal.method === method
                           ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs"
                           : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
@@ -1595,24 +2077,24 @@ export default function PrincipalDashboard() {
                     placeholder="e.g. JC-893021 or EP-4421"
                     value={markPaidModal.txnId}
                     onChange={(e) => setMarkPaidModal({ ...markPaidModal, txnId: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3.5 py-2.5 min-h-[44px] text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setMarkPaidModal(null)}
-                className="px-3.5 py-2 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
+                className="px-4 py-2.5 min-h-[44px] rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleConfirmPayment}
-                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs"
+                className="px-5 py-2.5 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs"
               >
                 Confirm Paid
               </button>
@@ -1623,11 +2105,14 @@ export default function PrincipalDashboard() {
 
       {/* MODAL: ADD CLASS */}
       {showClassModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-base">Add New Class / Section</h3>
-              <button onClick={() => setShowClassModal(false)} className="text-slate-400 hover:text-slate-600 text-sm">
+              <button
+                onClick={() => setShowClassModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-base font-semibold"
+              >
                 ✕
               </button>
             </div>
@@ -1640,7 +2125,7 @@ export default function PrincipalDashboard() {
                   placeholder="e.g. Grade 9 (Computer Science)"
                   value={newClassName}
                   onChange={(e) => setNewClassName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
               <div>
@@ -1651,7 +2136,7 @@ export default function PrincipalDashboard() {
                   placeholder="e.g. A, B, Green"
                   value={newClassSection}
                   onChange={(e) => setNewClassSection(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
               <div>
@@ -1661,18 +2146,21 @@ export default function PrincipalDashboard() {
                   placeholder="e.g. Sir Kamran"
                   value={newClassTeacher}
                   onChange={(e) => setNewClassTeacher(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowClassModal(false)}
-                  className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
+                  className="px-4 py-2.5 min-h-[44px] rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
                 >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold">
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs"
+                >
                   Save Class
                 </button>
               </div>
@@ -1683,11 +2171,14 @@ export default function PrincipalDashboard() {
 
       {/* MODAL: ADD STAFF */}
       {showStaffModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-base">Add Teacher / Accountant</h3>
-              <button onClick={() => setShowStaffModal(false)} className="text-slate-400 hover:text-slate-600 text-sm">
+              <button
+                onClick={() => setShowStaffModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-base font-semibold"
+              >
                 ✕
               </button>
             </div>
@@ -1706,7 +2197,7 @@ export default function PrincipalDashboard() {
                   placeholder="e.g. Sir Bilal"
                   value={staffFormData.name}
                   onChange={(e) => setStaffFormData({ ...staffFormData, name: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
               <div>
@@ -1714,7 +2205,7 @@ export default function PrincipalDashboard() {
                 <select
                   value={staffFormData.role}
                   onChange={(e) => setStaffFormData({ ...staffFormData, role: e.target.value as any })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                 >
                   <option value="TEACHER">Teacher (Attendance & Homework)</option>
                   <option value="ACCOUNTANT">Accountant (Strict Fee Management)</option>
@@ -1728,18 +2219,21 @@ export default function PrincipalDashboard() {
                   placeholder="0300-1234567"
                   value={staffFormData.phone}
                   onChange={(e) => setStaffFormData({ ...staffFormData, phone: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowStaffModal(false)}
-                  className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
+                  className="px-4 py-2.5 min-h-[44px] rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
                 >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold">
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs"
+                >
                   Generate Credentials
                 </button>
               </div>
@@ -1750,11 +2244,14 @@ export default function PrincipalDashboard() {
 
       {/* MODAL: ADMIT STUDENT */}
       {showStudentModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-base">Admit Student & Link Parent</h3>
-              <button onClick={() => setShowStudentModal(false)} className="text-slate-400 hover:text-slate-600 text-sm">
+              <button
+                onClick={() => setShowStudentModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-base font-semibold"
+              >
                 ✕
               </button>
             </div>
@@ -1773,10 +2270,10 @@ export default function PrincipalDashboard() {
                   placeholder="e.g. Ali Ahmed"
                   value={studentFormData.name}
                   onChange={(e) => setStudentFormData({ ...studentFormData, name: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Roll Number *</label>
                   <input
@@ -1785,7 +2282,7 @@ export default function PrincipalDashboard() {
                     placeholder="e.g. 15"
                     value={studentFormData.roll_no}
                     onChange={(e) => setStudentFormData({ ...studentFormData, roll_no: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
@@ -1793,7 +2290,7 @@ export default function PrincipalDashboard() {
                   <select
                     value={studentFormData.class_id}
                     onChange={(e) => setStudentFormData({ ...studentFormData, class_id: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                    className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                   >
                     {classesList.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -1811,18 +2308,21 @@ export default function PrincipalDashboard() {
                   placeholder="0300-1234567"
                   value={studentFormData.parent_whatsapp}
                   onChange={(e) => setStudentFormData({ ...studentFormData, parent_whatsapp: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowStudentModal(false)}
-                  className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
+                  className="px-4 py-2.5 min-h-[44px] rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
                 >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold">
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs"
+                >
                   Admit & Generate Pass
                 </button>
               </div>
@@ -1833,8 +2333,8 @@ export default function PrincipalDashboard() {
 
       {/* MODAL: ASSIGN / EDIT TIMETABLE PERIOD */}
       {showPeriodModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4 animate-scaleUp">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto animate-scaleUp">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="font-bold text-slate-900 text-base">
@@ -1852,7 +2352,7 @@ export default function PrincipalDashboard() {
                   setEditingPeriod(null);
                   setClashWarning(null);
                 }}
-                className="text-slate-400 hover:text-slate-600 text-sm font-semibold"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-base font-semibold"
               >
                 ✕
               </button>
@@ -1860,7 +2360,7 @@ export default function PrincipalDashboard() {
 
             {/* Live Clash Alert Box */}
             {clashWarning && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-xs space-y-1 animate-pulse">
+              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-xs space-y-1 animate-pulse">
                 <div className="flex items-center gap-1.5 font-bold text-rose-900">
                   <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
                   <span>{t.teacherClashDetected || "Teacher Clash Detected!"}</span>
@@ -1881,7 +2381,7 @@ export default function PrincipalDashboard() {
                     setPeriodFormData((prev) => ({ ...prev, day_of_week: newDay }));
                     checkLiveClash(periodFormData.teacher_id, newDay, periodFormData.start_time, periodFormData.end_time, editingPeriod?.id);
                   }}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                 >
                   <option value="MON">Monday (پیر)</option>
                   <option value="TUE">Tuesday (منگل)</option>
@@ -1902,11 +2402,11 @@ export default function PrincipalDashboard() {
                   placeholder="e.g. Mathematics, English, General Science, Urdu"
                   value={periodFormData.subject}
                   onChange={(e) => setPeriodFormData((prev) => ({ ...prev, subject: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">
                     {t.startTime || "Start Time"} *
@@ -1920,7 +2420,7 @@ export default function PrincipalDashboard() {
                       setPeriodFormData((prev) => ({ ...prev, start_time: newStart }));
                       checkLiveClash(periodFormData.teacher_id, periodFormData.day_of_week, newStart, periodFormData.end_time, editingPeriod?.id);
                     }}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                    className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
                   />
                 </div>
                 <div>
@@ -1936,7 +2436,7 @@ export default function PrincipalDashboard() {
                       setPeriodFormData((prev) => ({ ...prev, end_time: newEnd }));
                       checkLiveClash(periodFormData.teacher_id, periodFormData.day_of_week, periodFormData.start_time, newEnd, editingPeriod?.id);
                     }}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                    className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
                   />
                 </div>
               </div>
@@ -1952,7 +2452,7 @@ export default function PrincipalDashboard() {
                     setPeriodFormData((prev) => ({ ...prev, teacher_id: newTeacher }));
                     checkLiveClash(newTeacher, periodFormData.day_of_week, periodFormData.start_time, periodFormData.end_time, editingPeriod?.id);
                   }}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                 >
                   {staffList
                     .filter((s) => s.role === "TEACHER")
@@ -1972,14 +2472,14 @@ export default function PrincipalDashboard() {
                     setEditingPeriod(null);
                     setClashWarning(null);
                   }}
-                  className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
+                  className="px-4 py-2.5 min-h-[44px] rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={!!clashWarning}
-                  className={`px-4 py-2 rounded-lg text-white text-xs font-bold transition-all ${
+                  className={`px-5 py-2.5 min-h-[44px] rounded-xl text-white text-xs font-bold transition-all ${
                     clashWarning
                       ? "bg-slate-300 cursor-not-allowed opacity-60"
                       : "bg-emerald-600 hover:bg-emerald-700 shadow-2xs"
