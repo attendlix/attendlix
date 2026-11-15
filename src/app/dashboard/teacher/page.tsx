@@ -42,9 +42,11 @@ import {
   getStudentMessages,
   sendTeacherMessage,
   isQuietHoursActive,
+  getTeacherTimetable,
+  DAYS_ORDER,
   logout,
 } from "@/lib/store";
-import { User, SchoolClass, Student, AttendanceStatus, Homework, ExamMark, ChatMessage } from "@/lib/types";
+import { User, SchoolClass, Student, AttendanceStatus, Homework, ExamMark, ChatMessage, TimetableSlot, DayOfWeek } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 import { getAbsentAlertWhatsAppUrl, dispatchWhatsAppWebhook } from "@/lib/whatsapp";
 
@@ -53,7 +55,7 @@ export default function TeacherDashboard() {
   const { t, isRtl } = useLanguage();
 
   // Active navigation tab
-  const [activeTab, setActiveTab] = useState<"attendance" | "homework" | "exams" | "messages">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "homework" | "timetable" | "exams" | "messages">("attendance");
 
   // User and Class context
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -61,6 +63,10 @@ export default function TeacherDashboard() {
   const [classesList, setClassesList] = useState<SchoolClass[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [classStudents, setClassStudents] = useState<Student[]>([]);
+
+  // Timetable State
+  const [teacherSchedule, setTeacherSchedule] = useState<TimetableSlot[]>([]);
+  const [selectedScheduleDay, setSelectedScheduleDay] = useState<DayOfWeek | "ALL">("ALL");
 
   // Connectivity & Offline mode
   const [isOnline, setIsOnline] = useState<boolean>(true);
@@ -106,6 +112,9 @@ export default function TeacherDashboard() {
     setCurrentUser(user);
     const sch = getSchool(user.school_id);
     setSchoolData(sch);
+
+    // Load teacher's timetable schedule
+    setTeacherSchedule(getTeacherTimetable(user.school_id, user.id));
 
     const classes = getClasses(user.school_id);
     setClassesList(classes);
@@ -387,13 +396,14 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        {/* 4 Core Teacher Tabs (Mobile Bottom/Top Navigation) */}
+        {/* Core Teacher Tabs (Mobile Bottom/Top Navigation) */}
         <div className="max-w-4xl mx-auto px-2 sm:px-6 flex items-center justify-around border-t border-slate-200 bg-white">
           {[
-            { id: "attendance", label: "Attendance", icon: CalendarCheck },
-            { id: "homework", label: "Homework", icon: BookOpen },
-            { id: "exams", label: "Exam Marks", icon: Award },
-            { id: "messages", label: "Messages", icon: MessageSquare },
+            { id: "attendance", label: t.tabAttendance || "Attendance", icon: CalendarCheck },
+            { id: "homework", label: t.tabHomework || "Homework", icon: BookOpen },
+            { id: "timetable", label: t.mySchedule || "My Schedule", icon: Clock },
+            { id: "exams", label: t.tabExams || "Exam Marks", icon: Award },
+            { id: "messages", label: t.tabChat || "Messages", icon: MessageSquare },
           ].map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -962,6 +972,198 @@ export default function TeacherDashboard() {
                   </button>
                 </form>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 5: MY TIMETABLE & SCHEDULE */}
+        {/* ========================================================================= */}
+        {activeTab === "timetable" && (
+          <div className="space-y-4">
+            {/* Today's Schedule Highlight Banner */}
+            {(() => {
+              const jsDay = new Date().getDay();
+              const dayCodeMap: Record<number, DayOfWeek | "SUN"> = {
+                0: "SUN",
+                1: "MON",
+                2: "TUE",
+                3: "WED",
+                4: "THU",
+                5: "FRI",
+                6: "SAT",
+              };
+              const todayCode = dayCodeMap[jsDay];
+              const dayLabels: Record<string, { en: string; ur: string }> = {
+                MON: { en: "Monday", ur: "پیر" },
+                TUE: { en: "Tuesday", ur: "منگل" },
+                WED: { en: "Wednesday", ur: "بدھ" },
+                THU: { en: "Thursday", ur: "جمعرات" },
+                FRI: { en: "Friday", ur: "جمعہ" },
+                SAT: { en: "Saturday", ur: "ہفتہ" },
+                SUN: { en: "Sunday", ur: "اتوار" },
+              };
+
+              const todaysSlots =
+                todayCode !== "SUN"
+                  ? teacherSchedule.filter((s) => s.day_of_week === todayCode)
+                  : [];
+
+              return (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-white/20 backdrop-blur-xs">
+                        <Clock className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-100 block">
+                          {t.todaysSchedule || "Today's Schedule"}
+                        </span>
+                        <h2 className="font-extrabold text-sm sm:text-base">
+                          {isRtl ? dayLabels[todayCode]?.ur : dayLabels[todayCode]?.en}
+                          {todayCode !== "SUN" && ` (${todaysSlots.length} Classes)`}
+                        </h2>
+                      </div>
+                    </div>
+
+                    <span className="px-2.5 py-1 rounded-full bg-white/20 text-white font-semibold text-[11px] backdrop-blur-xs">
+                      {todayCode === "SUN" ? "Weekend" : `${todaysSlots.length} Scheduled`}
+                    </span>
+                  </div>
+
+                  {todayCode === "SUN" ? (
+                    <div className="p-3 rounded-xl bg-white/10 text-xs text-emerald-50">
+                      🌿 Sunday Weekend — School is closed today. Review your upcoming week below.
+                    </div>
+                  ) : todaysSlots.length === 0 ? (
+                    <div className="p-3 rounded-xl bg-white/10 text-xs text-emerald-50">
+                      No classes scheduled for you today.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-1">
+                      {todaysSlots.map((slot) => (
+                        <div
+                          key={slot.id}
+                          className="p-3 rounded-xl bg-white/15 backdrop-blur-xs border border-white/20 space-y-1 hover:bg-white/25 transition-all"
+                        >
+                          <div className="flex items-center justify-between text-[11px] font-mono text-emerald-100 font-bold">
+                            <span>
+                              {slot.start_time} - {slot.end_time}
+                            </span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/20 uppercase">
+                              {slot.class_name} ({slot.section})
+                            </span>
+                          </div>
+                          <div className="font-extrabold text-white text-sm">{slot.subject}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Weekly Schedule Filter & List */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-4 sm:p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">
+                    {t.mySchedule || "Full Weekly Timetable"}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Showing all periods assigned to {currentUser?.name} across classes.
+                  </p>
+                </div>
+
+                {/* Day Filter Pills */}
+                <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-1">
+                  {(["ALL", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const).map((d) => {
+                    const active = selectedScheduleDay === d;
+                    const labels: Record<string, string> = {
+                      ALL: "All",
+                      MON: isRtl ? "پیر" : "Mon",
+                      TUE: isRtl ? "منگل" : "Tue",
+                      WED: isRtl ? "بدھ" : "Wed",
+                      THU: isRtl ? "جمعرات" : "Thu",
+                      FRI: isRtl ? "جمعہ" : "Fri",
+                      SAT: isRtl ? "ہفتہ" : "Sat",
+                    };
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setSelectedScheduleDay(d)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                          active
+                            ? "bg-slate-900 text-white shadow-2xs"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        }`}
+                      >
+                        {labels[d]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Weekly Period Cards */}
+              {(() => {
+                const dayLabels: Record<DayOfWeek, { en: string; ur: string }> = {
+                  MON: { en: "Monday", ur: "پیر" },
+                  TUE: { en: "Tuesday", ur: "منگل" },
+                  WED: { en: "Wednesday", ur: "بدھ" },
+                  THU: { en: "Thursday", ur: "جمعرات" },
+                  FRI: { en: "Friday", ur: "جمعہ" },
+                  SAT: { en: "Saturday", ur: "ہفتہ" },
+                };
+
+                const filtered = teacherSchedule.filter((slot) => {
+                  if (selectedScheduleDay === "ALL") return true;
+                  return slot.day_of_week === selectedScheduleDay;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="text-center py-10 text-slate-400 space-y-2">
+                      <Clock className="w-8 h-8 mx-auto opacity-30" />
+                      <p className="text-xs font-medium">
+                        {t.noClassesToday || "No classes scheduled for this period."}
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {filtered.map((slot) => (
+                      <div
+                        key={slot.id}
+                        className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-300 transition-all space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="px-2 py-0.5 rounded-full bg-slate-200/80 text-slate-800 text-[10px] font-bold">
+                            {isRtl ? dayLabels[slot.day_of_week]?.ur : dayLabels[slot.day_of_week]?.en}
+                          </span>
+                          <span className="text-[11px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            {slot.start_time} - {slot.end_time}
+                          </span>
+                        </div>
+
+                        <div>
+                          <div className="font-extrabold text-slate-900 text-sm">{slot.subject}</div>
+                          <div className="text-xs text-slate-600 flex items-center gap-1 mt-0.5">
+                            <BookOpen className="w-3 h-3 text-slate-400" />
+                            <span>
+                              {slot.class_name} (Section {slot.section})
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}

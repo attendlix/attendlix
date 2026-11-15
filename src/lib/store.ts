@@ -12,6 +12,8 @@ import {
   FeeRecord,
   FeeStatus,
   PaymentMethod,
+  TimetableSlot,
+  DayOfWeek,
 } from "./types";
 import { supabase } from "./supabase";
 
@@ -22,6 +24,7 @@ const KEY_USERS = "attendlix_users";
 const KEY_CLASSES = "attendlix_classes";
 const KEY_STUDENTS = "attendlix_students";
 const KEY_ANNOUNCEMENTS = "attendlix_announcements";
+const KEY_TIMETABLES = "attendlix_timetables";
 
 // Default Seed Schools
 const SEED_SCHOOL_ID = "school-beacon-001";
@@ -114,6 +117,30 @@ const SEED_USERS: User[] = [
     identifier: "TCH-101",
     phone: "0321-7654321",
     email: "sadia.tariq@gmail.com",
+    role: "TEACHER",
+    status: "ACTIVE",
+    tempPassword: "pass-teacher",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "usr-teacher-02",
+    school_id: SEED_SCHOOL_ID,
+    name: "Sir Kamran",
+    identifier: "TCH-102",
+    phone: "0301-2233445",
+    email: "kamran.science@beacon.edu.pk",
+    role: "TEACHER",
+    status: "ACTIVE",
+    tempPassword: "pass-teacher",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "usr-teacher-03",
+    school_id: SEED_SCHOOL_ID,
+    name: "Ms. Nida",
+    identifier: "TCH-103",
+    phone: "0332-4455667",
+    email: "nida.english@beacon.edu.pk",
     role: "TEACHER",
     status: "ACTIVE",
     tempPassword: "pass-teacher",
@@ -237,6 +264,49 @@ const SEED_ANNOUNCEMENTS: Announcement[] = [
   },
 ];
 
+// Seed Timetables
+const SEED_TIMETABLES: TimetableSlot[] = [
+  // Monday - cls-01 (Grade 8 - A)
+  { id: "tt-01", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-01", teacher_name: "Ms. Sadia Tariq", day_of_week: "MON", start_time: "08:00", end_time: "08:45", subject: "Mathematics" },
+  { id: "tt-02", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-03", teacher_name: "Ms. Nida", day_of_week: "MON", start_time: "08:45", end_time: "09:30", subject: "English" },
+  { id: "tt-03", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-02", teacher_name: "Sir Kamran", day_of_week: "MON", start_time: "09:30", end_time: "10:15", subject: "General Science" },
+  { id: "tt-04", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-01", teacher_name: "Ms. Sadia Tariq", day_of_week: "MON", start_time: "10:45", end_time: "11:30", subject: "Urdu" },
+  { id: "tt-05", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-02", teacher_name: "Sir Kamran", day_of_week: "MON", start_time: "11:30", end_time: "12:15", subject: "Islamiyat" },
+
+  // Tuesday - cls-01
+  { id: "tt-06", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-03", teacher_name: "Ms. Nida", day_of_week: "TUE", start_time: "08:00", end_time: "08:45", subject: "English" },
+  { id: "tt-07", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-01", teacher_name: "Ms. Sadia Tariq", day_of_week: "TUE", start_time: "08:45", end_time: "09:30", subject: "Mathematics" },
+  { id: "tt-08", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-02", teacher_name: "Sir Kamran", day_of_week: "TUE", start_time: "09:30", end_time: "10:15", subject: "Computer Science" },
+  { id: "tt-09", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-01", teacher_name: "Ms. Sadia Tariq", day_of_week: "TUE", start_time: "10:45", end_time: "11:30", subject: "Urdu" },
+
+  // Wednesday - cls-01
+  { id: "tt-10", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-01", teacher_name: "Ms. Sadia Tariq", day_of_week: "WED", start_time: "08:00", end_time: "08:45", subject: "Mathematics" },
+  { id: "tt-11", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-02", teacher_name: "Sir Kamran", day_of_week: "WED", start_time: "08:45", end_time: "09:30", subject: "General Science" },
+  { id: "tt-12", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-03", teacher_name: "Ms. Nida", day_of_week: "WED", start_time: "09:30", end_time: "10:15", subject: "English" },
+  { id: "tt-13", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-03", teacher_name: "Ms. Nida", day_of_week: "WED", start_time: "10:45", end_time: "11:30", subject: "Pak Studies" },
+
+  // Thursday - cls-01
+  { id: "tt-14", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-02", teacher_name: "Sir Kamran", day_of_week: "THU", start_time: "08:00", end_time: "08:45", subject: "General Science" },
+  { id: "tt-15", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-01", teacher_name: "Ms. Sadia Tariq", day_of_week: "THU", start_time: "08:45", end_time: "09:30", subject: "Mathematics" },
+  { id: "tt-16", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-01", teacher_name: "Ms. Sadia Tariq", day_of_week: "THU", start_time: "09:30", end_time: "10:15", subject: "Urdu" },
+  { id: "tt-17", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-03", teacher_name: "Ms. Nida", day_of_week: "THU", start_time: "10:45", end_time: "11:30", subject: "English" },
+
+  // Friday - cls-01
+  { id: "tt-18", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-01", teacher_name: "Ms. Sadia Tariq", day_of_week: "FRI", start_time: "08:00", end_time: "08:45", subject: "Mathematics" },
+  { id: "tt-19", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-03", teacher_name: "Ms. Nida", day_of_week: "FRI", start_time: "08:45", end_time: "09:30", subject: "English" },
+  { id: "tt-20", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-02", teacher_name: "Sir Kamran", day_of_week: "FRI", start_time: "09:30", end_time: "10:15", subject: "Islamiyat" },
+  { id: "tt-21", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-01", teacher_name: "Ms. Sadia Tariq", day_of_week: "FRI", start_time: "10:30", end_time: "11:15", subject: "Urdu" },
+
+  // Saturday - cls-01
+  { id: "tt-22", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-02", teacher_name: "Sir Kamran", day_of_week: "SAT", start_time: "08:00", end_time: "08:45", subject: "Computer Science" },
+  { id: "tt-23", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-01", teacher_name: "Ms. Sadia Tariq", day_of_week: "SAT", start_time: "08:45", end_time: "09:30", subject: "Mathematics" },
+  { id: "tt-24", school_id: SEED_SCHOOL_ID, class_id: "cls-01", class_name: "Grade 8", section: "A", teacher_id: "usr-teacher-03", teacher_name: "Ms. Nida", day_of_week: "SAT", start_time: "09:30", end_time: "10:15", subject: "Library / Reading" },
+
+  // cls-02 (Grade 8 - B)
+  { id: "tt-25", school_id: SEED_SCHOOL_ID, class_id: "cls-02", class_name: "Grade 8", section: "B", teacher_id: "usr-teacher-02", teacher_name: "Sir Kamran", day_of_week: "MON", start_time: "08:00", end_time: "08:45", subject: "General Science" },
+  { id: "tt-26", school_id: SEED_SCHOOL_ID, class_id: "cls-02", class_name: "Grade 8", section: "B", teacher_id: "usr-teacher-01", teacher_name: "Ms. Sadia Tariq", day_of_week: "MON", start_time: "08:45", end_time: "09:30", subject: "Mathematics" },
+];
+
 // Helper to safely access browser storage
 function getStorage<T>(key: string, defaultVal: T): T {
   if (typeof window === "undefined") return defaultVal;
@@ -274,6 +344,9 @@ export function initializeStore() {
   }
   if (!window.localStorage.getItem(KEY_ANNOUNCEMENTS)) {
     setStorage(KEY_ANNOUNCEMENTS, SEED_ANNOUNCEMENTS);
+  }
+  if (!window.localStorage.getItem(KEY_TIMETABLES)) {
+    setStorage(KEY_TIMETABLES, SEED_TIMETABLES);
   }
 }
 
@@ -1287,3 +1360,218 @@ export function onboardManualSchool(data: {
   setStorage(KEY_SCHOOLS, updated);
   return newSchool;
 }
+
+// ----------------------------------------------------
+// TIMETABLE SYSTEM (Principal, Teacher & Student)
+// ----------------------------------------------------
+
+export const DAYS_ORDER: DayOfWeek[] = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+function timeToMinutes(t: string): number {
+  if (!t) return 0;
+  const parts = t.split(":");
+  const h = parseInt(parts[0], 10) || 0;
+  const m = parseInt(parts[1], 10) || 0;
+  return h * 60 + m;
+}
+
+export function getTimetables(school_id?: string): TimetableSlot[] {
+  initializeStore();
+  const targetSchoolId = school_id || SEED_SCHOOL_ID;
+  const list = getStorage<TimetableSlot[]>(KEY_TIMETABLES, SEED_TIMETABLES);
+  return list.filter((item) => item.school_id === targetSchoolId || targetSchoolId === SEED_SCHOOL_ID);
+}
+
+export function getClassTimetable(school_id: string, class_id: string): TimetableSlot[] {
+  const all = getTimetables(school_id);
+  return all
+    .filter((slot) => slot.class_id === class_id)
+    .sort((a, b) => {
+      const dayDiff = DAYS_ORDER.indexOf(a.day_of_week) - DAYS_ORDER.indexOf(b.day_of_week);
+      if (dayDiff !== 0) return dayDiff;
+      return timeToMinutes(a.start_time) - timeToMinutes(b.start_time);
+    });
+}
+
+export function getTeacherTimetable(school_id: string, teacher_id: string): TimetableSlot[] {
+  const all = getTimetables(school_id);
+  return all
+    .filter((slot) => slot.teacher_id === teacher_id)
+    .sort((a, b) => {
+      const dayDiff = DAYS_ORDER.indexOf(a.day_of_week) - DAYS_ORDER.indexOf(b.day_of_week);
+      if (dayDiff !== 0) return dayDiff;
+      return timeToMinutes(a.start_time) - timeToMinutes(b.start_time);
+    });
+}
+
+export function checkTeacherClash(
+  school_id: string,
+  teacher_id: string,
+  day_of_week: DayOfWeek,
+  start_time: string,
+  end_time: string,
+  excludeSlotId?: string
+): { hasClash: boolean; conflictingSlot?: TimetableSlot; message?: string } {
+  const all = getTimetables(school_id);
+  const newStart = timeToMinutes(start_time);
+  const newEnd = timeToMinutes(end_time);
+
+  if (newEnd <= newStart) {
+    return {
+      hasClash: true,
+      message: "End time must be after start time.",
+    };
+  }
+
+  const conflicting = all.find((slot) => {
+    if (excludeSlotId && slot.id === excludeSlotId) return false;
+    if (slot.teacher_id !== teacher_id) return false;
+    if (slot.day_of_week !== day_of_week) return false;
+
+    const existingStart = timeToMinutes(slot.start_time);
+    const existingEnd = timeToMinutes(slot.end_time);
+
+    // Overlap condition: start1 < end2 && end1 > start2
+    return newStart < existingEnd && newEnd > existingStart;
+  });
+
+  if (conflicting) {
+    const teacherName = conflicting.teacher_name || "This teacher";
+    const className = conflicting.class_name ? `${conflicting.class_name} - ${conflicting.section || ""}` : "another class";
+    return {
+      hasClash: true,
+      conflictingSlot: conflicting,
+      message: `${teacherName} is already assigned to ${className} (${conflicting.subject}) from ${conflicting.start_time} to ${conflicting.end_time}.`,
+    };
+  }
+
+  return { hasClash: false };
+}
+
+export function saveTimetableSlot(
+  school_id: string,
+  data: {
+    id?: string;
+    class_id: string;
+    teacher_id: string;
+    day_of_week: DayOfWeek;
+    start_time: string;
+    end_time: string;
+    subject: string;
+  }
+): { success: boolean; slot?: TimetableSlot; error?: string } {
+  initializeStore();
+
+  // 1. Clash Check
+  const clash = checkTeacherClash(
+    school_id,
+    data.teacher_id,
+    data.day_of_week,
+    data.start_time,
+    data.end_time,
+    data.id
+  );
+
+  if (clash.hasClash) {
+    return { success: false, error: clash.message };
+  }
+
+  // 2. Resolve Class and Teacher metadata
+  const classes = getClasses(school_id);
+  const foundClass = classes.find((c) => c.id === data.class_id);
+  const staff = getStaff(school_id);
+  const foundTeacher = staff.find((s) => s.id === data.teacher_id);
+
+  const all = getTimetables(school_id);
+  let savedSlot: TimetableSlot;
+
+  if (data.id) {
+    const idx = all.findIndex((s) => s.id === data.id);
+    if (idx !== -1) {
+      savedSlot = {
+        ...all[idx],
+        class_id: data.class_id,
+        class_name: foundClass?.name || all[idx].class_name || "Grade Class",
+        section: foundClass?.section || all[idx].section || "A",
+        teacher_id: data.teacher_id,
+        teacher_name: foundTeacher?.name || all[idx].teacher_name || "Teacher",
+        day_of_week: data.day_of_week,
+        start_time: data.start_time,
+        end_time: data.end_time,
+        subject: data.subject.trim(),
+      };
+      all[idx] = savedSlot;
+    } else {
+      savedSlot = {
+        id: data.id,
+        school_id,
+        class_id: data.class_id,
+        class_name: foundClass?.name || "Grade Class",
+        section: foundClass?.section || "A",
+        teacher_id: data.teacher_id,
+        teacher_name: foundTeacher?.name || "Teacher",
+        day_of_week: data.day_of_week,
+        start_time: data.start_time,
+        end_time: data.end_time,
+        subject: data.subject.trim(),
+        created_at: new Date().toISOString(),
+      };
+      all.unshift(savedSlot);
+    }
+  } else {
+    savedSlot = {
+      id: "tt-" + Math.random().toString(36).substring(2, 9),
+      school_id,
+      class_id: data.class_id,
+      class_name: foundClass?.name || "Grade Class",
+      section: foundClass?.section || "A",
+      teacher_id: data.teacher_id,
+      teacher_name: foundTeacher?.name || "Teacher",
+      day_of_week: data.day_of_week,
+      start_time: data.start_time,
+      end_time: data.end_time,
+      subject: data.subject.trim(),
+      created_at: new Date().toISOString(),
+    };
+    all.unshift(savedSlot);
+  }
+
+  setStorage(KEY_TIMETABLES, all);
+
+  // Async Supabase sync
+  try {
+    supabase
+      .from("timetables")
+      .upsert({
+        id: savedSlot.id.startsWith("tt-") ? undefined : savedSlot.id,
+        school_id: savedSlot.school_id,
+        class_id: savedSlot.class_id,
+        teacher_id: savedSlot.teacher_id,
+        day_of_week: savedSlot.day_of_week,
+        start_time: savedSlot.start_time,
+        end_time: savedSlot.end_time,
+        subject: savedSlot.subject,
+      })
+      .then(() => {});
+  } catch (e) {
+    // offline or schema fallback
+  }
+
+  return { success: true, slot: savedSlot };
+}
+
+export function deleteTimetableSlot(slot_id: string): boolean {
+  initializeStore();
+  const all = getStorage<TimetableSlot[]>(KEY_TIMETABLES, SEED_TIMETABLES);
+  const filtered = all.filter((s) => s.id !== slot_id);
+  setStorage(KEY_TIMETABLES, filtered);
+
+  try {
+    supabase.from("timetables").delete().eq("id", slot_id).then(() => {});
+  } catch (e) {
+    // non-blocking
+  }
+
+  return true;
+}
+

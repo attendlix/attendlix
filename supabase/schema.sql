@@ -270,3 +270,37 @@ ALTER TABLE public.fee_records ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Fee records strictly scoped by school_id"
     ON public.fee_records FOR ALL
     USING (school_id = NULLIF(current_setting('app.current_school_id', true), '')::UUID OR auth.role() = 'service_role');
+-- ==============================================================================
+-- ATTENDLIX: Step 6 - Weekly Timetable Management Schema (Supabase / PostgreSQL)
+-- ==============================================================================
+
+DO $$ BEGIN
+    CREATE TYPE timetable_day AS ENUM ('MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- timetables Table
+CREATE TABLE IF NOT EXISTS public.timetables (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+    class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+    teacher_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    day_of_week timetable_day NOT NULL,
+    start_time TIME NOT NULL, -- e.g. '08:00:00'
+    end_time TIME NOT NULL,   -- e.g. '08:45:00'
+    subject VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT chk_time_order CHECK (end_time > start_time)
+);
+
+CREATE INDEX IF NOT EXISTS idx_timetables_school ON public.timetables(school_id);
+CREATE INDEX IF NOT EXISTS idx_timetables_class_day ON public.timetables(school_id, class_id, day_of_week);
+CREATE INDEX IF NOT EXISTS idx_timetables_teacher_day ON public.timetables(school_id, teacher_id, day_of_week);
+
+-- Row-Level Security (RLS)
+ALTER TABLE public.timetables ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Timetables strictly scoped by school_id"
+    ON public.timetables FOR ALL
+    USING (school_id = NULLIF(current_setting('app.current_school_id', true), '')::UUID OR auth.role() = 'service_role');

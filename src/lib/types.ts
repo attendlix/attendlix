@@ -138,3 +138,21 @@ export interface FeeRecord {
   paid_at?: string;
   created_at: string;
 }
+
+export type DayOfWeek = "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT";
+
+export interface TimetableSlot {
+  id: string;
+  school_id: string;
+  class_id: string;
+  class_name?: string;
+  section?: string;
+  teacher_id: string;
+  teacher_name?: string;
+  day_of_week: DayOfWeek;
+  start_time: string; // "08:00"
+  end_time: string;   // "08:45"
+  subject: string;
+  created_at?: string;
+}
+

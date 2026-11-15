@@ -35,9 +35,11 @@ import {
   getStudentMessages,
   sendTeacherMessage,
   isQuietHoursActive,
+  getClassTimetable,
+  DAYS_ORDER,
   logout,
 } from "@/lib/store";
-import { User, Student, Announcement, Homework, ExamMark, FeeRecord, ChatMessage, PaymentMethod } from "@/lib/types";
+import { User, Student, Announcement, Homework, ExamMark, FeeRecord, ChatMessage, PaymentMethod, TimetableSlot, DayOfWeek } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 
 export default function StudentDashboard() {
@@ -45,7 +47,7 @@ export default function StudentDashboard() {
   const { t, isRtl } = useLanguage();
 
   // Navigation tab
-  const [activeTab, setActiveTab] = useState<"overview" | "attendance_hw" | "exams" | "fees" | "chat">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "attendance_hw" | "timetable" | "exams" | "fees" | "chat">("overview");
 
   // State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -58,6 +60,10 @@ export default function StudentDashboard() {
   const [feeRecords, setFeeRecords] = useState<FeeRecord[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [newMessageText, setNewMessageText] = useState("");
+
+  // Timetable State
+  const [classTimetable, setClassTimetable] = useState<TimetableSlot[]>([]);
+  const [selectedDayFilter, setSelectedDayFilter] = useState<DayOfWeek | "ALL">("ALL");
 
   // Payment Modal State
   const [paymentModal, setPaymentModal] = useState<{ record: FeeRecord; method: PaymentMethod; txnId: string } | null>(null);
@@ -86,6 +92,7 @@ export default function StudentDashboard() {
     if (student) {
       setAnnouncements(getAnnouncements(user.school_id));
       setHomeworkList(getHomeworkList(user.school_id, student.class_id));
+      setClassTimetable(getClassTimetable(user.school_id, student.class_id));
       setExamMarksList(getExamMarks(user.school_id, student.class_id, "Monthly Test (October)", "Mathematics"));
       setFeeRecords(getStudentFeeRecords(user.school_id, student.id));
       setChatMessages(getStudentMessages(user.school_id, student.id));
@@ -173,11 +180,12 @@ export default function StudentDashboard() {
         {/* Tab Selector */}
         <div className="max-w-4xl mx-auto px-2 flex items-center justify-around border-t border-slate-200 bg-white">
           {[
-            { id: "overview", label: "Overview", icon: School },
-            { id: "attendance_hw", label: "Diary & Work", icon: BookOpen },
-            { id: "exams", label: "Exam Marks", icon: Award },
-            { id: "fees", label: "Fee Status", icon: CreditCard },
-            { id: "chat", label: "Teacher Chat", icon: MessageSquare },
+            { id: "overview", label: t.tabOverview || "Overview", icon: School },
+            { id: "attendance_hw", label: t.tabHomework || "Diary & Work", icon: BookOpen },
+            { id: "timetable", label: t.tabTimetable || "Timetable", icon: Clock },
+            { id: "exams", label: t.tabExams || "Exam Marks", icon: Award },
+            { id: "fees", label: t.tabFees || "Fee Status", icon: CreditCard },
+            { id: "chat", label: t.tabChat || "Teacher Chat", icon: MessageSquare },
           ].map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -556,6 +564,141 @@ export default function StudentDashboard() {
                 </button>
               </form>
             </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 3: CLASS TIMETABLE & SCHEDULE */}
+        {/* ========================================================================= */}
+        {activeTab === "timetable" && (
+          <div className="space-y-4">
+            {/* Header Card */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-emerald-600" />
+                    <span>{t.weeklyTimetable || "Weekly Class Timetable"}</span>
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    {currentStudent?.class_name} - Section {currentStudent?.section} • Monday to Saturday
+                  </p>
+                </div>
+
+                {/* Day Filter Pills */}
+                <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-1">
+                  {(["ALL", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const).map((d) => {
+                    const active = selectedDayFilter === d;
+                    const labels: Record<string, string> = {
+                      ALL: t.all || "All",
+                      MON: isRtl ? "پیر" : "Mon",
+                      TUE: isRtl ? "منگل" : "Tue",
+                      WED: isRtl ? "بدھ" : "Wed",
+                      THU: isRtl ? "جمعرات" : "Thu",
+                      FRI: isRtl ? "جمعہ" : "Fri",
+                      SAT: isRtl ? "ہفتہ" : "Sat",
+                    };
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setSelectedDayFilter(d)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                          active
+                            ? "bg-slate-900 text-white shadow-2xs"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        }`}
+                      >
+                        {labels[d]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Timetable List grouped by day */}
+            {(() => {
+              const dayLabels: Record<DayOfWeek, { en: string; ur: string }> = {
+                MON: { en: "Monday", ur: "پیر" },
+                TUE: { en: "Tuesday", ur: "منگل" },
+                WED: { en: "Wednesday", ur: "بدھ" },
+                THU: { en: "Thursday", ur: "جمعرات" },
+                FRI: { en: "Friday", ur: "جمعہ" },
+                SAT: { en: "Saturday", ur: "ہفتہ" },
+              };
+
+              const daysToDisplay =
+                selectedDayFilter === "ALL"
+                  ? (["MON", "TUE", "WED", "THU", "FRI", "SAT"] as DayOfWeek[])
+                  : [selectedDayFilter];
+
+              const hasAnySlots = classTimetable.some((s) => daysToDisplay.includes(s.day_of_week));
+
+              if (!hasAnySlots) {
+                return (
+                  <div className="p-8 rounded-2xl bg-white border border-slate-200 text-center text-slate-400 space-y-2">
+                    <Clock className="w-8 h-8 mx-auto opacity-30" />
+                    <p className="text-xs font-medium">
+                      {t.noClassesForClass || "No periods scheduled for this class yet."}
+                    </p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-4">
+                  {daysToDisplay.map((day) => {
+                    const slotsForDay = classTimetable.filter((s) => s.day_of_week === day);
+                    if (selectedDayFilter === "ALL" && slotsForDay.length === 0) return null;
+
+                    return (
+                      <div
+                        key={day}
+                        className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden"
+                      >
+                        <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                          <span className="font-extrabold text-xs text-slate-900">
+                            {isRtl ? dayLabels[day].ur : dayLabels[day].en}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-500">
+                            {slotsForDay.length} {slotsForDay.length === 1 ? "Period" : "Periods"}
+                          </span>
+                        </div>
+
+                        <div className="p-3 sm:p-4 divide-y divide-slate-100">
+                          {slotsForDay.length === 0 ? (
+                            <div className="text-xs text-slate-400 py-2">
+                              {t.noClassesToday || "No classes scheduled."}
+                            </div>
+                          ) : (
+                            slotsForDay.map((slot) => (
+                              <div
+                                key={slot.id}
+                                className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3"
+                              >
+                                <div className="space-y-0.5">
+                                  <div className="font-bold text-slate-900 text-sm">{slot.subject}</div>
+                                  <div className="text-xs text-slate-500 flex items-center gap-1.5">
+                                    <span>Teacher: {slot.teacher_name || "Assigned Teacher"}</span>
+                                  </div>
+                                </div>
+
+                                <div className="text-right">
+                                  <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono text-xs font-bold whitespace-nowrap">
+                                    {slot.start_time} - {slot.end_time}
+                                  </span>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
       </main>

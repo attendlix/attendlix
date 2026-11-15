@@ -35,6 +35,9 @@ import {
   ArrowRight,
   DollarSign,
   AlertTriangle,
+  Trash2,
+  Edit3,
+  Calendar,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -51,9 +54,14 @@ import {
   getFeeRecords,
   updateFeeStatus,
   getFeeSummary,
+  getClassTimetable,
+  checkTeacherClash,
+  saveTimetableSlot,
+  deleteTimetableSlot,
+  DAYS_ORDER,
   logout,
 } from "@/lib/store";
-import { User, SchoolClass, Student, Announcement, FeeRecord, FeeStatus, PaymentMethod } from "@/lib/types";
+import { User, SchoolClass, Student, Announcement, FeeRecord, FeeStatus, PaymentMethod, TimetableSlot, DayOfWeek } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 import {
   getFeeReminderWhatsAppUrl,
@@ -66,7 +74,7 @@ export default function PrincipalDashboard() {
   const { t, isRtl } = useLanguage();
 
   // Active Tab state
-  const [activeTab, setActiveTab] = useState<"overview" | "classes" | "staff" | "students" | "fees" | "announcements">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "classes" | "staff" | "students" | "fees" | "announcements" | "timetable">("overview");
 
   // User and Core Data state
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -76,6 +84,26 @@ export default function PrincipalDashboard() {
   const [staffList, setStaffList] = useState<User[]>([]);
   const [studentsList, setStudentsList] = useState<Student[]>([]);
   const [announcementsList, setAnnouncementsList] = useState<Announcement[]>([]);
+
+  // Timetable State
+  const [selectedTimetableClass, setSelectedTimetableClass] = useState<string>("");
+  const [timetableSlots, setTimetableSlots] = useState<TimetableSlot[]>([]);
+  const [showPeriodModal, setShowPeriodModal] = useState<boolean>(false);
+  const [editingPeriod, setEditingPeriod] = useState<TimetableSlot | null>(null);
+  const [periodFormData, setPeriodFormData] = useState<{
+    day_of_week: DayOfWeek;
+    start_time: string;
+    end_time: string;
+    subject: string;
+    teacher_id: string;
+  }>({
+    day_of_week: "MON",
+    start_time: "08:00",
+    end_time: "08:45",
+    subject: "Mathematics",
+    teacher_id: "",
+  });
+  const [clashWarning, setClashWarning] = useState<string | null>(null);
 
   // Fee Tab State
   const [feeMonth, setFeeMonth] = useState<string>("November");
@@ -151,8 +179,114 @@ export default function PrincipalDashboard() {
     setStudentsList(getStudents(user.school_id));
     setAnnouncementsList(getAnnouncements(user.school_id));
 
+    // Timetable initialization
+    const initialClassId = selectedTimetableClass || (cls.length > 0 ? cls[0].id : "");
+    if (initialClassId) {
+      if (!selectedTimetableClass) setSelectedTimetableClass(initialClassId);
+      setTimetableSlots(getClassTimetable(user.school_id, initialClassId));
+    }
+
     // Fee records
     refreshFees(user.school_id, feeMonth, feeYear, feeClassFilter, feeStatusFilter);
+  };
+
+  const refreshTimetable = (classId?: string) => {
+    if (!currentUser) return;
+    const targetClassId = classId || selectedTimetableClass || (classesList.length > 0 ? classesList[0].id : "");
+    if (!targetClassId) return;
+    setTimetableSlots(getClassTimetable(currentUser.school_id, targetClassId));
+  };
+
+  const checkLiveClash = (
+    teacherId: string,
+    day: DayOfWeek,
+    start: string,
+    end: string,
+    excludeId?: string
+  ) => {
+    if (!currentUser || !teacherId || !day || !start || !end) {
+      setClashWarning(null);
+      return;
+    }
+    const clash = checkTeacherClash(currentUser.school_id, teacherId, day, start, end, excludeId);
+    if (clash.hasClash) {
+      setClashWarning(clash.message || "Teacher clash detected!");
+    } else {
+      setClashWarning(null);
+    }
+  };
+
+  const openCreatePeriod = (day?: DayOfWeek) => {
+    const teachers = staffList.filter((s) => s.role === "TEACHER");
+    const defaultTeacherId = teachers.length > 0 ? teachers[0].id : "";
+    const targetDay = day || "MON";
+    setEditingPeriod(null);
+    setPeriodFormData({
+      day_of_week: targetDay,
+      start_time: "08:00",
+      end_time: "08:45",
+      subject: "Mathematics",
+      teacher_id: defaultTeacherId,
+    });
+    setClashWarning(null);
+    setShowPeriodModal(true);
+    if (defaultTeacherId) {
+      checkLiveClash(defaultTeacherId, targetDay, "08:00", "08:45");
+    }
+  };
+
+  const openEditPeriod = (slot: TimetableSlot) => {
+    setEditingPeriod(slot);
+    setPeriodFormData({
+      day_of_week: slot.day_of_week,
+      start_time: slot.start_time,
+      end_time: slot.end_time,
+      subject: slot.subject,
+      teacher_id: slot.teacher_id,
+    });
+    setClashWarning(null);
+    setShowPeriodModal(true);
+  };
+
+  const handleSavePeriod = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser || !selectedTimetableClass) return;
+
+    if (!periodFormData.teacher_id) {
+      const teachers = staffList.filter((s) => s.role === "TEACHER");
+      if (teachers.length > 0) {
+        periodFormData.teacher_id = teachers[0].id;
+      }
+    }
+
+    const res = saveTimetableSlot(currentUser.school_id, {
+      id: editingPeriod?.id,
+      class_id: selectedTimetableClass,
+      teacher_id: periodFormData.teacher_id,
+      day_of_week: periodFormData.day_of_week,
+      start_time: periodFormData.start_time,
+      end_time: periodFormData.end_time,
+      subject: periodFormData.subject,
+    });
+
+    if (!res.success) {
+      setClashWarning(res.error || "Teacher conflict detected for this time slot.");
+      return;
+    }
+
+    setShowPeriodModal(false);
+    setEditingPeriod(null);
+    setClashWarning(null);
+    setFeeActionNotice("✓ Period scheduled successfully in weekly timetable.");
+    setTimeout(() => setFeeActionNotice(null), 4000);
+    refreshTimetable(selectedTimetableClass);
+  };
+
+  const handleDeletePeriod = (slotId: string) => {
+    deleteTimetableSlot(slotId);
+    setFeeActionNotice("✓ Period removed from timetable.");
+    setTimeout(() => setFeeActionNotice(null), 3000);
+    refreshTimetable(selectedTimetableClass);
   };
 
   const refreshFees = (
@@ -277,12 +411,13 @@ export default function PrincipalDashboard() {
   const availableTabs = isAccountant
     ? [{ id: "fees", label: "Fee Management & Payments", icon: CreditCard }]
     : [
-        { id: "overview", label: "Overview", icon: TrendingUp },
-        { id: "classes", label: "Classes & Sections", icon: BookOpen },
-        { id: "staff", label: "Staff (Teachers & Accounts)", icon: Users },
-        { id: "students", label: "Student Admissions", icon: UserPlus },
-        { id: "fees", label: "Fee Management", icon: CreditCard },
-        { id: "announcements", label: "Announcements & WhatsApp", icon: MessageSquare },
+        { id: "overview", label: t.tabOverview || "Overview", icon: TrendingUp },
+        { id: "classes", label: t.tabClasses || "Classes & Sections", icon: BookOpen },
+        { id: "timetable", label: t.tabTimetable || "Timetable", icon: Clock },
+        { id: "staff", label: t.tabStaff || "Staff (Teachers & Accounts)", icon: Users },
+        { id: "students", label: t.tabStudents || "Student Admissions", icon: UserPlus },
+        { id: "fees", label: t.tabFees || "Fee Management", icon: CreditCard },
+        { id: "announcements", label: t.tabAnnouncements || "Announcements & WhatsApp", icon: MessageSquare },
       ];
 
   return (
@@ -1236,6 +1371,171 @@ export default function PrincipalDashboard() {
             </div>
           </div>
         )}
+
+        {/* ========================================================================= */}
+        {/* TAB 7: WEEKLY TIMETABLE BUILDER (PRINCIPAL ONLY) */}
+        {/* ========================================================================= */}
+        {activeTab === "timetable" && !isAccountant && (
+          <div className="space-y-6">
+            {/* Top Bar with Class Selector & Assign Button */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-emerald-600" />
+                  <span>{t.weeklyTimetable || "Weekly Timetable & Schedule"}</span>
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  {isRtl
+                    ? "تمام کلاسز کا ہفتہ وار ٹائم ٹیبل بنائیں اور اساتذہ کے تصادم سے بچیں۔"
+                    : "Plan class periods from Monday to Saturday with real-time teacher clash prevention."}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+                  <span className="text-xs font-bold text-slate-500">{t.selectClass || "Class"}:</span>
+                  <select
+                    value={selectedTimetableClass}
+                    onChange={(e) => {
+                      setSelectedTimetableClass(e.target.value);
+                      refreshTimetable(e.target.value);
+                    }}
+                    className="text-xs font-bold text-slate-900 bg-transparent focus:outline-none cursor-pointer"
+                  >
+                    {classesList.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.section})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => openCreatePeriod()}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs flex items-center gap-1.5 transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{t.assignPeriod || "Assign Period"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Smart Clash Engine Banner */}
+            <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-emerald-900 text-xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>
+                  <strong>Smart Clash Engine Active:</strong> Teacher double-booking is automatically blocked across all classes for identical time slots.
+                </span>
+              </div>
+              <span className="hidden md:inline-block text-[11px] font-semibold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-md">
+                Monday – Saturday (6 Days)
+              </span>
+            </div>
+
+            {/* Weekly Grid (Monday to Saturday) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
+              {(["MON", "TUE", "WED", "THU", "FRI", "SAT"] as DayOfWeek[]).map((day) => {
+                const dayLabels = {
+                  MON: { en: "Monday", ur: "پیر" },
+                  TUE: { en: "Tuesday", ur: "منگل" },
+                  WED: { en: "Wednesday", ur: "بدھ" },
+                  THU: { en: "Thursday", ur: "جمعرات" },
+                  FRI: { en: "Friday", ur: "جمعہ" },
+                  SAT: { en: "Saturday", ur: "ہفتہ" },
+                };
+                const daySlots = timetableSlots.filter((s) => s.day_of_week === day);
+
+                return (
+                  <div
+                    key={day}
+                    className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col min-h-[340px]"
+                  >
+                    {/* Day Header */}
+                    <div className="p-3 border-b border-slate-100 bg-slate-50/60 rounded-t-2xl flex items-center justify-between">
+                      <div>
+                        <span className="font-extrabold text-slate-900 text-xs block">
+                          {isRtl ? dayLabels[day].ur : dayLabels[day].en}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {daySlots.length} {daySlots.length === 1 ? "Period" : "Periods"}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openCreatePeriod(day)}
+                        className="w-6 h-6 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 flex items-center justify-center transition-colors text-xs font-bold"
+                        title={`Add period for ${dayLabels[day].en}`}
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* Periods List */}
+                    <div className="p-2.5 flex-1 space-y-2.5 overflow-y-auto max-h-[480px]">
+                      {daySlots.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-4 text-slate-400">
+                          <Clock className="w-5 h-5 mb-1.5 opacity-40" />
+                          <span className="text-[11px] leading-tight font-medium">
+                            {t.noClassesForClass || "No periods scheduled"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => openCreatePeriod(day)}
+                            className="mt-2 text-[10px] text-emerald-600 font-bold hover:underline"
+                          >
+                            + Add Period
+                          </button>
+                        </div>
+                      ) : (
+                        daySlots.map((slot) => (
+                          <div
+                            key={slot.id}
+                            className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 hover:border-emerald-300 transition-all group space-y-1.5 relative shadow-2xs"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-100/70 text-emerald-800 font-mono text-[10px] font-bold">
+                                {slot.start_time} - {slot.end_time}
+                              </span>
+                              <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  type="button"
+                                  onClick={() => openEditPeriod(slot)}
+                                  className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200/60"
+                                  title="Edit Period"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePeriod(slot.id)}
+                                  className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                                  title="Delete Period"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="font-bold text-slate-900 text-xs truncate" title={slot.subject}>
+                              {slot.subject}
+                            </div>
+
+                            <div className="text-[11px] text-slate-500 flex items-center gap-1 truncate">
+                              <Users className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                              <span className="truncate">{slot.teacher_name || "Assigned Teacher"}</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* ========================================================================= */}
@@ -1524,6 +1824,168 @@ export default function PrincipalDashboard() {
                 </button>
                 <button type="submit" className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold">
                   Admit & Generate Pass
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ASSIGN / EDIT TIMETABLE PERIOD */}
+      {showPeriodModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">
+                  {editingPeriod ? "Edit Timetable Period" : "Assign New Period"}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {classesList.find((c) => c.id === selectedTimetableClass)?.name} (
+                  {classesList.find((c) => c.id === selectedTimetableClass)?.section})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPeriodModal(false);
+                  setEditingPeriod(null);
+                  setClashWarning(null);
+                }}
+                className="text-slate-400 hover:text-slate-600 text-sm font-semibold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Live Clash Alert Box */}
+            {clashWarning && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-xs space-y-1 animate-pulse">
+                <div className="flex items-center gap-1.5 font-bold text-rose-900">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                  <span>{t.teacherClashDetected || "Teacher Clash Detected!"}</span>
+                </div>
+                <p className="text-[11px] leading-relaxed">{clashWarning}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleSavePeriod} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  {t.dayOfWeek || "Day of Week"} *
+                </label>
+                <select
+                  value={periodFormData.day_of_week}
+                  onChange={(e) => {
+                    const newDay = e.target.value as DayOfWeek;
+                    setPeriodFormData((prev) => ({ ...prev, day_of_week: newDay }));
+                    checkLiveClash(periodFormData.teacher_id, newDay, periodFormData.start_time, periodFormData.end_time, editingPeriod?.id);
+                  }}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                >
+                  <option value="MON">Monday (پیر)</option>
+                  <option value="TUE">Tuesday (منگل)</option>
+                  <option value="WED">Wednesday (بدھ)</option>
+                  <option value="THU">Thursday (جمعرات)</option>
+                  <option value="FRI">Friday (جمعہ)</option>
+                  <option value="SAT">Saturday (ہفتہ)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  {t.subject || "Subject"} *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Mathematics, English, General Science, Urdu"
+                  value={periodFormData.subject}
+                  onChange={(e) => setPeriodFormData((prev) => ({ ...prev, subject: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    {t.startTime || "Start Time"} *
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={periodFormData.start_time}
+                    onChange={(e) => {
+                      const newStart = e.target.value;
+                      setPeriodFormData((prev) => ({ ...prev, start_time: newStart }));
+                      checkLiveClash(periodFormData.teacher_id, periodFormData.day_of_week, newStart, periodFormData.end_time, editingPeriod?.id);
+                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    {t.endTime || "End Time"} *
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={periodFormData.end_time}
+                    onChange={(e) => {
+                      const newEnd = e.target.value;
+                      setPeriodFormData((prev) => ({ ...prev, end_time: newEnd }));
+                      checkLiveClash(periodFormData.teacher_id, periodFormData.day_of_week, periodFormData.start_time, newEnd, editingPeriod?.id);
+                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  {t.assignTeacher || "Assign Teacher"} *
+                </label>
+                <select
+                  value={periodFormData.teacher_id}
+                  onChange={(e) => {
+                    const newTeacher = e.target.value;
+                    setPeriodFormData((prev) => ({ ...prev, teacher_id: newTeacher }));
+                    checkLiveClash(newTeacher, periodFormData.day_of_week, periodFormData.start_time, periodFormData.end_time, editingPeriod?.id);
+                  }}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                >
+                  {staffList
+                    .filter((s) => s.role === "TEACHER")
+                    .map((tch) => (
+                      <option key={tch.id} value={tch.id}>
+                        {tch.name} ({tch.identifier})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPeriodModal(false);
+                    setEditingPeriod(null);
+                    setClashWarning(null);
+                  }}
+                  className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!!clashWarning}
+                  className={`px-4 py-2 rounded-lg text-white text-xs font-bold transition-all ${
+                    clashWarning
+                      ? "bg-slate-300 cursor-not-allowed opacity-60"
+                      : "bg-emerald-600 hover:bg-emerald-700 shadow-2xs"
+                  }`}
+                >
+                  {editingPeriod ? "Update Period" : "Save Period"}
                 </button>
               </div>
             </form>
