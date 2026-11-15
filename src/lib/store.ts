@@ -23,19 +23,78 @@ const KEY_CLASSES = "attendlix_classes";
 const KEY_STUDENTS = "attendlix_students";
 const KEY_ANNOUNCEMENTS = "attendlix_announcements";
 
-// Default Seed School
+// Default Seed Schools
 const SEED_SCHOOL_ID = "school-beacon-001";
-const SEED_SCHOOL: School = {
-  id: SEED_SCHOOL_ID,
-  name: "Beacon Grammar School",
-  city: "Lahore",
-  phone: "0300-4567890",
-  email: "beacon.lahore@attendlix.com",
-  created_at: new Date().toISOString(),
-};
+const SEED_SCHOOLS: School[] = [
+  {
+    id: SEED_SCHOOL_ID,
+    name: "Beacon Grammar School",
+    city: "Lahore",
+    phone: "0300-4567890",
+    email: "beacon.lahore@attendlix.com",
+    status: "ACTIVE",
+    plan: "STANDARD",
+    student_count: 148,
+    mrr_pkr: 35000,
+    trial_days_left: 0,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "sch-allied-002",
+    name: "Allied Grammar Campus",
+    city: "Karachi",
+    phone: "0321-9876543",
+    email: "allied.khi@attendlix.com",
+    status: "ACTIVE",
+    plan: "PREMIUM",
+    student_count: 280,
+    mrr_pkr: 55000,
+    trial_days_left: 0,
+    created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
+  },
+  {
+    id: "sch-city-003",
+    name: "The City Model Academy",
+    city: "Rawalpindi",
+    phone: "0333-1122334",
+    email: "city.rwp@attendlix.com",
+    status: "TRIAL",
+    plan: "TRIAL",
+    student_count: 94,
+    mrr_pkr: 0,
+    trial_days_left: 6,
+    created_at: new Date(Date.now() - 86400000 * 8).toISOString(),
+  },
+  {
+    id: "sch-army-004",
+    name: "Army Public Model School",
+    city: "Peshawar",
+    phone: "0345-7788990",
+    email: "aps.psw@attendlix.com",
+    status: "SUSPENDED",
+    plan: "PREMIUM",
+    student_count: 420,
+    mrr_pkr: 70000,
+    trial_days_left: 0,
+    created_at: new Date(Date.now() - 86400000 * 60).toISOString(),
+  },
+];
+const SEED_SCHOOL = SEED_SCHOOLS[0];
 
-// Seed Principal User
+// Seed Users
 const SEED_USERS: User[] = [
+  {
+    id: "usr-superadmin-01",
+    school_id: "global",
+    name: "Platform Super Admin (Me)",
+    identifier: "superadmin@attendlix.com",
+    phone: "0300-0000000",
+    email: "superadmin@attendlix.com",
+    role: "SUPER_ADMIN",
+    status: "ACTIVE",
+    tempPassword: "admin",
+    created_at: new Date().toISOString(),
+  },
   {
     id: "usr-principal-01",
     school_id: SEED_SCHOOL_ID,
@@ -202,7 +261,7 @@ function setStorage<T>(key: string, val: T): void {
 export function initializeStore() {
   if (typeof window === "undefined") return;
   if (!window.localStorage.getItem(KEY_SCHOOLS)) {
-    setStorage(KEY_SCHOOLS, [SEED_SCHOOL]);
+    setStorage(KEY_SCHOOLS, SEED_SCHOOLS);
   }
   if (!window.localStorage.getItem(KEY_USERS)) {
     setStorage(KEY_USERS, SEED_USERS);
@@ -1136,4 +1195,95 @@ export function getFeeSummary(school_id: string, month: string = "November", yea
     totalCollectedPKR,
     totalPendingPKR,
   };
+}
+
+// ----------------------------------------------------
+// SUPER ADMIN MODULE
+// ----------------------------------------------------
+export function getAllSchools(): School[] {
+  initializeStore();
+  return getStorage<School[]>(KEY_SCHOOLS, SEED_SCHOOLS);
+}
+
+export function getPlatformStats() {
+  const schools = getAllSchools();
+  const totalSchools = schools.length;
+  const activeSubscriptions = schools.filter((s) => s.status === "ACTIVE").length;
+  const totalStudentsPlatform = schools.reduce((acc, curr) => acc + (curr.student_count || 148), 0);
+  const platformMRR = schools
+    .filter((s) => s.status === "ACTIVE")
+    .reduce((acc, curr) => acc + (curr.mrr_pkr || 35000), 0);
+
+  return {
+    totalSchools,
+    activeSubscriptions,
+    totalStudentsPlatform,
+    platformMRR,
+  };
+}
+
+export function updateSchoolStatus(
+  school_id: string,
+  status: "ACTIVE" | "TRIAL" | "SUSPENDED"
+): School | null {
+  initializeStore();
+  const schools = getStorage<School[]>(KEY_SCHOOLS, SEED_SCHOOLS);
+  const index = schools.findIndex((s) => s.id === school_id);
+  if (index === -1) return null;
+
+  schools[index] = {
+    ...schools[index],
+    status,
+    mrr_pkr: status === "ACTIVE" ? schools[index].mrr_pkr || 35000 : 0,
+  };
+
+  setStorage(KEY_SCHOOLS, schools);
+  return schools[index];
+}
+
+export function extendSchoolTrial(school_id: string, days: number = 14): School | null {
+  initializeStore();
+  const schools = getStorage<School[]>(KEY_SCHOOLS, SEED_SCHOOLS);
+  const index = schools.findIndex((s) => s.id === school_id);
+  if (index === -1) return null;
+
+  schools[index] = {
+    ...schools[index],
+    status: "TRIAL",
+    trial_days_left: (schools[index].trial_days_left || 0) + days,
+  };
+
+  setStorage(KEY_SCHOOLS, schools);
+  return schools[index];
+}
+
+export function onboardManualSchool(data: {
+  name: string;
+  city: string;
+  phone: string;
+  email: string;
+  plan?: "TRIAL" | "STANDARD" | "PREMIUM";
+}): School {
+  initializeStore();
+  const schools = getStorage<School[]>(KEY_SCHOOLS, SEED_SCHOOLS);
+  const newId = "sch-" + Math.random().toString(36).substring(2, 9);
+
+  const plan = data.plan || "TRIAL";
+  const newSchool: School = {
+    id: newId,
+    name: data.name.trim(),
+    city: data.city.trim(),
+    phone: data.phone.trim(),
+    email: data.email?.trim() || "",
+    status: plan === "TRIAL" ? "TRIAL" : "ACTIVE",
+    plan,
+    student_count: 50,
+    mrr_pkr: plan === "PREMIUM" ? 55000 : plan === "STANDARD" ? 35000 : 0,
+    trial_days_left: plan === "TRIAL" ? 14 : 0,
+    created_at: new Date().toISOString(),
+  };
+
+  const updated = [newSchool, ...schools];
+  setStorage(KEY_SCHOOLS, updated);
+  return newSchool;
 }

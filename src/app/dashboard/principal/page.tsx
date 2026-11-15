@@ -54,9 +54,16 @@ import {
   logout,
 } from "@/lib/store";
 import { User, SchoolClass, Student, Announcement, FeeRecord, FeeStatus, PaymentMethod } from "@/lib/types";
+import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
+import {
+  getFeeReminderWhatsAppUrl,
+  getAnnouncementWhatsAppUrl,
+  getCredentialsNoticeWhatsAppUrl,
+} from "@/lib/whatsapp";
 
 export default function PrincipalDashboard() {
   const router = useRouter();
+  const { t, isRtl } = useLanguage();
 
   // Active Tab state
   const [activeTab, setActiveTab] = useState<"overview" | "classes" | "staff" | "students" | "fees" | "announcements">("overview");
@@ -305,6 +312,8 @@ export default function PrincipalDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
+            <LanguageToggle />
+
             <div className="hidden md:flex flex-col text-right">
               <span className="text-xs font-semibold text-slate-800">{currentUser?.name}</span>
               <span
@@ -708,10 +717,14 @@ export default function PrincipalDashboard() {
                                   {/* Send WhatsApp Reminder */}
                                   {rec.parent_whatsapp && (
                                     <a
-                                      href={formatWhatsAppUrl(
-                                        rec.parent_whatsapp,
-                                        `Mohtaram Parent of ${rec.student_name},\n${schoolData?.name} ki taraf se reminder hai ke ${rec.month} 2026 ki fee PKR ${rec.amount} abhi pending hai.\n\nBaraye meharbani JazzCash ya Easypaisa ke zariye ada karein:\nJazzCash / Easypaisa: ${schoolData?.phone}\nShukriya.`
-                                      )}
+                                      href={getFeeReminderWhatsAppUrl({
+                                        studentName: rec.student_name || "Student",
+                                        parentPhone: rec.parent_whatsapp || "",
+                                        schoolName: schoolData?.name || "School",
+                                        month: rec.month,
+                                        amount: rec.amount,
+                                        paymentPhone: schoolData?.phone,
+                                      })}
                                       target="_blank"
                                       rel="noreferrer"
                                       className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-xs flex items-center gap-1 shadow-2xs transition-all"

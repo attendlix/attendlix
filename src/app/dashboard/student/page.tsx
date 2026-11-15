@@ -38,9 +38,11 @@ import {
   logout,
 } from "@/lib/store";
 import { User, Student, Announcement, Homework, ExamMark, FeeRecord, ChatMessage, PaymentMethod } from "@/lib/types";
+import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 
 export default function StudentDashboard() {
   const router = useRouter();
+  const { t, isRtl } = useLanguage();
 
   // Navigation tab
   const [activeTab, setActiveTab] = useState<"overview" | "attendance_hw" | "exams" | "fees" | "chat">("overview");
@@ -152,6 +154,8 @@ export default function StudentDashboard() {
           </div>
 
           <div className="flex items-center gap-2.5">
+            <LanguageToggle />
+
             <div className="text-right hidden sm:block">
               <span className="text-xs font-bold text-slate-900 block">{currentStudent?.name}</span>
               <span className="text-[10px] text-slate-500 font-mono">ID: {currentStudent?.student_id}</span>

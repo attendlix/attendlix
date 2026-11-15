@@ -14,8 +14,10 @@ import {
   Users,
   Receipt,
   Smartphone,
+  Shield,
 } from "lucide-react";
 import { loginUser } from "@/lib/store";
+import { LanguageToggle } from "@/context/LanguageContext";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,6 +36,9 @@ export default function LoginPage() {
       if (res.success && res.user) {
         // Role based redirect
         switch (res.user.role) {
+          case "SUPER_ADMIN":
+            router.push("/dashboard/super-admin");
+            break;
           case "PRINCIPAL":
             router.push("/dashboard/principal");
             break;
@@ -67,7 +72,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans selection:bg-emerald-100 selection:text-emerald-900">
+    <div className="min-h-screen bg-[#FAFAFA] flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans selection:bg-emerald-100 selection:text-emerald-900 relative">
+      {/* Top Language Toggle */}
+      <div className="absolute top-4 right-4">
+        <LanguageToggle />
+      </div>
+
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-3">
         <Link href="/" className="inline-flex items-center gap-2 group">
           <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-sm shadow-emerald-500/20 group-hover:scale-105 transition-transform">
@@ -146,6 +156,18 @@ export default function LoginPage() {
               Quick 1-Click Demo Logins
             </span>
             <div className="grid grid-cols-2 gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => fillDemoAccount("superadmin@attendlix.com", "admin")}
+                className="col-span-2 p-2 rounded-lg border border-slate-900 bg-slate-900 text-white hover:bg-slate-800 text-left transition-all flex items-center justify-between"
+              >
+                <div className="flex items-center gap-1.5 font-bold">
+                  <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Super Admin (Me)</span>
+                </div>
+                <span className="text-[10px] text-emerald-400 font-mono">superadmin@attendlix.com</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => fillDemoAccount("principal@beacon.edu.pk", "admin")}

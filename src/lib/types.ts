@@ -1,4 +1,4 @@
-export type UserRole = "PRINCIPAL" | "TEACHER" | "ACCOUNTANT" | "STUDENT_PARENT";
+export type UserRole = "SUPER_ADMIN" | "PRINCIPAL" | "TEACHER" | "ACCOUNTANT" | "STUDENT_PARENT";
 
 export interface School {
   id: string;
@@ -6,6 +6,11 @@ export interface School {
   city: string;
   phone: string;
   email?: string;
+  status?: "ACTIVE" | "TRIAL" | "SUSPENDED";
+  plan?: "TRIAL" | "STANDARD" | "PREMIUM";
+  student_count?: number;
+  mrr_pkr?: number;
+  trial_days_left?: number;
   created_at: string;
 }
 

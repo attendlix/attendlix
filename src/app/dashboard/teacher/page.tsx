@@ -45,9 +45,12 @@ import {
   logout,
 } from "@/lib/store";
 import { User, SchoolClass, Student, AttendanceStatus, Homework, ExamMark, ChatMessage } from "@/lib/types";
+import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
+import { getAbsentAlertWhatsAppUrl, dispatchWhatsAppWebhook } from "@/lib/whatsapp";
 
 export default function TeacherDashboard() {
   const router = useRouter();
+  const { t, isRtl } = useLanguage();
 
   // Active navigation tab
   const [activeTab, setActiveTab] = useState<"attendance" | "homework" | "exams" | "messages">("attendance");
@@ -305,6 +308,8 @@ export default function TeacherDashboard() {
           </div>
 
           <div className="flex items-center gap-2">
+            <LanguageToggle />
+
             {/* Offline / Online Network Indicator */}
             <button
               onClick={() => setIsOnline(!isOnline)}

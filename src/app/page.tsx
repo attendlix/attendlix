@@ -25,9 +25,10 @@ import {
   School,
   FileSpreadsheet,
 } from "lucide-react";
+import { useLanguage, LanguageToggle } from "@/context/LanguageContext";
 
 export default function LandingPage() {
-  const [lang, setLang] = useState<"en" | "ur">("en");
+  const { lang, setLang } = useLanguage();
   const [activeRole, setActiveRole] = useState<"principal" | "teacher" | "accountant" | "parent">("principal");
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [formData, setFormData] = useState({
@@ -94,14 +95,7 @@ export default function LandingPage() {
           {/* Right Action: Language Toggle + Login + CTA */}
           <div className="flex items-center gap-2.5 sm:gap-3">
             {/* Language Switcher Badge */}
-            <button
-              onClick={() => setLang(lang === "en" ? "ur" : "en")}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-300 hover:border-slate-400 bg-white shadow-2xs transition-all text-slate-700"
-              title="Toggle Language"
-            >
-              <Globe className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{lang === "en" ? "اردو" : "English"}</span>
-            </button>
+            <LanguageToggle />
 
             {/* Login Link */}
             <Link
