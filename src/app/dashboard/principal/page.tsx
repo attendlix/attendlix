@@ -1,0 +1,1190 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  GraduationCap,
+  Building2,
+  Users,
+  BookOpen,
+  CreditCard,
+  Plus,
+  Send,
+  MessageSquare,
+  Copy,
+  Check,
+  Share2,
+  ExternalLink,
+  LogOut,
+  Bell,
+  Search,
+  Filter,
+  CheckCircle2,
+  UserPlus,
+  School,
+  Sparkles,
+  Shield,
+  Layers,
+  ChevronRight,
+  TrendingUp,
+  Receipt,
+  Phone,
+} from "lucide-react";
+import {
+  getCurrentUser,
+  getSchool,
+  getOverviewStats,
+  getClasses,
+  addClass,
+  getStaff,
+  addStaff,
+  getStudents,
+  addStudent,
+  getAnnouncements,
+  addAnnouncement,
+  logout,
+} from "@/lib/store";
+import { User, SchoolClass, Student, Announcement } from "@/lib/types";
+
+export default function PrincipalDashboard() {
+  const router = useRouter();
+
+  // Active Tab state
+  const [activeTab, setActiveTab] = useState<"overview" | "classes" | "staff" | "students" | "announcements">("overview");
+
+  // Data state
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [schoolData, setSchoolData] = useState<any>(null);
+  const [stats, setStats] = useState<any>(null);
+  const [classesList, setClassesList] = useState<SchoolClass[]>([]);
+  const [staffList, setStaffList] = useState<User[]>([]);
+  const [studentsList, setStudentsList] = useState<Student[]>([]);
+  const [announcementsList, setAnnouncementsList] = useState<Announcement[]>([]);
+
+  // Modals & form state
+  const [showClassModal, setShowClassModal] = useState(false);
+  const [newClassName, setNewClassName] = useState("");
+  const [newClassSection, setNewClassSection] = useState("A");
+  const [newClassTeacher, setNewClassTeacher] = useState("");
+
+  const [showStaffModal, setShowStaffModal] = useState(false);
+  const [staffFormData, setStaffFormData] = useState({
+    name: "",
+    phone: "",
+    role: "TEACHER" as "TEACHER" | "ACCOUNTANT",
+    email: "",
+  });
+  const [createdStaffCreds, setCreatedStaffCreds] = useState<{ staff: User; rawPassword: string } | null>(null);
+
+  const [showStudentModal, setShowStudentModal] = useState(false);
+  const [studentFormData, setStudentFormData] = useState({
+    name: "",
+    roll_no: "",
+    class_id: "",
+    parent_whatsapp: "",
+  });
+  const [createdStudentCreds, setCreatedStudentCreds] = useState<{ student: Student; rawPassword: string } | null>(null);
+
+  const [announcementForm, setAnnouncementForm] = useState({
+    title: "",
+    content: "",
+    audience: "ALL" as "ALL" | "PARENTS" | "TEACHERS" | "ACCOUNTANTS" | "CLASS",
+    class_name: "",
+  });
+  const [announcementSentNotice, setAnnouncementSentNotice] = useState<string | null>(null);
+
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [searchFilter, setSearchFilter] = useState("");
+
+  // Load and refresh data
+  const refreshAll = () => {
+    const user = getCurrentUser();
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    setCurrentUser(user);
+    const sch = getSchool(user.school_id);
+    setSchoolData(sch);
+
+    const currentStats = getOverviewStats(user.school_id);
+    setStats(currentStats);
+
+    const cls = getClasses(user.school_id);
+    setClassesList(cls);
+    if (cls.length > 0 && !studentFormData.class_id) {
+      setStudentFormData((prev) => ({ ...prev, class_id: cls[0].id }));
+    }
+
+    setStaffList(getStaff(user.school_id));
+    setStudentsList(getStudents(user.school_id));
+    setAnnouncementsList(getAnnouncements(user.school_id));
+  };
+
+  useEffect(() => {
+    refreshAll();
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
+
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2500);
+  };
+
+  // Helper to format WhatsApp phone number for wa.me links
+  const formatWhatsAppUrl = (phone: string, message: string) => {
+    // Strip non-digits
+    let clean = phone.replace(/[^0-9]/g, "");
+    if (clean.startsWith("03")) {
+      clean = "92" + clean.substring(1);
+    }
+    return `https://wa.me/${clean}?text=${encodeURIComponent(message)}`;
+  };
+
+  // Form Submissions
+  const handleAddClass = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    addClass(currentUser.school_id, newClassName, newClassSection, newClassTeacher);
+    setNewClassName("");
+    setNewClassSection("A");
+    setNewClassTeacher("");
+    setShowClassModal(false);
+    refreshAll();
+  };
+
+  const handleAddStaff = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    const creds = addStaff(currentUser.school_id, staffFormData);
+    setCreatedStaffCreds(creds);
+    setStaffFormData({ name: "", phone: "", role: "TEACHER", email: "" });
+    refreshAll();
+  };
+
+  const handleAddStudent = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    const creds = addStudent(currentUser.school_id, studentFormData);
+    setCreatedStudentCreds(creds);
+    setStudentFormData((prev) => ({ ...prev, name: "", roll_no: "", parent_whatsapp: "" }));
+    refreshAll();
+  };
+
+  const handleSendAnnouncement = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser || !announcementForm.title || !announcementForm.content) return;
+    const newAnn = addAnnouncement(currentUser.school_id, announcementForm);
+    setAnnouncementSentNotice(
+      `✓ Announcement broadcasted! Triggered automatic WhatsApp fallback to ${newAnn.recipients_count} recipients.`
+    );
+    setAnnouncementForm({
+      title: "",
+      content: "",
+      audience: "ALL",
+      class_name: "",
+    });
+    refreshAll();
+    setTimeout(() => setAnnouncementSentNotice(null), 6000);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#FAFAFA] text-[#111827] flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900">
+      {/* Top Principal Navigation Bar */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-sm">
+                <GraduationCap className="w-5 h-5" />
+              </div>
+              <span className="font-bold tracking-tight text-slate-900 text-lg">Attendlix</span>
+            </Link>
+
+            <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block" />
+
+            <div className="hidden sm:flex items-center gap-2 text-xs">
+              <span className="font-semibold text-slate-800">{schoolData?.name || "School"}</span>
+              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium border border-slate-200">
+                {schoolData?.city || "Pakistan"}
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200">
+                Tenant: {currentUser?.school_id.substring(0, 10)}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex flex-col text-right">
+              <span className="text-xs font-semibold text-slate-800">{currentUser?.name}</span>
+              <span className="text-[10px] text-emerald-600 font-bold tracking-wide uppercase">Principal / Owner</span>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center gap-1 sm:gap-2 overflow-x-auto scrollbar-none py-1 border-t border-slate-100">
+          {[
+            { id: "overview", label: "Overview", icon: TrendingUp },
+            { id: "classes", label: "Classes & Sections", icon: BookOpen },
+            { id: "staff", label: "Staff (Teachers & Accounts)", icon: Users },
+            { id: "students", label: "Student Admissions", icon: UserPlus },
+            { id: "announcements", label: "Announcements & WhatsApp", icon: MessageSquare },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  active
+                    ? "bg-slate-900 text-white shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 ${active ? "text-emerald-400" : "text-slate-400"}`} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+        {/* ========================================================================= */}
+        {/* TAB 1: OVERVIEW */}
+        {/* ========================================================================= */}
+        {activeTab === "overview" && (
+          <div className="space-y-6">
+            {/* Header Greeting */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  Assalam-o-Alaikum, {currentUser?.name.split(" ")[0]}!
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  Welcome to your school administration control panel for {schoolData?.name}.
+                </p>
+              </div>
+
+              {/* Quick Action Buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowStudentModal(true)}
+                  className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-2xs flex items-center gap-1.5 transition-all"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Admit Student</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("announcements")}
+                  className="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-2xs flex items-center gap-1.5 transition-all"
+                >
+                  <Send className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Send Broadcast</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Stats Cards (4 Core Columns) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Card 1: Total Students */}
+              <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-xs font-semibold uppercase tracking-wider">Total Students</span>
+                  <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+                    <GraduationCap className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-3xl font-extrabold text-slate-900">{stats?.totalStudents || 0}</div>
+                <div className="text-[11px] text-slate-500 flex items-center gap-1">
+                  <span className="text-emerald-600 font-semibold">{stats?.attendanceTodayPercent}%</span>
+                  <span>marked present today</span>
+                </div>
+              </div>
+
+              {/* Card 2: Total Teachers & Staff */}
+              <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-xs font-semibold uppercase tracking-wider">Teachers & Staff</span>
+                  <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
+                    <Users className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-3xl font-extrabold text-slate-900">{stats?.totalStaff || 0}</div>
+                <div className="text-[11px] text-slate-500">
+                  {stats?.totalTeachers || 0} Teachers • {stats?.totalAccountants || 0} Accountants
+                </div>
+              </div>
+
+              {/* Card 3: Classes & Sections */}
+              <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-xs font-semibold uppercase tracking-wider">Classes & Sections</span>
+                  <div className="p-2 rounded-lg bg-amber-50 text-amber-600">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-3xl font-extrabold text-slate-900">{classesList.length || 0}</div>
+                <div className="text-[11px] text-slate-500">All grades configured & active</div>
+              </div>
+
+              {/* Card 4: Fee Collection Status */}
+              <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-xs font-semibold uppercase tracking-wider">Fee Collection</span>
+                  <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl font-extrabold text-emerald-600">
+                  PKR {(stats?.feeCollectedPKR || 0).toLocaleString()}
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  JazzCash & Easypaisa (PKR {(stats?.feePendingPKR || 0).toLocaleString()} pending)
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Preview Grid: Classes + Recent Broadcasts */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Classes Quick View */}
+              <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-slate-900 text-sm">Classroom Distribution</h3>
+                  <button
+                    onClick={() => setActiveTab("classes")}
+                    className="text-xs text-emerald-600 font-semibold hover:underline flex items-center gap-1"
+                  >
+                    <span>Manage Classes</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {classesList.slice(0, 4).map((c) => (
+                    <div
+                      key={c.id}
+                      className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 flex items-center justify-between"
+                    >
+                      <div>
+                        <div className="font-bold text-slate-900 text-sm">
+                          {c.name} - Section {c.section}
+                        </div>
+                        <div className="text-xs text-slate-500">Teacher: {c.class_teacher_name || "Unassigned"}</div>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-700">
+                        {c.student_count || 0} Students
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* WhatsApp Fallback Broadcast Status */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs uppercase tracking-wider">
+                    <MessageSquare className="w-4 h-4 text-emerald-600" />
+                    <span>WhatsApp Fallback Engine</span>
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900">Zero App Parent Delivery</h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Attendance notices and fee challans are automatically transmitted directly to registered parent WhatsApp numbers.
+                  </p>
+                  <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900 space-y-1">
+                    <div className="font-semibold flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>WhatsApp Gateways Active</span>
+                    </div>
+                    <div className="text-[11px] text-emerald-700">Jazz, Zong, Telenor, Ufone parent numbers synced.</div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setActiveTab("announcements")}
+                  className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2"
+                >
+                  <Send className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Send Broadcast to Parents</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 2: CLASSES & SECTIONS MANAGEMENT */}
+        {/* ========================================================================= */}
+        {activeTab === "classes" && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Classes & Sections</h2>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  Configure grades, sections, and assign class teachers for attendance and exams.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowClassModal(true)}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-2xs flex items-center gap-1.5 transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add New Class / Section</span>
+              </button>
+            </div>
+
+            {/* Classes Table */}
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+                  <tr>
+                    <th className="py-3 px-4 sm:px-6">Class Name</th>
+                    <th className="py-3 px-4">Section</th>
+                    <th className="py-3 px-4">In-Charge Teacher</th>
+                    <th className="py-3 px-4 text-center">Enrolled Students</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {classesList.map((cls) => (
+                    <tr key={cls.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3.5 px-4 sm:px-6 font-bold text-slate-900 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-semibold text-xs">
+                          {cls.name.charAt(0)}
+                        </div>
+                        <span>{cls.name}</span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-semibold text-xs">
+                          Section {cls.section}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600">{cls.class_teacher_name || "Unassigned"}</td>
+                      <td className="py-3.5 px-4 text-center">
+                        <span className="font-bold text-slate-900">{cls.student_count || 0}</span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <button
+                          onClick={() => {
+                            setStudentFormData((prev) => ({ ...prev, class_id: cls.id }));
+                            setShowStudentModal(true);
+                          }}
+                          className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 underline"
+                        >
+                          + Admit to Class
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 3: STAFF MANAGEMENT (TEACHERS & ACCOUNTANTS) */}
+        {/* ========================================================================= */}
+        {activeTab === "staff" && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Staff Management</h2>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  Add teachers and accountants. The system auto-generates temporary IDs and login passwords.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setCreatedStaffCreds(null);
+                  setShowStaffModal(true);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-2xs flex items-center gap-1.5 transition-all"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Add Teacher or Accountant</span>
+              </button>
+            </div>
+
+            {/* Generated Staff Credentials Success Card */}
+            {createdStaffCreds && (
+              <div className="p-5 rounded-2xl bg-emerald-50 border-2 border-emerald-500/50 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    <span className="font-bold text-emerald-950 text-sm">
+                      Staff Member Successfully Registered!
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setCreatedStaffCreds(null)}
+                    className="text-xs text-slate-500 hover:text-slate-800"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-white p-4 rounded-xl border border-emerald-200 text-xs">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Staff Name</span>
+                    <span className="font-bold text-slate-900">{createdStaffCreds.staff.name}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Role</span>
+                    <span className="font-bold text-emerald-700">{createdStaffCreds.staff.role}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Login Identifier</span>
+                    <span className="font-mono font-bold text-slate-900">{createdStaffCreds.staff.identifier}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Temporary Password</span>
+                    <span className="font-mono font-bold text-emerald-600">{createdStaffCreds.rawPassword}</span>
+                  </div>
+                </div>
+
+                {/* WhatsApp & Copy Action Buttons */}
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <a
+                    href={formatWhatsAppUrl(
+                      createdStaffCreds.staff.phone || "",
+                      `Assalam-o-Alaikum ${createdStaffCreds.staff.name},\nAapka Attendlix portal account ban chuka hai.\n\nLogin URL: https://attendlix.vercel.app/login\nIdentifier: ${createdStaffCreds.staff.identifier}\nPassword: ${createdStaffCreds.rawPassword}\n\nShukriya.`
+                    )}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-xs flex items-center gap-2 shadow-2xs"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Send Credentials via WhatsApp</span>
+                  </a>
+
+                  <button
+                    onClick={() =>
+                      copyToClipboard(
+                        `Attendlix Login:\nURL: https://attendlix.vercel.app/login\nID: ${createdStaffCreds.staff.identifier}\nPassword: ${createdStaffCreds.rawPassword}`,
+                        "staff-copy"
+                      )
+                    }
+                    className="px-3.5 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center gap-1.5"
+                  >
+                    {copiedKey === "staff-copy" ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Copied to Clipboard!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy Login Credentials</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Staff Table */}
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+                  <tr>
+                    <th className="py-3 px-4 sm:px-6">Name</th>
+                    <th className="py-3 px-4">Role</th>
+                    <th className="py-3 px-4">Login Identifier</th>
+                    <th className="py-3 px-4">WhatsApp / Phone</th>
+                    <th className="py-3 px-4 text-right">Quick Contact</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {staffList.map((st) => (
+                    <tr key={st.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3.5 px-4 sm:px-6 font-bold text-slate-900">{st.name}</td>
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`px-2 py-0.5 rounded font-bold text-[11px] ${
+                            st.role === "TEACHER"
+                              ? "bg-blue-50 text-blue-700 border border-blue-200"
+                              : "bg-amber-50 text-amber-700 border border-amber-200"
+                          }`}
+                        >
+                          {st.role}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 font-mono font-medium text-slate-700">{st.identifier}</td>
+                      <td className="py-3.5 px-4 text-slate-600">{st.phone || "—"}</td>
+                      <td className="py-3.5 px-4 text-right">
+                        {st.phone && (
+                          <a
+                            href={formatWhatsAppUrl(st.phone, `Assalam-o-Alaikum ${st.name}, from ${schoolData?.name}.`)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-semibold"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>WhatsApp</span>
+                          </a>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 4: STUDENT ADMISSION & PARENT LINK */}
+        {/* ========================================================================= */}
+        {activeTab === "students" && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Student Admissions</h2>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  Register new students, assign classes, and link parents via WhatsApp for instant attendance & fee notices.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setCreatedStudentCreds(null);
+                  setShowStudentModal(true);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-2xs flex items-center gap-1.5 transition-all"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Admit New Student</span>
+              </button>
+            </div>
+
+            {/* Generated Student & Parent Credentials Success Card */}
+            {createdStudentCreds && (
+              <div className="p-5 rounded-2xl bg-emerald-50 border-2 border-emerald-500/50 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    <span className="font-bold text-emerald-950 text-sm">
+                      Student Admitted! Parent WhatsApp Linked.
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setCreatedStudentCreds(null)}
+                    className="text-xs text-slate-500 hover:text-slate-800"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-white p-4 rounded-xl border border-emerald-200 text-xs">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Student Name</span>
+                    <span className="font-bold text-slate-900">
+                      {createdStudentCreds.student.name} (Roll #{createdStudentCreds.student.roll_no})
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Class & Section</span>
+                    <span className="font-bold text-slate-800">
+                      {createdStudentCreds.student.class_name} - {createdStudentCreds.student.section}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Parent Login ID</span>
+                    <span className="font-mono font-bold text-slate-900">
+                      {createdStudentCreds.student.student_id}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Login Password</span>
+                    <span className="font-mono font-bold text-emerald-600">{createdStudentCreds.rawPassword}</span>
+                  </div>
+                </div>
+
+                {/* WhatsApp & Copy Action Buttons */}
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <a
+                    href={formatWhatsAppUrl(
+                      createdStudentCreds.student.parent_whatsapp,
+                      `Mohtaram Parent,\n${createdStudentCreds.student.name} ki admission ${schoolData?.name} mein confirm ho chuki hai.\n\nStudent Portal:\nURL: https://attendlix.vercel.app/login\nStudent ID: ${createdStudentCreds.student.student_id}\nPassword: ${createdStudentCreds.rawPassword}\n\nHazri aur fees ke updates is WhatsApp par mosool honge.`
+                    )}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-xs flex items-center gap-2 shadow-2xs"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Send Welcome Notice on WhatsApp</span>
+                  </a>
+
+                  <button
+                    onClick={() =>
+                      copyToClipboard(
+                        `Attendlix Parent Credentials:\nStudent: ${createdStudentCreds.student.name}\nID: ${createdStudentCreds.student.student_id}\nPassword: ${createdStudentCreds.rawPassword}`,
+                        "student-copy"
+                      )
+                    }
+                    className="px-3.5 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center gap-1.5"
+                  >
+                    {copiedKey === "student-copy" ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy Credentials</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Students Table */}
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+                  <tr>
+                    <th className="py-3 px-4 sm:px-6">Roll No</th>
+                    <th className="py-3 px-4">Student Name</th>
+                    <th className="py-3 px-4">Class</th>
+                    <th className="py-3 px-4">Student/Parent ID</th>
+                    <th className="py-3 px-4">Parent WhatsApp</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {studentsList.map((std) => (
+                    <tr key={std.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3.5 px-4 sm:px-6 font-bold text-slate-500">{std.roll_no}</td>
+                      <td className="py-3.5 px-4 font-bold text-slate-900">{std.name}</td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-medium text-xs">
+                          {std.class_name} - {std.section}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 font-mono font-medium text-slate-700">{std.student_id}</td>
+                      <td className="py-3.5 px-4 text-slate-600">{std.parent_whatsapp}</td>
+                      <td className="py-3.5 px-4 text-right">
+                        <a
+                          href={formatWhatsAppUrl(
+                            std.parent_whatsapp,
+                            `Mohtaram Parent of ${std.name}, update from ${schoolData?.name}:`
+                          )}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-semibold"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>WhatsApp</span>
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 5: ANNOUNCEMENTS & WHATSAPP BROADCAST */}
+        {/* ========================================================================= */}
+        {activeTab === "announcements" && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                School Announcements & WhatsApp Fallback
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500">
+                Official circulars published here are instantly broadcasted to parent WhatsApp numbers without requiring them to install any mobile app.
+              </p>
+            </div>
+
+            {announcementSentNotice && (
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>{announcementSentNotice}</span>
+              </div>
+            )}
+
+            {/* Composer Box */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs space-y-4">
+              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <Send className="w-4 h-4 text-emerald-600" />
+                <span>Create New Announcement</span>
+              </h3>
+
+              <form onSubmit={handleSendAnnouncement} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Announcement Title *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Winter Vacation Notification / Exam Schedule"
+                      value={announcementForm.title}
+                      onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Target Audience
+                    </label>
+                    <select
+                      value={announcementForm.audience}
+                      onChange={(e) => setAnnouncementForm({ ...announcementForm, audience: e.target.value as any })}
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 bg-white"
+                    >
+                      <option value="ALL">All School (Parents + Staff)</option>
+                      <option value="PARENTS">Parents Only (WhatsApp)</option>
+                      <option value="TEACHERS">Teachers & Staff Only</option>
+                      <option value="ACCOUNTANTS">Accountants Only</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Announcement Message Content *
+                  </label>
+                  <textarea
+                    rows={4}
+                    required
+                    placeholder="Type official notification message here (English or Urdu)..."
+                    value={announcementForm.content}
+                    onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 font-sans"
+                  />
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>Auto-triggers WhatsApp template dispatch for offline parents</span>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-md transition-all flex items-center justify-center gap-2"
+                  >
+                    <Send className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Publish & Broadcast Announcement</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Announcements History */}
+            <div className="space-y-3">
+              <h3 className="font-bold text-slate-900 text-sm">Previous Announcements</h3>
+              <div className="space-y-3">
+                {announcementsList.map((ann) => (
+                  <div
+                    key={ann.id}
+                    className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900 text-sm">{ann.title}</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
+                          {ann.audience}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-400">
+                        {new Date(ann.created_at).toLocaleDateString("en-PK", {
+                          day: "numeric",
+                          month: "short",
+                        })}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed">{ann.content}</p>
+                    <div className="pt-2 border-t border-slate-100 flex items-center gap-3 text-[11px] text-emerald-700">
+                      <span className="flex items-center gap-1 font-semibold">
+                        <Check className="w-3 h-3 text-emerald-600" />
+                        <span>Delivered to {ann.recipients_count || 148} WhatsApp recipients</span>
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADD CLASS */}
+      {/* ========================================================================= */}
+      {showClassModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-slate-900 text-base">Add New Class / Section</h3>
+              <button
+                onClick={() => setShowClassModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-sm font-semibold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleAddClass} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Class / Grade Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Grade 9 (Computer Science) or Matric"
+                  value={newClassName}
+                  onChange={(e) => setNewClassName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Section *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. A, B, Green, Red"
+                  value={newClassSection}
+                  onChange={(e) => setNewClassSection(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Assigned Teacher</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Sir Kamran (Optional)"
+                  value={newClassTeacher}
+                  onChange={(e) => setNewClassTeacher(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowClassModal(false)}
+                  className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs"
+                >
+                  Save Class
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADD STAFF */}
+      {/* ========================================================================= */}
+      {showStaffModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-slate-900 text-base">Add Teacher / Accountant</h3>
+              <button
+                onClick={() => setShowStaffModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-sm font-semibold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                handleAddStaff(e);
+                setShowStaffModal(false);
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Sir Bilal or Ms. Sadia"
+                  value={staffFormData.name}
+                  onChange={(e) => setStaffFormData({ ...staffFormData, name: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Role *</label>
+                <select
+                  value={staffFormData.role}
+                  onChange={(e) => setStaffFormData({ ...staffFormData, role: e.target.value as any })}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 bg-white"
+                >
+                  <option value="TEACHER">Teacher (Attendance & Homework)</option>
+                  <option value="ACCOUNTANT">Accountant (Fee Collection Sandbox)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Phone / WhatsApp *</label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="0300-1234567"
+                  value={staffFormData.phone}
+                  onChange={(e) => setStaffFormData({ ...staffFormData, phone: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowStaffModal(false)}
+                  className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs"
+                >
+                  Generate Credentials
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADMIT STUDENT */}
+      {/* ========================================================================= */}
+      {showStudentModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-slate-900 text-base">Admit Student & Link Parent</h3>
+              <button
+                onClick={() => setShowStudentModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-sm font-semibold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                handleAddStudent(e);
+                setShowStudentModal(false);
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Student Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Ali Ahmed"
+                  value={studentFormData.name}
+                  onChange={(e) => setStudentFormData({ ...studentFormData, name: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Roll Number *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 15"
+                    value={studentFormData.roll_no}
+                    onChange={(e) => setStudentFormData({ ...studentFormData, roll_no: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Select Class *</label>
+                  <select
+                    value={studentFormData.class_id}
+                    onChange={(e) => setStudentFormData({ ...studentFormData, class_id: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 bg-white"
+                  >
+                    {classesList.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.section})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Parent WhatsApp Number *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="0300-1234567"
+                  value={studentFormData.parent_whatsapp}
+                  onChange={(e) => setStudentFormData({ ...studentFormData, parent_whatsapp: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                />
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  Attendance notices and fee vouchers will automatically be sent to this WhatsApp.
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowStudentModal(false)}
+                  className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs"
+                >
+                  Admit & Generate Pass
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

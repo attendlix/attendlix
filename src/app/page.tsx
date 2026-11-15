@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   CheckCircle2,
   MessageSquare,
@@ -90,8 +91,8 @@ export default function LandingPage() {
             </button>
           </nav>
 
-          {/* Right Action: Language Toggle + CTA */}
-          <div className="flex items-center gap-3">
+          {/* Right Action: Language Toggle + Login + CTA */}
+          <div className="flex items-center gap-2.5 sm:gap-3">
             {/* Language Switcher Badge */}
             <button
               onClick={() => setLang(lang === "en" ? "ur" : "en")}
@@ -102,13 +103,21 @@ export default function LandingPage() {
               <span>{lang === "en" ? "اردو" : "English"}</span>
             </button>
 
-            {/* CTA Button */}
-            <button
-              onClick={() => scrollToSection("demo")}
-              className="px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-sm transition-all hover:shadow hover:scale-[1.01]"
+            {/* Login Link */}
+            <Link
+              href="/login"
+              className="px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors"
             >
-              {lang === "en" ? "Book Free Demo" : "مفت ڈیمو حاصل کریں"}
-            </button>
+              {lang === "en" ? "Sign In" : "لاگ ان"}
+            </Link>
+
+            {/* Register CTA Button */}
+            <Link
+              href="/register"
+              className="px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm shadow-emerald-600/20 transition-all hover:scale-[1.01]"
+            >
+              {lang === "en" ? "Register School" : "اسکول رجسٹر کریں"}
+            </Link>
           </div>
         </div>
       </header>
@@ -152,19 +161,19 @@ export default function LandingPage() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <button
-              onClick={() => scrollToSection("demo")}
+            <Link
+              href="/register"
               className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md shadow-emerald-600/25 transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
             >
-              <span>{lang === "en" ? "Get Started Free" : "مفت شروع کریں"}</span>
+              <span>{lang === "en" ? "Register School Free" : "مفت اسکول رجسٹر کریں"}</span>
               <ArrowRight className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => scrollToSection("pillars")}
+            </Link>
+            <Link
+              href="/login"
               className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-semibold text-sm shadow-2xs transition-all flex items-center justify-center gap-2"
             >
-              <span>{lang === "en" ? "See How It Works" : "کیسے کام کرتا ہے؟"}</span>
-            </button>
+              <span>{lang === "en" ? "Sign In to Portal" : "پورٹل لاگ ان"}</span>
+            </Link>
           </div>
 
           {/* Micro Trust Proofs */}
