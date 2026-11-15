@@ -41,10 +41,10 @@ export default function LoginPage() {
             router.push("/dashboard/teacher");
             break;
           case "ACCOUNTANT":
-            router.push("/dashboard/accountant");
+            router.push("/dashboard/principal");
             break;
           case "STUDENT_PARENT":
-            router.push("/dashboard/parent");
+            router.push("/dashboard/student");
             break;
           default:
             router.push("/dashboard/principal");

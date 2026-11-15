@@ -110,3 +110,26 @@ export interface ChatMessage {
   is_quiet_hours_delayed?: boolean;
   created_at: string;
 }
+
+export type FeeStatus = "PAID" | "UNPAID";
+export type PaymentMethod = "CASH" | "JAZZCASH" | "EASYPAISA" | "BANK_TRANSFER";
+
+export interface FeeRecord {
+  id: string;
+  school_id: string;
+  student_id: string;
+  student_name?: string;
+  roll_no?: string;
+  class_id?: string;
+  class_name?: string;
+  section?: string;
+  parent_whatsapp?: string;
+  month: string;
+  year: number;
+  amount: number;
+  status: FeeStatus;
+  payment_method?: PaymentMethod;
+  transaction_id?: string;
+  paid_at?: string;
+  created_at: string;
+}

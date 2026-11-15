@@ -228,3 +228,45 @@ CREATE POLICY "Exam marks scoped by school_id"
 CREATE POLICY "Messages scoped by school_id"
     ON public.messages FOR ALL
     USING (school_id = NULLIF(current_setting('app.current_school_id', true), '')::UUID OR auth.role() = 'service_role');
+-- ==============================================================================
+-- ATTENDLIX: Step 4 - Simplified Fee Records Schema (Supabase / PostgreSQL)
+-- ==============================================================================
+
+DO $$ BEGIN
+    CREATE TYPE fee_status AS ENUM ('PAID', 'UNPAID');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE payment_channel AS ENUM ('CASH', 'JAZZCASH', 'EASYPAISA', 'BANK_TRANSFER');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- fee_records Table
+CREATE TABLE IF NOT EXISTS public.fee_records (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+    month VARCHAR(20) NOT NULL, -- e.g. "November", "October"
+    year INT NOT NULL, -- e.g. 2026
+    amount NUMERIC(10, 2) NOT NULL DEFAULT 4500.00,
+    status fee_status DEFAULT 'UNPAID' NOT NULL,
+    payment_method payment_channel,
+    transaction_id VARCHAR(100),
+    paid_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT unique_student_monthly_fee UNIQUE (school_id, student_id, month, year)
+);
+
+CREATE INDEX IF NOT EXISTS idx_fee_records_school ON public.fee_records(school_id);
+CREATE INDEX IF NOT EXISTS idx_fee_records_lookup ON public.fee_records(school_id, month, year, status);
+CREATE INDEX IF NOT EXISTS idx_fee_records_student ON public.fee_records(student_id);
+
+-- Row-Level Security (RLS)
+ALTER TABLE public.fee_records ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Fee records strictly scoped by school_id"
+    ON public.fee_records FOR ALL
+    USING (school_id = NULLIF(current_setting('app.current_school_id', true), '')::UUID OR auth.role() = 'service_role');

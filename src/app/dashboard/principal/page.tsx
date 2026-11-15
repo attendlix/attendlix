@@ -30,6 +30,11 @@ import {
   TrendingUp,
   Receipt,
   Phone,
+  CheckCircle,
+  Clock,
+  ArrowRight,
+  DollarSign,
+  AlertTriangle,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -43,17 +48,20 @@ import {
   addStudent,
   getAnnouncements,
   addAnnouncement,
+  getFeeRecords,
+  updateFeeStatus,
+  getFeeSummary,
   logout,
 } from "@/lib/store";
-import { User, SchoolClass, Student, Announcement } from "@/lib/types";
+import { User, SchoolClass, Student, Announcement, FeeRecord, FeeStatus, PaymentMethod } from "@/lib/types";
 
 export default function PrincipalDashboard() {
   const router = useRouter();
 
   // Active Tab state
-  const [activeTab, setActiveTab] = useState<"overview" | "classes" | "staff" | "students" | "announcements">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "classes" | "staff" | "students" | "fees" | "announcements">("overview");
 
-  // Data state
+  // User and Core Data state
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [schoolData, setSchoolData] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
@@ -62,7 +70,18 @@ export default function PrincipalDashboard() {
   const [studentsList, setStudentsList] = useState<Student[]>([]);
   const [announcementsList, setAnnouncementsList] = useState<Announcement[]>([]);
 
-  // Modals & form state
+  // Fee Tab State
+  const [feeMonth, setFeeMonth] = useState<string>("November");
+  const [feeYear, setFeeYear] = useState<number>(2026);
+  const [feeClassFilter, setFeeClassFilter] = useState<string>("ALL");
+  const [feeStatusFilter, setFeeStatusFilter] = useState<"ALL" | "PAID" | "UNPAID">("ALL");
+  const [feeRecordsList, setFeeRecordsList] = useState<FeeRecord[]>([]);
+  const [feeSummary, setFeeSummary] = useState<any>(null);
+
+  // Modals & Action States
+  const [markPaidModal, setMarkPaidModal] = useState<{ record: FeeRecord; method: PaymentMethod; txnId: string } | null>(null);
+  const [feeActionNotice, setFeeActionNotice] = useState<string | null>(null);
+
   const [showClassModal, setShowClassModal] = useState(false);
   const [newClassName, setNewClassName] = useState("");
   const [newClassSection, setNewClassSection] = useState("A");
@@ -95,9 +114,8 @@ export default function PrincipalDashboard() {
   const [announcementSentNotice, setAnnouncementSentNotice] = useState<string | null>(null);
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [searchFilter, setSearchFilter] = useState("");
 
-  // Load and refresh data
+  // Load and refresh all data
   const refreshAll = () => {
     const user = getCurrentUser();
     if (!user) {
@@ -107,6 +125,11 @@ export default function PrincipalDashboard() {
     setCurrentUser(user);
     const sch = getSchool(user.school_id);
     setSchoolData(sch);
+
+    // If logged in user is ACCOUNTANT, strictly default to "fees" tab
+    if (user.role === "ACCOUNTANT") {
+      setActiveTab("fees");
+    }
 
     const currentStats = getOverviewStats(user.school_id);
     setStats(currentStats);
@@ -120,11 +143,39 @@ export default function PrincipalDashboard() {
     setStaffList(getStaff(user.school_id));
     setStudentsList(getStudents(user.school_id));
     setAnnouncementsList(getAnnouncements(user.school_id));
+
+    // Fee records
+    refreshFees(user.school_id, feeMonth, feeYear, feeClassFilter, feeStatusFilter);
+  };
+
+  const refreshFees = (
+    school_id: string,
+    month: string,
+    year: number,
+    classFilter: string,
+    statusFilter: "ALL" | "PAID" | "UNPAID"
+  ) => {
+    const records = getFeeRecords(school_id, {
+      month,
+      year,
+      class_id: classFilter !== "ALL" ? classFilter : undefined,
+      status: statusFilter !== "ALL" ? statusFilter : undefined,
+    });
+    setFeeRecordsList(records);
+    const summary = getFeeSummary(school_id, month, year);
+    setFeeSummary(summary);
   };
 
   useEffect(() => {
     refreshAll();
   }, []);
+
+  // Handle Fee Filter changes
+  useEffect(() => {
+    if (currentUser) {
+      refreshFees(currentUser.school_id, feeMonth, feeYear, feeClassFilter, feeStatusFilter);
+    }
+  }, [feeMonth, feeYear, feeClassFilter, feeStatusFilter]);
 
   const handleLogout = () => {
     logout();
@@ -137,9 +188,7 @@ export default function PrincipalDashboard() {
     setTimeout(() => setCopiedKey(null), 2500);
   };
 
-  // Helper to format WhatsApp phone number for wa.me links
   const formatWhatsAppUrl = (phone: string, message: string) => {
-    // Strip non-digits
     let clean = phone.replace(/[^0-9]/g, "");
     if (clean.startsWith("03")) {
       clean = "92" + clean.substring(1);
@@ -147,7 +196,28 @@ export default function PrincipalDashboard() {
     return `https://wa.me/${clean}?text=${encodeURIComponent(message)}`;
   };
 
-  // Form Submissions
+  // 1-Click Fee Actions
+  const handleConfirmPayment = () => {
+    if (!markPaidModal) return;
+    updateFeeStatus(markPaidModal.record.id, "PAID", markPaidModal.method, markPaidModal.txnId);
+    setFeeActionNotice(`✓ Fee marked as PAID via ${markPaidModal.method} for ${markPaidModal.record.student_name}!`);
+    setMarkPaidModal(null);
+    if (currentUser) {
+      refreshFees(currentUser.school_id, feeMonth, feeYear, feeClassFilter, feeStatusFilter);
+    }
+    setTimeout(() => setFeeActionNotice(null), 5000);
+  };
+
+  const handleRevertFeeToUnpaid = (recordId: string) => {
+    updateFeeStatus(recordId, "UNPAID");
+    setFeeActionNotice("Fee status reverted to UNPAID.");
+    if (currentUser) {
+      refreshFees(currentUser.school_id, feeMonth, feeYear, feeClassFilter, feeStatusFilter);
+    }
+    setTimeout(() => setFeeActionNotice(null), 4000);
+  };
+
+  // Form Handlers
   const handleAddClass = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
@@ -194,8 +264,22 @@ export default function PrincipalDashboard() {
     setTimeout(() => setAnnouncementSentNotice(null), 6000);
   };
 
+  const isAccountant = currentUser?.role === "ACCOUNTANT";
+
+  // Tab definitions based on role
+  const availableTabs = isAccountant
+    ? [{ id: "fees", label: "Fee Management & Payments", icon: CreditCard }]
+    : [
+        { id: "overview", label: "Overview", icon: TrendingUp },
+        { id: "classes", label: "Classes & Sections", icon: BookOpen },
+        { id: "staff", label: "Staff (Teachers & Accounts)", icon: Users },
+        { id: "students", label: "Student Admissions", icon: UserPlus },
+        { id: "fees", label: "Fee Management", icon: CreditCard },
+        { id: "announcements", label: "Announcements & WhatsApp", icon: MessageSquare },
+      ];
+
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-[#111827] flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900">
+    <div className="min-h-screen bg-[#FAFAFA] text-[#111827] flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900 pb-12">
       {/* Top Principal Navigation Bar */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -223,7 +307,13 @@ export default function PrincipalDashboard() {
           <div className="flex items-center gap-3">
             <div className="hidden md:flex flex-col text-right">
               <span className="text-xs font-semibold text-slate-800">{currentUser?.name}</span>
-              <span className="text-[10px] text-emerald-600 font-bold tracking-wide uppercase">Principal / Owner</span>
+              <span
+                className={`text-[10px] font-bold tracking-wide uppercase ${
+                  isAccountant ? "text-amber-600" : "text-emerald-600"
+                }`}
+              >
+                {isAccountant ? "Accountant / Fee Officer" : "Principal / Owner"}
+              </span>
             </div>
 
             <button
@@ -238,13 +328,7 @@ export default function PrincipalDashboard() {
 
         {/* Tab Navigation */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center gap-1 sm:gap-2 overflow-x-auto scrollbar-none py-1 border-t border-slate-100">
-          {[
-            { id: "overview", label: "Overview", icon: TrendingUp },
-            { id: "classes", label: "Classes & Sections", icon: BookOpen },
-            { id: "staff", label: "Staff (Teachers & Accounts)", icon: Users },
-            { id: "students", label: "Student Admissions", icon: UserPlus },
-            { id: "announcements", label: "Announcements & WhatsApp", icon: MessageSquare },
-          ].map((tab) => {
+          {availableTabs.map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
             return (
@@ -267,12 +351,19 @@ export default function PrincipalDashboard() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+        {/* Global Action Banner */}
+        {feeActionNotice && (
+          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <span>{feeActionNotice}</span>
+          </div>
+        )}
+
         {/* ========================================================================= */}
-        {/* TAB 1: OVERVIEW */}
+        {/* TAB 1: OVERVIEW (PRINCIPAL ONLY) */}
         {/* ========================================================================= */}
-        {activeTab === "overview" && (
+        {activeTab === "overview" && !isAccountant && (
           <div className="space-y-6">
-            {/* Header Greeting */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -283,7 +374,6 @@ export default function PrincipalDashboard() {
                 </p>
               </div>
 
-              {/* Quick Action Buttons */}
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowStudentModal(true)}
@@ -293,18 +383,17 @@ export default function PrincipalDashboard() {
                   <span>Admit Student</span>
                 </button>
                 <button
-                  onClick={() => setActiveTab("announcements")}
+                  onClick={() => setActiveTab("fees")}
                   className="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-2xs flex items-center gap-1.5 transition-all"
                 >
-                  <Send className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Send Broadcast</span>
+                  <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Fee Register</span>
                 </button>
               </div>
             </div>
 
-            {/* Stats Cards (4 Core Columns) */}
+            {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Card 1: Total Students */}
               <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
                 <div className="flex items-center justify-between text-slate-500">
                   <span className="text-xs font-semibold uppercase tracking-wider">Total Students</span>
@@ -315,11 +404,10 @@ export default function PrincipalDashboard() {
                 <div className="text-3xl font-extrabold text-slate-900">{stats?.totalStudents || 0}</div>
                 <div className="text-[11px] text-slate-500 flex items-center gap-1">
                   <span className="text-emerald-600 font-semibold">{stats?.attendanceTodayPercent}%</span>
-                  <span>marked present today</span>
+                  <span>attendance average</span>
                 </div>
               </div>
 
-              {/* Card 2: Total Teachers & Staff */}
               <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
                 <div className="flex items-center justify-between text-slate-500">
                   <span className="text-xs font-semibold uppercase tracking-wider">Teachers & Staff</span>
@@ -333,7 +421,6 @@ export default function PrincipalDashboard() {
                 </div>
               </div>
 
-              {/* Card 3: Classes & Sections */}
               <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
                 <div className="flex items-center justify-between text-slate-500">
                   <span className="text-xs font-semibold uppercase tracking-wider">Classes & Sections</span>
@@ -342,29 +429,28 @@ export default function PrincipalDashboard() {
                   </div>
                 </div>
                 <div className="text-3xl font-extrabold text-slate-900">{classesList.length || 0}</div>
-                <div className="text-[11px] text-slate-500">All grades configured & active</div>
+                <div className="text-[11px] text-slate-500">All grades active</div>
               </div>
 
-              {/* Card 4: Fee Collection Status */}
               <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
                 <div className="flex items-center justify-between text-slate-500">
-                  <span className="text-xs font-semibold uppercase tracking-wider">Fee Collection</span>
+                  <span className="text-xs font-semibold uppercase tracking-wider">November Fee Collection</span>
                   <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
                     <CreditCard className="w-4 h-4" />
                   </div>
                 </div>
                 <div className="text-2xl font-extrabold text-emerald-600">
-                  PKR {(stats?.feeCollectedPKR || 0).toLocaleString()}
+                  PKR {(feeSummary?.totalCollectedPKR || 0).toLocaleString()}
                 </div>
                 <div className="text-[11px] text-slate-500">
-                  JazzCash & Easypaisa (PKR {(stats?.feePendingPKR || 0).toLocaleString()} pending)
+                  {feeSummary?.paidCount || 0} Paid • {feeSummary?.unpaidCount || 0} Unpaid (PKR{" "}
+                  {(feeSummary?.totalPendingPKR || 0).toLocaleString()} pending)
                 </div>
               </div>
             </div>
 
-            {/* Quick Preview Grid: Classes + Recent Broadcasts */}
+            {/* Quick Preview Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Classes Quick View */}
               <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-slate-900 text-sm">Classroom Distribution</h3>
@@ -397,32 +483,34 @@ export default function PrincipalDashboard() {
                 </div>
               </div>
 
-              {/* WhatsApp Fallback Broadcast Status */}
+              {/* Fee Quick Access */}
               <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs space-y-4 flex flex-col justify-between">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs uppercase tracking-wider">
-                    <MessageSquare className="w-4 h-4 text-emerald-600" />
-                    <span>WhatsApp Fallback Engine</span>
+                    <Receipt className="w-4 h-4 text-emerald-600" />
+                    <span>Fee Recovery Pulse</span>
                   </div>
-                  <h3 className="text-base font-bold text-slate-900">Zero App Parent Delivery</h3>
+                  <h3 className="text-base font-bold text-slate-900">JazzCash & Easypaisa Active</h3>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Attendance notices and fee challans are automatically transmitted directly to registered parent WhatsApp numbers.
+                    Accountants and Principals manage monthly dues and send 1-click WhatsApp payment reminders with ease.
                   </p>
                   <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900 space-y-1">
                     <div className="font-semibold flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>WhatsApp Gateways Active</span>
+                      <span>{feeSummary?.paidCount || 0} Payments Reconciled</span>
                     </div>
-                    <div className="text-[11px] text-emerald-700">Jazz, Zong, Telenor, Ufone parent numbers synced.</div>
+                    <div className="text-[11px] text-emerald-700">
+                      PKR {(feeSummary?.totalPendingPKR || 0).toLocaleString()} awaiting parent clearance.
+                    </div>
                   </div>
                 </div>
 
                 <button
-                  onClick={() => setActiveTab("announcements")}
+                  onClick={() => setActiveTab("fees")}
                   className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2"
                 >
-                  <Send className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Send Broadcast to Parents</span>
+                  <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Open Fee Management Tab</span>
                 </button>
               </div>
             </div>
@@ -430,9 +518,233 @@ export default function PrincipalDashboard() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 2: CLASSES & SECTIONS MANAGEMENT */}
+        {/* TAB 2: FEES & PAYMENTS MANAGEMENT (FOR BOTH PRINCIPALS & ACCOUNTANTS) */}
         {/* ========================================================================= */}
-        {activeTab === "classes" && (
+        {activeTab === "fees" && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                  <CreditCard className="w-6 h-6 text-emerald-600" />
+                  <span>Monthly Fee Management & Recovery</span>
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  Track monthly student dues, mark instant payments, and send WhatsApp reminder alerts in 1 click.
+                </p>
+              </div>
+            </div>
+
+            {/* Fee Summary Cards (4 Columns) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-1">
+                <span className="text-xs font-semibold text-slate-500 uppercase">Total Students</span>
+                <div className="text-3xl font-extrabold text-slate-900">{feeSummary?.totalStudents || 0}</div>
+                <div className="text-[11px] text-slate-400">Enrolled in school</div>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-1">
+                <span className="text-xs font-semibold text-emerald-700 uppercase">Paid This Month</span>
+                <div className="text-3xl font-extrabold text-emerald-600">{feeSummary?.paidCount || 0}</div>
+                <div className="text-[11px] text-emerald-700 font-medium">
+                  {feeSummary?.totalStudents
+                    ? Math.round((feeSummary.paidCount / feeSummary.totalStudents) * 100)
+                    : 0}
+                  % recovery rate
+                </div>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-1">
+                <span className="text-xs font-semibold text-rose-700 uppercase">Unpaid / Defaulters</span>
+                <div className="text-3xl font-extrabold text-rose-600">{feeSummary?.unpaidCount || 0}</div>
+                <div className="text-[11px] text-rose-700 font-medium">WhatsApp reminders ready</div>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-1">
+                <span className="text-xs font-semibold text-slate-500 uppercase">Total Collected</span>
+                <div className="text-2xl font-extrabold text-slate-900">
+                  PKR {(feeSummary?.totalCollectedPKR || 0).toLocaleString()}
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  PKR {(feeSummary?.totalPendingPKR || 0).toLocaleString()} pending
+                </div>
+              </div>
+            </div>
+
+            {/* Filters Bar: Class + Month + Status */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Month Selector */}
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Month</label>
+                  <select
+                    value={feeMonth}
+                    onChange={(e) => setFeeMonth(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-semibold text-slate-800"
+                  >
+                    <option value="November">November 2026</option>
+                    <option value="October">October 2026</option>
+                    <option value="December">December 2026</option>
+                    <option value="September">September 2026</option>
+                  </select>
+                </div>
+
+                {/* Class Filter */}
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Class / Section</label>
+                  <select
+                    value={feeClassFilter}
+                    onChange={(e) => setFeeClassFilter(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-semibold text-slate-800"
+                  >
+                    <option value="ALL">All Classes</option>
+                    {classesList.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.section})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Status Filter Buttons */}
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Status Filter</label>
+                <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50">
+                  {(["ALL", "PAID", "UNPAID"] as const).map((st) => (
+                    <button
+                      key={st}
+                      onClick={() => setFeeStatusFilter(st)}
+                      className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                        feeStatusFilter === st
+                          ? "bg-white text-slate-900 shadow-2xs"
+                          : "text-slate-500 hover:text-slate-900"
+                      }`}
+                    >
+                      {st}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Monthly Fee Status Table */}
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+                  <tr>
+                    <th className="py-3 px-4 sm:px-6">Roll No & Student</th>
+                    <th className="py-3 px-4">Class</th>
+                    <th className="py-3 px-4">Fee Amount</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4">Payment Method</th>
+                    <th className="py-3 px-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {feeRecordsList.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-xs text-slate-500">
+                        No fee records found for the selected filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    feeRecordsList.map((rec) => {
+                      const isPaid = rec.status === "PAID";
+                      return (
+                        <tr key={rec.id} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="py-3.5 px-4 sm:px-6">
+                            <div className="font-bold text-slate-900">{rec.student_name}</div>
+                            <div className="text-[11px] text-slate-400">Roll #{rec.roll_no}</div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 text-xs font-semibold">
+                              {rec.class_name} - {rec.section}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 font-bold text-slate-900">
+                            PKR {(rec.amount || 4500).toLocaleString()}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            {isPaid ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-xs border border-emerald-200">
+                                <Check className="w-3 h-3" />
+                                <span>PAID</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 font-bold text-xs border border-rose-200">
+                                <AlertTriangle className="w-3 h-3" />
+                                <span>UNPAID</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 text-xs text-slate-600">
+                            {isPaid ? (
+                              <div>
+                                <span className="font-semibold text-slate-800">{rec.payment_method || "CASH"}</span>
+                                {rec.transaction_id && (
+                                  <span className="block text-[10px] font-mono text-slate-400">
+                                    TID: {rec.transaction_id}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {!isPaid ? (
+                                <>
+                                  {/* 1-Click Mark as Paid */}
+                                  <button
+                                    onClick={() =>
+                                      setMarkPaidModal({ record: rec, method: "CASH", txnId: "" })
+                                    }
+                                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition-all"
+                                  >
+                                    Mark Paid
+                                  </button>
+
+                                  {/* Send WhatsApp Reminder */}
+                                  {rec.parent_whatsapp && (
+                                    <a
+                                      href={formatWhatsAppUrl(
+                                        rec.parent_whatsapp,
+                                        `Mohtaram Parent of ${rec.student_name},\n${schoolData?.name} ki taraf se reminder hai ke ${rec.month} 2026 ki fee PKR ${rec.amount} abhi pending hai.\n\nBaraye meharbani JazzCash ya Easypaisa ke zariye ada karein:\nJazzCash / Easypaisa: ${schoolData?.phone}\nShukriya.`
+                                      )}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold text-xs flex items-center gap-1 shadow-2xs transition-all"
+                                    >
+                                      <MessageSquare className="w-3.5 h-3.5" />
+                                      <span className="hidden sm:inline">WhatsApp Nudge</span>
+                                    </a>
+                                  )}
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() => handleRevertFeeToUnpaid(rec.id)}
+                                  className="text-xs text-slate-400 hover:text-rose-600 underline"
+                                >
+                                  Revert
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 3: CLASSES & SECTIONS MANAGEMENT (PRINCIPAL ONLY) */}
+        {/* ========================================================================= */}
+        {activeTab === "classes" && !isAccountant && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -450,7 +762,6 @@ export default function PrincipalDashboard() {
               </button>
             </div>
 
-            {/* Classes Table */}
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
               <table className="w-full text-left text-xs sm:text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
@@ -500,9 +811,9 @@ export default function PrincipalDashboard() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 3: STAFF MANAGEMENT (TEACHERS & ACCOUNTANTS) */}
+        {/* TAB 4: STAFF MANAGEMENT (PRINCIPAL ONLY) */}
         {/* ========================================================================= */}
-        {activeTab === "staff" && (
+        {activeTab === "staff" && !isAccountant && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -523,7 +834,6 @@ export default function PrincipalDashboard() {
               </button>
             </div>
 
-            {/* Generated Staff Credentials Success Card */}
             {createdStaffCreds && (
               <div className="p-5 rounded-2xl bg-emerald-50 border-2 border-emerald-500/50 shadow-sm space-y-4">
                 <div className="flex items-center justify-between">
@@ -560,7 +870,6 @@ export default function PrincipalDashboard() {
                   </div>
                 </div>
 
-                {/* WhatsApp & Copy Action Buttons */}
                 <div className="flex flex-wrap items-center gap-3 pt-1">
                   <a
                     href={formatWhatsAppUrl(
@@ -587,12 +896,12 @@ export default function PrincipalDashboard() {
                     {copiedKey === "staff-copy" ? (
                       <>
                         <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Copied to Clipboard!</span>
+                        <span>Copied!</span>
                       </>
                     ) : (
                       <>
                         <Copy className="w-3.5 h-3.5" />
-                        <span>Copy Login Credentials</span>
+                        <span>Copy Credentials</span>
                       </>
                     )}
                   </button>
@@ -600,7 +909,6 @@ export default function PrincipalDashboard() {
               </div>
             )}
 
-            {/* Staff Table */}
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
               <table className="w-full text-left text-xs sm:text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
@@ -651,9 +959,9 @@ export default function PrincipalDashboard() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 4: STUDENT ADMISSION & PARENT LINK */}
+        {/* TAB 5: STUDENT ADMISSIONS (PRINCIPAL ONLY) */}
         {/* ========================================================================= */}
-        {activeTab === "students" && (
+        {activeTab === "students" && !isAccountant && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -674,7 +982,6 @@ export default function PrincipalDashboard() {
               </button>
             </div>
 
-            {/* Generated Student & Parent Credentials Success Card */}
             {createdStudentCreds && (
               <div className="p-5 rounded-2xl bg-emerald-50 border-2 border-emerald-500/50 shadow-sm space-y-4">
                 <div className="flex items-center justify-between">
@@ -706,18 +1013,17 @@ export default function PrincipalDashboard() {
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Parent Login ID</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Student Login ID</span>
                     <span className="font-mono font-bold text-slate-900">
                       {createdStudentCreds.student.student_id}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Login Password</span>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Password</span>
                     <span className="font-mono font-bold text-emerald-600">{createdStudentCreds.rawPassword}</span>
                   </div>
                 </div>
 
-                {/* WhatsApp & Copy Action Buttons */}
                 <div className="flex flex-wrap items-center gap-3 pt-1">
                   <a
                     href={formatWhatsAppUrl(
@@ -735,7 +1041,7 @@ export default function PrincipalDashboard() {
                   <button
                     onClick={() =>
                       copyToClipboard(
-                        `Attendlix Parent Credentials:\nStudent: ${createdStudentCreds.student.name}\nID: ${createdStudentCreds.student.student_id}\nPassword: ${createdStudentCreds.rawPassword}`,
+                        `Attendlix Student Credentials:\nStudent: ${createdStudentCreds.student.name}\nID: ${createdStudentCreds.student.student_id}\nPassword: ${createdStudentCreds.rawPassword}`,
                         "student-copy"
                       )
                     }
@@ -757,7 +1063,6 @@ export default function PrincipalDashboard() {
               </div>
             )}
 
-            {/* Students Table */}
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
               <table className="w-full text-left text-xs sm:text-sm">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
@@ -765,7 +1070,7 @@ export default function PrincipalDashboard() {
                     <th className="py-3 px-4 sm:px-6">Roll No</th>
                     <th className="py-3 px-4">Student Name</th>
                     <th className="py-3 px-4">Class</th>
-                    <th className="py-3 px-4">Student/Parent ID</th>
+                    <th className="py-3 px-4">Student ID</th>
                     <th className="py-3 px-4">Parent WhatsApp</th>
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
@@ -805,27 +1110,26 @@ export default function PrincipalDashboard() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 5: ANNOUNCEMENTS & WHATSAPP BROADCAST */}
+        {/* TAB 6: ANNOUNCEMENTS & WHATSAPP BROADCAST (PRINCIPAL ONLY) */}
         {/* ========================================================================= */}
-        {activeTab === "announcements" && (
+        {activeTab === "announcements" && !isAccountant && (
           <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
                 School Announcements & WhatsApp Fallback
               </h2>
               <p className="text-xs sm:text-sm text-slate-500">
-                Official circulars published here are instantly broadcasted to parent WhatsApp numbers without requiring them to install any mobile app.
+                Official circulars published here are broadcasted to parent WhatsApp numbers without requiring any mobile app.
               </p>
             </div>
 
             {announcementSentNotice && (
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                 <span>{announcementSentNotice}</span>
               </div>
             )}
 
-            {/* Composer Box */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs space-y-4">
               <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                 <Send className="w-4 h-4 text-emerald-600" />
@@ -835,27 +1139,23 @@ export default function PrincipalDashboard() {
               <form onSubmit={handleSendAnnouncement} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Announcement Title *
-                    </label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Announcement Title *</label>
                     <input
                       type="text"
                       required
                       placeholder="e.g. Winter Vacation Notification / Exam Schedule"
                       value={announcementForm.title}
                       onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Target Audience
-                    </label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Target Audience</label>
                     <select
                       value={announcementForm.audience}
                       onChange={(e) => setAnnouncementForm({ ...announcementForm, audience: e.target.value as any })}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 bg-white"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                     >
                       <option value="ALL">All School (Parents + Staff)</option>
                       <option value="PARENTS">Parents Only (WhatsApp)</option>
@@ -866,23 +1166,21 @@ export default function PrincipalDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Announcement Message Content *
-                  </label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Announcement Message *</label>
                   <textarea
                     rows={4}
                     required
                     placeholder="Type official notification message here (English or Urdu)..."
                     value={announcementForm.content}
                     onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 font-sans"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-sans"
                   />
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
                   <div className="flex items-center gap-2 text-xs text-slate-500">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>Auto-triggers WhatsApp template dispatch for offline parents</span>
+                    <span>Auto-triggers WhatsApp template dispatch for parents</span>
                   </div>
 
                   <button
@@ -890,21 +1188,17 @@ export default function PrincipalDashboard() {
                     className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-md transition-all flex items-center justify-center gap-2"
                   >
                     <Send className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Publish & Broadcast Announcement</span>
+                    <span>Publish & Broadcast</span>
                   </button>
                 </div>
               </form>
             </div>
 
-            {/* Announcements History */}
             <div className="space-y-3">
               <h3 className="font-bold text-slate-900 text-sm">Previous Announcements</h3>
               <div className="space-y-3">
                 {announcementsList.map((ann) => (
-                  <div
-                    key={ann.id}
-                    className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2"
-                  >
+                  <div key={ann.id} className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-900 text-sm">{ann.title}</span>
@@ -913,10 +1207,7 @@ export default function PrincipalDashboard() {
                         </span>
                       </div>
                       <span className="text-[11px] text-slate-400">
-                        {new Date(ann.created_at).toLocaleDateString("en-PK", {
-                          day: "numeric",
-                          month: "short",
-                        })}
+                        {new Date(ann.created_at).toLocaleDateString("en-PK", { day: "numeric", month: "short" })}
                       </span>
                     </div>
                     <p className="text-xs text-slate-600 leading-relaxed">{ann.content}</p>
@@ -935,58 +1226,132 @@ export default function PrincipalDashboard() {
       </main>
 
       {/* ========================================================================= */}
-      {/* MODAL: ADD CLASS */}
+      {/* MODAL: 1-CLICK MARK AS PAID */}
       {/* ========================================================================= */}
-      {showClassModal && (
+      {markPaidModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4 animate-scaleUp">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-6 space-y-4 animate-scaleUp">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-base">Add New Class / Section</h3>
+              <h3 className="font-bold text-slate-900 text-base">Record Fee Payment</h3>
               <button
-                onClick={() => setShowClassModal(false)}
+                onClick={() => setMarkPaidModal(null)}
                 className="text-slate-400 hover:text-slate-600 text-sm font-semibold"
               >
                 ✕
               </button>
             </div>
 
+            <div className="space-y-3 text-xs">
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                <div className="font-bold text-slate-900 text-sm">{markPaidModal.record.student_name}</div>
+                <div className="text-slate-500">
+                  {markPaidModal.record.class_name} ({markPaidModal.record.section}) • Roll #{markPaidModal.record.roll_no}
+                </div>
+                <div className="text-emerald-700 font-extrabold text-sm pt-1">
+                  Amount: PKR {(markPaidModal.record.amount || 4500).toLocaleString()}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Payment Method *</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["CASH", "JAZZCASH", "EASYPAISA"] as const).map((method) => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => setMarkPaidModal({ ...markPaidModal, method })}
+                      className={`p-2 rounded-lg border text-center font-bold text-xs transition-all ${
+                        markPaidModal.method === method
+                          ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      {method}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {markPaidModal.method !== "CASH" && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Transaction ID / Reference (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. JC-893021 or EP-4421"
+                    value={markPaidModal.txnId}
+                    onChange={(e) => setMarkPaidModal({ ...markPaidModal, txnId: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setMarkPaidModal(null)}
+                className="px-3.5 py-2 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmPayment}
+                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs"
+              >
+                Confirm Paid
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD CLASS */}
+      {showClassModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-slate-900 text-base">Add New Class / Section</h3>
+              <button onClick={() => setShowClassModal(false)} className="text-slate-400 hover:text-slate-600 text-sm">
+                ✕
+              </button>
+            </div>
             <form onSubmit={handleAddClass} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Class / Grade Name *</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Grade 9 (Computer Science) or Matric"
+                  placeholder="e.g. Grade 9 (Computer Science)"
                   value={newClassName}
                   onChange={(e) => setNewClassName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Section *</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. A, B, Green, Red"
+                  placeholder="e.g. A, B, Green"
                   value={newClassSection}
                   onChange={(e) => setNewClassSection(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Assigned Teacher</label>
                 <input
                   type="text"
-                  placeholder="e.g. Sir Kamran (Optional)"
+                  placeholder="e.g. Sir Kamran"
                   value={newClassTeacher}
                   onChange={(e) => setNewClassTeacher(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowClassModal(false)}
@@ -994,10 +1359,7 @@ export default function PrincipalDashboard() {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs"
-                >
+                <button type="submit" className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold">
                   Save Class
                 </button>
               </div>
@@ -1006,22 +1368,16 @@ export default function PrincipalDashboard() {
         </div>
       )}
 
-      {/* ========================================================================= */}
       {/* MODAL: ADD STAFF */}
-      {/* ========================================================================= */}
       {showStaffModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4 animate-scaleUp">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-base">Add Teacher / Accountant</h3>
-              <button
-                onClick={() => setShowStaffModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-semibold"
-              >
+              <button onClick={() => setShowStaffModal(false)} className="text-slate-400 hover:text-slate-600 text-sm">
                 ✕
               </button>
             </div>
-
             <form
               onSubmit={(e) => {
                 handleAddStaff(e);
@@ -1034,25 +1390,23 @@ export default function PrincipalDashboard() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Sir Bilal or Ms. Sadia"
+                  placeholder="e.g. Sir Bilal"
                   value={staffFormData.name}
                   onChange={(e) => setStaffFormData({ ...staffFormData, name: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Role *</label>
                 <select
                   value={staffFormData.role}
                   onChange={(e) => setStaffFormData({ ...staffFormData, role: e.target.value as any })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 bg-white"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                 >
                   <option value="TEACHER">Teacher (Attendance & Homework)</option>
-                  <option value="ACCOUNTANT">Accountant (Fee Collection Sandbox)</option>
+                  <option value="ACCOUNTANT">Accountant (Strict Fee Management)</option>
                 </select>
               </div>
-
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Phone / WhatsApp *</label>
                 <input
@@ -1061,11 +1415,10 @@ export default function PrincipalDashboard() {
                   placeholder="0300-1234567"
                   value={staffFormData.phone}
                   onChange={(e) => setStaffFormData({ ...staffFormData, phone: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowStaffModal(false)}
@@ -1073,10 +1426,7 @@ export default function PrincipalDashboard() {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs"
-                >
+                <button type="submit" className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold">
                   Generate Credentials
                 </button>
               </div>
@@ -1085,22 +1435,16 @@ export default function PrincipalDashboard() {
         </div>
       )}
 
-      {/* ========================================================================= */}
       {/* MODAL: ADMIT STUDENT */}
-      {/* ========================================================================= */}
       {showStudentModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4 animate-scaleUp">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-base">Admit Student & Link Parent</h3>
-              <button
-                onClick={() => setShowStudentModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-semibold"
-              >
+              <button onClick={() => setShowStudentModal(false)} className="text-slate-400 hover:text-slate-600 text-sm">
                 ✕
               </button>
             </div>
-
             <form
               onSubmit={(e) => {
                 handleAddStudent(e);
@@ -1116,10 +1460,9 @@ export default function PrincipalDashboard() {
                   placeholder="e.g. Ali Ahmed"
                   value={studentFormData.name}
                   onChange={(e) => setStudentFormData({ ...studentFormData, name: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Roll Number *</label>
@@ -1129,16 +1472,15 @@ export default function PrincipalDashboard() {
                     placeholder="e.g. 15"
                     value={studentFormData.roll_no}
                     onChange={(e) => setStudentFormData({ ...studentFormData, roll_no: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
-
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Select Class *</label>
                   <select
                     value={studentFormData.class_id}
                     onChange={(e) => setStudentFormData({ ...studentFormData, class_id: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                   >
                     {classesList.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -1148,25 +1490,18 @@ export default function PrincipalDashboard() {
                   </select>
                 </div>
               </div>
-
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Parent WhatsApp Number *
-                </label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Parent WhatsApp Number *</label>
                 <input
                   type="tel"
                   required
                   placeholder="0300-1234567"
                   value={studentFormData.parent_whatsapp}
                   onChange={(e) => setStudentFormData({ ...studentFormData, parent_whatsapp: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  Attendance notices and fee vouchers will automatically be sent to this WhatsApp.
-                </span>
               </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowStudentModal(false)}
@@ -1174,10 +1509,7 @@ export default function PrincipalDashboard() {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs"
-                >
+                <button type="submit" className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold">
                   Admit & Generate Pass
                 </button>
               </div>

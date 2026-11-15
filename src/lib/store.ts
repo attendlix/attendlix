@@ -9,6 +9,9 @@ import {
   Homework,
   ExamMark,
   ChatMessage,
+  FeeRecord,
+  FeeStatus,
+  PaymentMethod,
 } from "./types";
 import { supabase } from "./supabase";
 
@@ -891,4 +894,246 @@ export function sendTeacherMessage(
   const existing = getStorage<ChatMessage[]>(KEY_MESSAGES, SEED_MESSAGES);
   setStorage(KEY_MESSAGES, [msg, ...existing]);
   return msg;
+}
+
+// ----------------------------------------------------
+// FEE MODULE: KEYS, SEEDS & FUNCTIONS
+// ----------------------------------------------------
+const KEY_FEE_RECORDS = "attendlix_fee_records";
+
+const SEED_FEE_RECORDS: FeeRecord[] = [
+  {
+    id: "fee-01",
+    school_id: SEED_SCHOOL_ID,
+    student_id: "std-01",
+    student_name: "Hamza Naveed",
+    roll_no: "01",
+    class_id: "cls-01",
+    class_name: "Grade 8",
+    section: "A",
+    parent_whatsapp: "0300-1122334",
+    month: "November",
+    year: 2026,
+    amount: 4500,
+    status: "PAID",
+    payment_method: "EASYPAISA",
+    transaction_id: "EP-9824021",
+    paid_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "fee-02",
+    school_id: SEED_SCHOOL_ID,
+    student_id: "std-02",
+    student_name: "Ayesha Noor",
+    roll_no: "02",
+    class_id: "cls-01",
+    class_name: "Grade 8",
+    section: "A",
+    parent_whatsapp: "0322-9988776",
+    month: "November",
+    year: 2026,
+    amount: 4500,
+    status: "PAID",
+    payment_method: "JAZZCASH",
+    transaction_id: "JC-4192003",
+    paid_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "fee-03",
+    school_id: SEED_SCHOOL_ID,
+    student_id: "std-03",
+    student_name: "Bilal Zubair",
+    roll_no: "03",
+    class_id: "cls-01",
+    class_name: "Grade 8",
+    section: "A",
+    parent_whatsapp: "0345-5544332",
+    month: "November",
+    year: 2026,
+    amount: 4500,
+    status: "UNPAID",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "fee-04",
+    school_id: SEED_SCHOOL_ID,
+    student_id: "std-04",
+    student_name: "Zainab Fatima",
+    roll_no: "12",
+    class_id: "cls-03",
+    class_name: "Grade 9 (Science)",
+    section: "A",
+    parent_whatsapp: "0312-3344556",
+    month: "November",
+    year: 2026,
+    amount: 5000,
+    status: "UNPAID",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "fee-05",
+    school_id: SEED_SCHOOL_ID,
+    student_id: "std-01",
+    student_name: "Hamza Naveed",
+    roll_no: "01",
+    class_id: "cls-01",
+    class_name: "Grade 8",
+    section: "A",
+    parent_whatsapp: "0300-1122334",
+    month: "October",
+    year: 2026,
+    amount: 4500,
+    status: "PAID",
+    payment_method: "CASH",
+    paid_at: new Date(Date.now() - 86400000 * 35).toISOString(),
+    created_at: new Date().toISOString(),
+  },
+];
+
+export function getFeeRecords(
+  school_id: string,
+  filters?: { month?: string; year?: number; class_id?: string; status?: FeeStatus }
+): FeeRecord[] {
+  initializeStore();
+  const all = getStorage<FeeRecord[]>(KEY_FEE_RECORDS, SEED_FEE_RECORDS);
+  const students = getStudents(school_id);
+  const classes = getClasses(school_id);
+
+  // Auto ensure fee records exist for current students if missing
+  let records = all.filter((r) => r.school_id === school_id || school_id === SEED_SCHOOL_ID);
+
+  if (filters?.month) {
+    records = records.filter((r) => r.month.toLowerCase() === filters.month?.toLowerCase());
+  }
+  if (filters?.year) {
+    records = records.filter((r) => r.year === filters.year);
+  }
+  if (filters?.class_id && filters.class_id !== "ALL") {
+    records = records.filter((r) => r.class_id === filters.class_id);
+  }
+  if (filters?.status && filters.status !== "ALL" as any) {
+    records = records.filter((r) => r.status === filters.status);
+  }
+
+  // Enrich with latest student data
+  return records.map((r) => {
+    const st = students.find((s) => s.id === r.student_id);
+    const cls = classes.find((c) => c.id === r.class_id || c.id === st?.class_id);
+    return {
+      ...r,
+      student_name: st?.name || r.student_name,
+      roll_no: st?.roll_no || r.roll_no,
+      class_name: cls?.name || r.class_name,
+      section: cls?.section || r.section,
+      parent_whatsapp: st?.parent_whatsapp || r.parent_whatsapp,
+    };
+  });
+}
+
+export function getStudentFeeRecords(school_id: string, student_id: string): FeeRecord[] {
+  initializeStore();
+  const all = getFeeRecords(school_id);
+  return all.filter((r) => r.student_id === student_id);
+}
+
+export function updateFeeStatus(
+  record_id: string,
+  status: FeeStatus,
+  payment_method?: PaymentMethod,
+  transaction_id?: string
+): FeeRecord | null {
+  initializeStore();
+  const all = getStorage<FeeRecord[]>(KEY_FEE_RECORDS, SEED_FEE_RECORDS);
+  const index = all.findIndex((r) => r.id === record_id);
+  if (index === -1) return null;
+
+  const updated: FeeRecord = {
+    ...all[index],
+    status,
+    payment_method: status === "PAID" ? payment_method || "CASH" : undefined,
+    transaction_id: status === "PAID" ? transaction_id || undefined : undefined,
+    paid_at: status === "PAID" ? new Date().toISOString() : undefined,
+  };
+
+  all[index] = updated;
+  setStorage(KEY_FEE_RECORDS, all);
+  return updated;
+}
+
+export function payStudentFee(
+  school_id: string,
+  student_id: string,
+  month: string,
+  year: number,
+  payment_method: PaymentMethod,
+  transaction_id?: string
+): FeeRecord {
+  initializeStore();
+  const all = getStorage<FeeRecord[]>(KEY_FEE_RECORDS, SEED_FEE_RECORDS);
+  const foundIndex = all.findIndex(
+    (r) =>
+      (r.school_id === school_id || school_id === SEED_SCHOOL_ID) &&
+      r.student_id === student_id &&
+      r.month.toLowerCase() === month.toLowerCase() &&
+      r.year === year
+  );
+
+  const students = getStudents(school_id);
+  const targetStudent = students.find((s) => s.id === student_id);
+
+  if (foundIndex !== -1) {
+    all[foundIndex] = {
+      ...all[foundIndex],
+      status: "PAID",
+      payment_method,
+      transaction_id: transaction_id || `TXN-${Math.floor(100000 + Math.random() * 900000)}`,
+      paid_at: new Date().toISOString(),
+    };
+    setStorage(KEY_FEE_RECORDS, all);
+    return all[foundIndex];
+  } else {
+    const newRecord: FeeRecord = {
+      id: "fee-" + Math.random().toString(36).substring(2, 9),
+      school_id,
+      student_id,
+      student_name: targetStudent?.name || "Student",
+      roll_no: targetStudent?.roll_no || "01",
+      class_id: targetStudent?.class_id || "cls-01",
+      class_name: targetStudent?.class_name || "Class",
+      section: targetStudent?.section || "A",
+      parent_whatsapp: targetStudent?.parent_whatsapp || "0300-0000000",
+      month,
+      year,
+      amount: 4500,
+      status: "PAID",
+      payment_method,
+      transaction_id: transaction_id || `TXN-${Math.floor(100000 + Math.random() * 900000)}`,
+      paid_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+    };
+    setStorage(KEY_FEE_RECORDS, [newRecord, ...all]);
+    return newRecord;
+  }
+}
+
+export function getFeeSummary(school_id: string, month: string = "November", year: number = 2026) {
+  const records = getFeeRecords(school_id, { month, year });
+  const students = getStudents(school_id);
+
+  const totalStudents = students.length || records.length || 4;
+  const paidList = records.filter((r) => r.status === "PAID");
+  const unpaidList = records.filter((r) => r.status === "UNPAID");
+
+  const totalCollectedPKR = paidList.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+  const totalPendingPKR = unpaidList.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+
+  return {
+    totalStudents,
+    paidCount: paidList.length,
+    unpaidCount: unpaidList.length,
+    totalCollectedPKR,
+    totalPendingPKR,
+  };
 }
