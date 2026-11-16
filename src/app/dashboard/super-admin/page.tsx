@@ -126,7 +126,7 @@ export default function SuperAdminDashboard() {
     <div className="min-h-screen bg-[#FAFAFA] text-[#111827] flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900 pb-12">
       {/* Top Navbar */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 min-h-[56px] sm:min-h-[64px] h-auto py-2.5 flex items-center justify-between gap-2.5">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
               <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-sm">
@@ -155,7 +155,7 @@ export default function SuperAdminDashboard() {
 
             <button
               onClick={handleLogout}
-              className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors flex-shrink-0"
+              className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors flex-shrink-0 min-h-[36px] min-w-[36px] flex items-center justify-center"
               title={t.signOut}
             >
               <LogOut className="w-4 h-4" />
@@ -265,14 +265,14 @@ export default function SuperAdminDashboard() {
             />
           </div>
 
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 w-full sm:w-auto">
+          <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none py-1.5 w-full sm:w-auto">
             {(["ALL", "ACTIVE", "TRIAL", "SUSPENDED"] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
-                className={`px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                className={`px-4 py-2 min-h-[40px] rounded-xl text-xs font-bold whitespace-nowrap transition-all flex-shrink-0 ${
                   statusFilter === status
-                    ? "bg-slate-900 text-white shadow-2xs"
+                    ? "bg-slate-900 text-white shadow-2xs font-bold"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
@@ -480,8 +480,8 @@ export default function SuperAdminDashboard() {
       {/* MODAL: ONBOARD NEW SCHOOL MANUALLY */}
       {/* ========================================================================= */}
       {showOnboardModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto animate-scaleUp">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+          <div className="w-full max-w-md max-h-[85vh] overflow-y-auto m-2 p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-xl space-y-4 animate-scaleUp">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-base">Onboard New School Tenant</h3>
               <button

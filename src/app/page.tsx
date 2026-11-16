@@ -442,7 +442,7 @@ export default function LandingPage() {
         </div>
 
         {/* Role Tabs */}
-        <div className="flex items-center justify-start sm:justify-center gap-2 overflow-x-auto pb-3 px-2 scrollbar-none">
+        <div className="flex items-center justify-start sm:justify-center gap-2 overflow-x-auto whitespace-nowrap pb-3 px-2 scrollbar-none">
           {[
             { id: "principal", label: "Principals & Owners", icon: Building2 },
             { id: "teacher", label: "Teachers & Staff", icon: Users },
@@ -455,14 +455,14 @@ export default function LandingPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveRole(tab.id as any)}
-                className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all min-h-[44px] ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all flex-shrink-0 min-h-[44px] ${
                   active
-                    ? "bg-slate-900 text-white shadow-md"
+                    ? "bg-slate-900 text-white shadow-md font-bold"
                     : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
                 }`}
               >
-                <Icon className={`w-4 h-4 ${active ? "text-emerald-400" : "text-slate-400"}`} />
-                <span>{tab.label}</span>
+                <Icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-emerald-400" : "text-slate-400"}`} />
+                <span className="whitespace-nowrap">{tab.label}</span>
               </button>
             );
           })}

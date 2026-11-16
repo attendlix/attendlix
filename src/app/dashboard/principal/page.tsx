@@ -428,13 +428,13 @@ export default function PrincipalDashboard() {
     <div className="min-h-screen bg-[#FAFAFA] text-[#111827] flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900 pb-12 overflow-x-hidden w-full">
       {/* Top Principal Navigation Bar */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 min-h-[56px] h-auto py-2.5 flex items-center justify-between gap-2.5">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {/* Mobile Hamburger Drawer Button */}
             <button
               type="button"
               onClick={() => setMobileDrawerOpen(true)}
-              className="md:hidden p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 min-h-[40px] min-w-[40px] flex items-center justify-center flex-shrink-0"
+              className="md:hidden p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 min-h-[40px] min-w-[40px] flex items-center justify-center flex-shrink-0 border border-slate-200"
               aria-label="Open Navigation Menu"
             >
               <Menu className="w-5 h-5" />
@@ -485,25 +485,27 @@ export default function PrincipalDashboard() {
         </div>
 
         {/* Tab Navigation Pill Bar (Smooth Horizontal Scroll on Mobile) */}
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none py-1.5 border-t border-slate-100">
-          {availableTabs.map((tab) => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all min-h-[38px] ${
-                  active
-                    ? "bg-slate-900 text-white shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
-                }`}
-              >
-                <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${active ? "text-emerald-400" : "text-slate-400"}`} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+        <div className="border-t border-slate-100 bg-white">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none py-2">
+            {availableTabs.map((tab) => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 min-h-[44px] ${
+                    active
+                      ? "bg-slate-900 text-white shadow-2xs font-bold"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 bg-slate-50 border border-slate-200/60"
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-emerald-400" : "text-slate-400"}`} />
+                  <span className="whitespace-nowrap">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </header>
 
@@ -851,12 +853,12 @@ export default function PrincipalDashboard() {
               {/* Status Filter Buttons */}
               <div>
                 <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Status Filter</label>
-                <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50">
+                <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-none p-0.5 rounded-xl border border-slate-200 bg-slate-50">
                   {(["ALL", "PAID", "UNPAID"] as const).map((st) => (
                     <button
                       key={st}
                       onClick={() => setFeeStatusFilter(st)}
-                      className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap min-h-[36px] ${
                         feeStatusFilter === st
                           ? "bg-white text-slate-900 shadow-2xs"
                           : "text-slate-500 hover:text-slate-900"
@@ -1783,7 +1785,7 @@ export default function PrincipalDashboard() {
             <div className="space-y-4 block xl:hidden">
               {/* Day Selector Pills */}
               <div className="bg-white p-2.5 rounded-2xl border border-slate-200 shadow-2xs">
-                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+                <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none py-1 px-1">
                   {(["MON", "TUE", "WED", "THU", "FRI", "SAT"] as DayOfWeek[]).map((d) => {
                     const active = principalTimetableDay === d;
                     const labels: Record<DayOfWeek, { en: string; ur: string }> = {
@@ -1800,17 +1802,17 @@ export default function PrincipalDashboard() {
                         key={d}
                         type="button"
                         onClick={() => setPrincipalTimetableDay(d)}
-                        className={`flex-1 min-w-[70px] sm:min-w-[90px] py-2 px-2.5 rounded-xl text-center transition-all min-h-[44px] flex flex-col items-center justify-center ${
+                        className={`flex-shrink-0 min-w-[85px] sm:min-w-[100px] py-2 px-3.5 rounded-xl text-center transition-all min-h-[44px] flex flex-col items-center justify-center whitespace-nowrap ${
                           active
-                            ? "bg-slate-900 text-white shadow-2xs"
-                            : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                            ? "bg-slate-900 text-white shadow-2xs font-bold"
+                            : "bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/60"
                         }`}
                       >
-                        <span className="text-xs font-bold leading-tight">
+                        <span className="text-xs font-bold leading-tight whitespace-nowrap">
                           {isRtl ? labels[d].ur : labels[d].en}
                         </span>
                         <span
-                          className={`text-[10px] mt-0.5 ${
+                          className={`text-[10px] mt-0.5 whitespace-nowrap ${
                             active ? "text-emerald-400 font-bold" : "text-slate-400"
                           }`}
                         >
@@ -2024,8 +2026,8 @@ export default function PrincipalDashboard() {
       {/* MODAL: 1-CLICK MARK AS PAID */}
       {/* ========================================================================= */}
       {markPaidModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto animate-scaleUp">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+          <div className="w-full max-w-md max-h-[85vh] overflow-y-auto m-2 p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-xl space-y-4 animate-scaleUp">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-base">Record Fee Payment</h3>
               <button
@@ -2105,8 +2107,8 @@ export default function PrincipalDashboard() {
 
       {/* MODAL: ADD CLASS */}
       {showClassModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+          <div className="w-full max-w-md max-h-[85vh] overflow-y-auto m-2 p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-base">Add New Class / Section</h3>
               <button
@@ -2171,8 +2173,8 @@ export default function PrincipalDashboard() {
 
       {/* MODAL: ADD STAFF */}
       {showStaffModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+          <div className="w-full max-w-md max-h-[85vh] overflow-y-auto m-2 p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-base">Add Teacher / Accountant</h3>
               <button
@@ -2244,8 +2246,8 @@ export default function PrincipalDashboard() {
 
       {/* MODAL: ADMIT STUDENT */}
       {showStudentModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+          <div className="w-full max-w-md max-h-[85vh] overflow-y-auto m-2 p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-base">Admit Student & Link Parent</h3>
               <button
@@ -2333,8 +2335,8 @@ export default function PrincipalDashboard() {
 
       {/* MODAL: ASSIGN / EDIT TIMETABLE PERIOD */}
       {showPeriodModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto animate-scaleUp">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+          <div className="w-full max-w-md max-h-[85vh] overflow-y-auto m-2 p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-xl space-y-4 animate-scaleUp">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="font-bold text-slate-900 text-base">

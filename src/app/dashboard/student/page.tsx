@@ -148,7 +148,7 @@ export default function StudentDashboard() {
     <div className="min-h-screen bg-[#FAFAFA] text-[#111827] flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900 pb-12">
       {/* Top Header */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-4xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-2">
+        <div className="max-w-4xl mx-auto px-3 sm:px-6 min-h-[56px] h-auto py-2.5 flex items-center justify-between gap-2.5">
           <div className="flex items-center gap-2 min-w-0">
             <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
               <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white shadow-2xs">
@@ -171,7 +171,7 @@ export default function StudentDashboard() {
             </div>
             <button
               onClick={handleLogout}
-              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors flex-shrink-0"
+              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors flex-shrink-0 min-h-[36px] min-w-[36px] flex items-center justify-center border border-slate-200"
               title="Sign Out"
             >
               <LogOut className="w-4 h-4" />
@@ -180,37 +180,39 @@ export default function StudentDashboard() {
         </div>
 
         {/* Tab Selector (Horizontally scrollable on mobile) */}
-        <div className="max-w-4xl mx-auto px-2 flex items-center overflow-x-auto scrollbar-none sm:justify-around border-t border-slate-200 bg-white">
-          {[
-            { id: "overview", label: t.tabOverview || "Overview", icon: School },
-            { id: "attendance_hw", label: t.tabHomework || "Diary & Work", icon: BookOpen },
-            { id: "timetable", label: t.tabTimetable || "Timetable", icon: Clock },
-            { id: "exams", label: t.tabExams || "Exam Marks", icon: Award },
-            { id: "fees", label: t.tabFees || "Fee Status", icon: CreditCard },
-            { id: "chat", label: t.tabChat || "Teacher Chat", icon: MessageSquare },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex-1 min-w-[68px] sm:min-w-0 py-2.5 sm:py-3 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 text-xs font-semibold transition-all border-b-2 flex-shrink-0 min-h-[44px] ${
-                  active
-                    ? "border-emerald-600 text-emerald-700 bg-emerald-50/40"
-                    : "border-transparent text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <Icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-emerald-600" : "text-slate-400"}`} />
-                <span className="whitespace-nowrap">{tab.label}</span>
-              </button>
-            );
-          })}
+        <div className="border-t border-slate-200 bg-white">
+          <div className="max-w-4xl mx-auto px-3 sm:px-6 flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none py-2">
+            {[
+              { id: "overview", label: t.tabOverview || "Overview", icon: School },
+              { id: "attendance_hw", label: t.tabHomework || "Diary & Work", icon: BookOpen },
+              { id: "timetable", label: t.tabTimetable || "Timetable", icon: Clock },
+              { id: "exams", label: t.tabExams || "Exam Marks", icon: Award },
+              { id: "fees", label: t.tabFees || "Fee Status", icon: CreditCard },
+              { id: "chat", label: t.tabChat || "Teacher Chat", icon: MessageSquare },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 min-h-[44px] ${
+                    active
+                      ? "bg-slate-900 text-white shadow-2xs font-bold"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 bg-slate-50 border border-slate-200/60"
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-emerald-400" : "text-slate-400"}`} />
+                  <span className="whitespace-nowrap">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-6">
+      <main className="flex-1 max-w-4xl w-full mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* Payment Toast */}
         {paymentSuccessToast && (
           <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center gap-2">
@@ -588,7 +590,7 @@ export default function StudentDashboard() {
                 </div>
 
                 {/* Day Filter Pills */}
-                <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-1">
+                <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-none py-1.5">
                   {(["ALL", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const).map((d) => {
                     const active = selectedDayFilter === d;
                     const labels: Record<string, string> = {
@@ -605,9 +607,9 @@ export default function StudentDashboard() {
                         key={d}
                         type="button"
                         onClick={() => setSelectedDayFilter(d)}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                        className={`px-4 py-2 min-h-[40px] rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${
                           active
-                            ? "bg-slate-900 text-white shadow-2xs"
+                            ? "bg-slate-900 text-white shadow-2xs font-bold"
                             : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                         }`}
                       >
@@ -709,8 +711,8 @@ export default function StudentDashboard() {
       {/* MODAL: PAY VIA JAZZCASH / EASYPAISA */}
       {/* ========================================================================= */}
       {paymentModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto animate-scaleUp">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+          <div className="w-full max-w-md max-h-[85vh] overflow-y-auto m-2 p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-xl space-y-4 animate-scaleUp">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-base">Pay School Fee</h3>
               <button
