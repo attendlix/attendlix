@@ -19,6 +19,14 @@ CREATE TABLE IF NOT EXISTS public.schools (
     email VARCHAR(255),
     address TEXT,
     logo_url TEXT,
+    -- Dynamic School Payment Receiving Accounts
+    bank_name VARCHAR(100),
+    bank_account_title VARCHAR(150),
+    bank_account_number VARCHAR(50),
+    easypaisa_title VARCHAR(150),
+    easypaisa_number VARCHAR(30),
+    jazzcash_title VARCHAR(150),
+    jazzcash_number VARCHAR(30),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -64,6 +72,7 @@ CREATE TABLE IF NOT EXISTS public.students (
     parent_whatsapp VARCHAR(30) NOT NULL,
     student_id VARCHAR(50) NOT NULL, -- Unique login ID (e.g., STD-2026-042)
     user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    monthly_fee NUMERIC(10, 2) DEFAULT 0.00 NOT NULL, -- Customized monthly tuition fee
     status VARCHAR(20) DEFAULT 'ACTIVE' NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     CONSTRAINT unique_school_roll_no UNIQUE (school_id, class_id, roll_no),
@@ -350,4 +359,21 @@ CREATE POLICY "Staff can view their own attendance"
 CREATE POLICY "Staff can update their check-in check-out times"
     ON public.staff_attendance FOR UPDATE
     USING (user_id = auth.uid() OR auth.role() = 'service_role');
+
+-- ==============================================================================
+-- ATTENDLIX: Step 8 - Dynamic Payment Accounts & Flexible Student Fee Schema
+-- ==============================================================================
+
+-- 1. Add payment account columns to schools table
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS bank_name VARCHAR(100);
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS bank_account_title VARCHAR(150);
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS bank_account_number VARCHAR(50);
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS easypaisa_title VARCHAR(150);
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS easypaisa_number VARCHAR(30);
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS jazzcash_title VARCHAR(150);
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS jazzcash_number VARCHAR(30);
+
+-- 2. Add per-student monthly fee column to students table
+ALTER TABLE public.students ADD COLUMN IF NOT EXISTS monthly_fee NUMERIC(10, 2) DEFAULT 0.00 NOT NULL;
+
 

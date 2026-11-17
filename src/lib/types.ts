@@ -11,6 +11,14 @@ export interface School {
   student_count?: number;
   mrr_pkr?: number;
   trial_days_left?: number;
+  // Dynamic Payment Receiving Accounts
+  bank_name?: string;
+  bank_account_title?: string;
+  bank_account_number?: string;
+  easypaisa_title?: string;
+  easypaisa_number?: string;
+  jazzcash_title?: string;
+  jazzcash_number?: string;
   created_at: string;
 }
 
@@ -48,6 +56,7 @@ export interface Student {
   parent_whatsapp: string;
   student_id: string; // Login ID, e.g. STD-2026-001
   temp_password?: string;
+  monthly_fee?: number; // Per-student custom fee (scholarships/discounts)
   status: "ACTIVE" | "INACTIVE";
   created_at: string;
 }

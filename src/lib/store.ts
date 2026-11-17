@@ -43,6 +43,13 @@ const SEED_SCHOOLS: School[] = [
     student_count: 148,
     mrr_pkr: 35000,
     trial_days_left: 0,
+    bank_name: "Meezan Bank Limited",
+    bank_account_title: "Beacon Grammar School System",
+    bank_account_number: "PK64MEZN0001020304050607",
+    easypaisa_title: "Beacon Grammar School",
+    easypaisa_number: "03004567890",
+    jazzcash_title: "Beacon Grammar School",
+    jazzcash_number: "03004567890",
     created_at: new Date().toISOString(),
   },
   {
@@ -56,6 +63,13 @@ const SEED_SCHOOLS: School[] = [
     student_count: 280,
     mrr_pkr: 55000,
     trial_days_left: 0,
+    bank_name: "Habib Bank Limited (HBL)",
+    bank_account_title: "Allied Grammar Campus Karachi",
+    bank_account_number: "PK36HABB0012345678901234",
+    easypaisa_title: "Allied Grammar",
+    easypaisa_number: "03219876543",
+    jazzcash_title: "Allied Grammar",
+    jazzcash_number: "03219876543",
     created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
   },
   {
@@ -69,6 +83,13 @@ const SEED_SCHOOLS: School[] = [
     student_count: 94,
     mrr_pkr: 0,
     trial_days_left: 6,
+    bank_name: "Bank Alfalah",
+    bank_account_title: "The City Model Academy RWP",
+    bank_account_number: "PK40ALFH0055112233445566",
+    easypaisa_title: "City Model Academy",
+    easypaisa_number: "03331122334",
+    jazzcash_title: "City Model Academy",
+    jazzcash_number: "03331122334",
     created_at: new Date(Date.now() - 86400000 * 8).toISOString(),
   },
   {
@@ -82,6 +103,13 @@ const SEED_SCHOOLS: School[] = [
     student_count: 420,
     mrr_pkr: 70000,
     trial_days_left: 0,
+    bank_name: "Askari Bank",
+    bank_account_title: "Army Public Model School Peshawar",
+    bank_account_number: "PK12ASKB0099887766554433",
+    easypaisa_title: "Army Public School",
+    easypaisa_number: "03457788990",
+    jazzcash_title: "Army Public School",
+    jazzcash_number: "03457788990",
     created_at: new Date(Date.now() - 86400000 * 60).toISOString(),
   },
 ];
@@ -197,6 +225,7 @@ const SEED_STUDENTS: Student[] = [
     student_id: "STD-2026-001",
     temp_password: "pass-parent",
     status: "ACTIVE",
+    monthly_fee: 4500,
     created_at: new Date().toISOString(),
   },
   {
@@ -211,6 +240,7 @@ const SEED_STUDENTS: Student[] = [
     student_id: "STD-2026-002",
     temp_password: "std-pass-02",
     status: "ACTIVE",
+    monthly_fee: 3800,
     created_at: new Date().toISOString(),
   },
   {
@@ -225,6 +255,7 @@ const SEED_STUDENTS: Student[] = [
     student_id: "STD-2026-003",
     temp_password: "std-pass-03",
     status: "ACTIVE",
+    monthly_fee: 5000,
     created_at: new Date().toISOString(),
   },
   {
@@ -239,6 +270,7 @@ const SEED_STUDENTS: Student[] = [
     student_id: "STD-2026-012",
     temp_password: "std-pass-12",
     status: "ACTIVE",
+    monthly_fee: 3200,
     created_at: new Date().toISOString(),
   },
 ];
@@ -552,9 +584,9 @@ export async function registerSchool(data: {
 // ----------------------------------------------------
 export function getSchool(school_id?: string): School {
   initializeStore();
-  const schools = getStorage<School[]>(KEY_SCHOOLS, [SEED_SCHOOL]);
-  if (!school_id) return schools[0] || SEED_SCHOOL;
-  return schools.find((s) => s.id === school_id) || schools[0] || SEED_SCHOOL;
+  const schools = getStorage<School[]>(KEY_SCHOOLS, SEED_SCHOOLS);
+  if (!school_id) return schools[0] || SEED_SCHOOLS[0];
+  return schools.find((s) => s.id === school_id) || schools[0] || SEED_SCHOOLS[0];
 }
 
 export function getOverviewStats(school_id?: string) {
@@ -669,7 +701,7 @@ export function getStudents(school_id?: string): Student[] {
 
 export function addStudent(
   school_id: string,
-  data: { name: string; roll_no: string; class_id: string; parent_whatsapp: string }
+  data: { name: string; roll_no: string; class_id: string; parent_whatsapp: string; monthly_fee?: number }
 ): { student: Student; rawPassword: string } {
   initializeStore();
 
@@ -679,6 +711,7 @@ export function addStudent(
   const randomNum = Math.floor(100 + Math.random() * 900);
   const studentId = `STD-2026-${randomNum}`;
   const generatedPassword = `std@${Math.floor(1000 + Math.random() * 9000)}`;
+  const feeAmount = typeof data.monthly_fee === "number" && !isNaN(data.monthly_fee) ? data.monthly_fee : 4500;
 
   const newStudent: Student = {
     id: "std-" + Math.random().toString(36).substring(2, 9),
@@ -692,12 +725,35 @@ export function addStudent(
     student_id: studentId,
     temp_password: generatedPassword,
     status: "ACTIVE",
+    monthly_fee: feeAmount,
     created_at: new Date().toISOString(),
   };
 
   // Add student
   const students = getStorage<Student[]>(KEY_STUDENTS, SEED_STUDENTS);
   setStorage(KEY_STUDENTS, [newStudent, ...students]);
+
+  // Create current month initial fee record for this student
+  const currentMonth = new Intl.DateTimeFormat("en-US", { month: "long" }).format(new Date());
+  const currentYear = new Date().getFullYear();
+  const feeRecords = getStorage<FeeRecord[]>(KEY_FEE_RECORDS, SEED_FEE_RECORDS);
+  const newFeeRecord: FeeRecord = {
+    id: "fee-" + Math.random().toString(36).substring(2, 9),
+    school_id,
+    student_id: newStudent.id,
+    student_name: newStudent.name,
+    roll_no: newStudent.roll_no,
+    class_id: newStudent.class_id,
+    class_name: newStudent.class_name,
+    section: newStudent.section,
+    parent_whatsapp: newStudent.parent_whatsapp,
+    month: currentMonth,
+    year: currentYear,
+    amount: feeAmount,
+    status: "UNPAID",
+    created_at: new Date().toISOString(),
+  };
+  setStorage(KEY_FEE_RECORDS, [newFeeRecord, ...feeRecords]);
 
   // Also create a linked user account for the Parent/Student
   const newParentUser: User = {
@@ -1140,7 +1196,7 @@ const SEED_FEE_RECORDS: FeeRecord[] = [
     parent_whatsapp: "0322-9988776",
     month: "November",
     year: 2026,
-    amount: 4500,
+    amount: 3800,
     status: "PAID",
     payment_method: "JAZZCASH",
     transaction_id: "JC-4192003",
@@ -1159,7 +1215,7 @@ const SEED_FEE_RECORDS: FeeRecord[] = [
     parent_whatsapp: "0345-5544332",
     month: "November",
     year: 2026,
-    amount: 4500,
+    amount: 5000,
     status: "UNPAID",
     created_at: new Date().toISOString(),
   },
@@ -1175,7 +1231,7 @@ const SEED_FEE_RECORDS: FeeRecord[] = [
     parent_whatsapp: "0312-3344556",
     month: "November",
     year: 2026,
-    amount: 5000,
+    amount: 3200,
     status: "UNPAID",
     created_at: new Date().toISOString(),
   },
@@ -1301,6 +1357,7 @@ export function payStudentFee(
     setStorage(KEY_FEE_RECORDS, all);
     return all[foundIndex];
   } else {
+    const studentMonthlyFee = targetStudent?.monthly_fee ?? 4500;
     const newRecord: FeeRecord = {
       id: "fee-" + Math.random().toString(36).substring(2, 9),
       school_id,
@@ -1313,7 +1370,7 @@ export function payStudentFee(
       parent_whatsapp: targetStudent?.parent_whatsapp || "0300-0000000",
       month,
       year,
-      amount: 4500,
+      amount: studentMonthlyFee,
       status: "PAID",
       payment_method,
       transaction_id: transaction_id || `TXN-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -1323,6 +1380,37 @@ export function payStudentFee(
     setStorage(KEY_FEE_RECORDS, [newRecord, ...all]);
     return newRecord;
   }
+}
+
+export function adjustFeeRecordAmount(record_id: string, delta: number): FeeRecord | null {
+  initializeStore();
+  const all = getStorage<FeeRecord[]>(KEY_FEE_RECORDS, SEED_FEE_RECORDS);
+  const index = all.findIndex((r) => r.id === record_id);
+  if (index === -1) return null;
+
+  const currentAmount = Number(all[index].amount) || 0;
+  const newAmount = Math.max(0, currentAmount + delta);
+
+  all[index] = {
+    ...all[index],
+    amount: newAmount,
+  };
+  setStorage(KEY_FEE_RECORDS, all);
+  return all[index];
+}
+
+export function updateFeeRecordAmount(record_id: string, newAmount: number): FeeRecord | null {
+  initializeStore();
+  const all = getStorage<FeeRecord[]>(KEY_FEE_RECORDS, SEED_FEE_RECORDS);
+  const index = all.findIndex((r) => r.id === record_id);
+  if (index === -1) return null;
+
+  all[index] = {
+    ...all[index],
+    amount: Math.max(0, newAmount),
+  };
+  setStorage(KEY_FEE_RECORDS, all);
+  return all[index];
 }
 
 export function getFeeSummary(school_id: string, month: string = "November", year: number = 2026) {
@@ -1434,6 +1522,38 @@ export function onboardManualSchool(data: {
   const updated = [newSchool, ...schools];
   setStorage(KEY_SCHOOLS, updated);
   return newSchool;
+}
+
+export function updateSchoolPaymentDetails(
+  school_id: string,
+  details: {
+    bank_name?: string;
+    bank_account_title?: string;
+    bank_account_number?: string;
+    easypaisa_title?: string;
+    easypaisa_number?: string;
+    jazzcash_title?: string;
+    jazzcash_number?: string;
+  }
+): School | null {
+  initializeStore();
+  const schools = getStorage<School[]>(KEY_SCHOOLS, SEED_SCHOOLS);
+  const index = schools.findIndex((s) => s.id === school_id);
+  if (index === -1) return null;
+
+  schools[index] = {
+    ...schools[index],
+    bank_name: details.bank_name !== undefined ? details.bank_name.trim() : schools[index].bank_name,
+    bank_account_title: details.bank_account_title !== undefined ? details.bank_account_title.trim() : schools[index].bank_account_title,
+    bank_account_number: details.bank_account_number !== undefined ? details.bank_account_number.trim() : schools[index].bank_account_number,
+    easypaisa_title: details.easypaisa_title !== undefined ? details.easypaisa_title.trim() : schools[index].easypaisa_title,
+    easypaisa_number: details.easypaisa_number !== undefined ? details.easypaisa_number.trim() : schools[index].easypaisa_number,
+    jazzcash_title: details.jazzcash_title !== undefined ? details.jazzcash_title.trim() : schools[index].jazzcash_title,
+    jazzcash_number: details.jazzcash_number !== undefined ? details.jazzcash_number.trim() : schools[index].jazzcash_number,
+  };
+
+  setStorage(KEY_SCHOOLS, schools);
+  return schools[index];
 }
 
 // ----------------------------------------------------

@@ -25,6 +25,8 @@ import {
   MessageSquare,
   Check,
   Globe,
+  Landmark,
+  Wallet,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -33,6 +35,7 @@ import {
   updateSchoolStatus,
   extendSchoolTrial,
   onboardManualSchool,
+  updateSchoolPaymentDetails,
   logout,
 } from "@/lib/store";
 import { User, School } from "@/lib/types";
@@ -60,6 +63,20 @@ export default function SuperAdminDashboard() {
     email: "",
     plan: "STANDARD" as "TRIAL" | "STANDARD" | "PREMIUM",
   });
+
+  // Payment Details Modal State
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPaymentSchool, setSelectedPaymentSchool] = useState<School | null>(null);
+  const [paymentForm, setPaymentForm] = useState({
+    bank_name: "",
+    bank_account_title: "",
+    bank_account_number: "",
+    easypaisa_title: "",
+    easypaisa_number: "",
+    jazzcash_title: "",
+    jazzcash_number: "",
+  });
+
   const [actionNotice, setActionNotice] = useState<string | null>(null);
 
   const refreshAll = () => {
@@ -105,6 +122,30 @@ export default function SuperAdminDashboard() {
       plan: "STANDARD",
     });
     setActionNotice("✓ New School Tenant successfully onboarded to platform!");
+    refreshAll();
+    setTimeout(() => setActionNotice(null), 4000);
+  };
+
+  const openPaymentModal = (sch: School) => {
+    setSelectedPaymentSchool(sch);
+    setPaymentForm({
+      bank_name: sch.bank_name || "",
+      bank_account_title: sch.bank_account_title || "",
+      bank_account_number: sch.bank_account_number || "",
+      easypaisa_title: sch.easypaisa_title || "",
+      easypaisa_number: sch.easypaisa_number || "",
+      jazzcash_title: sch.jazzcash_title || "",
+      jazzcash_number: sch.jazzcash_number || "",
+    });
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPaymentSchool) return;
+    updateSchoolPaymentDetails(selectedPaymentSchool.id, paymentForm);
+    setShowPaymentModal(false);
+    setActionNotice(`✓ Payment accounts updated for ${selectedPaymentSchool.name}`);
     refreshAll();
     setTimeout(() => setActionNotice(null), 4000);
   };
@@ -319,7 +360,34 @@ export default function SuperAdminDashboard() {
                     </div>
                   </div>
 
+                  {/* Payment Accounts Preview */}
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs space-y-1">
+                    <div className="text-[10px] uppercase font-bold text-slate-400 flex items-center justify-between">
+                      <span className="flex items-center gap-1">
+                        <CreditCard className="w-3 h-3 text-emerald-600" />
+                        <span>Receiving Accounts</span>
+                      </span>
+                      <span className="text-emerald-700 font-semibold">{sch.bank_name ? "Configured ✓" : "Pending"}</span>
+                    </div>
+                    <div className="text-slate-700 font-medium truncate text-[11px]">
+                      🏦 {sch.bank_name || "Bank not set"} • <span className="font-mono">{sch.bank_account_number || "IBAN not set"}</span>
+                    </div>
+                    <div className="text-slate-500 text-[10px] flex items-center gap-2 font-mono">
+                      <span>EP: {sch.easypaisa_number || "—"}</span>
+                      <span>•</span>
+                      <span>JC: {sch.jazzcash_number || "—"}</span>
+                    </div>
+                  </div>
+
                   <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+                    <button
+                      onClick={() => openPaymentModal(sch)}
+                      className="w-full py-2 px-3 min-h-[40px] rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs shadow-2xs transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{t.editPaymentDetails || "Edit Payment Details"}</span>
+                    </button>
+
                     {!isActive && (
                       <button
                         onClick={() => handleStatusChange(sch.id, "ACTIVE")}
@@ -381,6 +449,12 @@ export default function SuperAdminDashboard() {
                     <td className="py-3.5 px-4 sm:px-6">
                       <div className="font-bold text-slate-900">{sch.name}</div>
                       <div className="text-[10px] text-slate-400 font-mono">ID: {sch.id}</div>
+                      <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                        <CreditCard className="w-3 h-3 text-emerald-600 flex-shrink-0" />
+                        <span className="truncate max-w-[160px]">{sch.bank_name || "Bank unset"}</span>
+                        <span>•</span>
+                        <span className="font-mono text-[10px]">{sch.easypaisa_number || sch.jazzcash_number || "No wallet"}</span>
+                      </div>
                     </td>
                     <td className="py-3.5 px-4 font-medium text-slate-700">{sch.city}</td>
                     <td className="py-3.5 px-4 text-slate-600 font-mono text-xs">{sch.phone}</td>
@@ -412,6 +486,15 @@ export default function SuperAdminDashboard() {
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => openPaymentModal(sch)}
+                          className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-[11px] shadow-2xs transition-all flex items-center gap-1"
+                          title="Configure Bank, JazzCash & Easypaisa Accounts"
+                        >
+                          <CreditCard className="w-3 h-3 text-slate-500" />
+                          <span>{t.editPaymentDetails || "Payment Accounts"}</span>
+                        </button>
+
                         {!isActive && (
                           <button
                             onClick={() => handleStatusChange(sch.id, "ACTIVE")}
@@ -549,6 +632,161 @@ export default function SuperAdminDashboard() {
                   className="px-5 py-2.5 min-h-[44px] rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-2xs"
                 >
                   Onboard Tenant
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* ========================================================================= */}
+      {/* MODAL: EDIT SCHOOL PAYMENT ACCOUNTS */}
+      {/* ========================================================================= */}
+      {showPaymentModal && selectedPaymentSchool && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto m-2 p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-xl space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-emerald-600" />
+                  <span>{t.editPaymentDetails || "Edit Payment Accounts"}</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Configure receiving accounts for <strong>{selectedPaymentSchool.name}</strong> ({selectedPaymentSchool.id})
+                </p>
+              </div>
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-base font-semibold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 text-[11px] leading-relaxed">
+              💡 <strong>Student & Parent Propagation:</strong> These credentials will immediately be visible to parents inside their &quot;Pay Fee&quot; modal on the Student Dashboard for this specific school.
+            </div>
+
+            <form onSubmit={handlePaymentSubmit} className="space-y-4 text-xs">
+              {/* 1. Official Bank Account */}
+              <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
+                <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                  <Landmark className="w-4 h-4 text-blue-600" />
+                  <span>{t.bankDetails || "Bank Account Details"}</span>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">{t.bankName || "Bank Name"}</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Meezan Bank, HBL, Bank Alfalah"
+                    value={paymentForm.bank_name}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, bank_name: e.target.value })}
+                    className="w-full px-3 py-2 min-h-[40px] text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">{t.accountTitle || "Account Title"}</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Beacon Grammar System"
+                      value={paymentForm.bank_account_title}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, bank_account_title: e.target.value })}
+                      className="w-full px-3 py-2 min-h-[40px] text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">{t.accountNumber || "Account Number / IBAN"}</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. PK64MEZN0001020304050607"
+                      value={paymentForm.bank_account_number}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, bank_account_number: e.target.value })}
+                      className="w-full px-3 py-2 min-h-[40px] text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Easypaisa Account */}
+              <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/30 space-y-3">
+                <div className="font-bold text-emerald-900 text-xs flex items-center gap-1.5">
+                  <Wallet className="w-4 h-4 text-emerald-600" />
+                  <span>{t.easypaisaDetails || "Easypaisa Account"}</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">{t.accountTitle || "Account Title"}</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Beacon Grammar School"
+                      value={paymentForm.easypaisa_title}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, easypaisa_title: e.target.value })}
+                      className="w-full px-3 py-2 min-h-[40px] text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">{t.easypaisaNumber || "Easypaisa Mobile Number"}</label>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 0300-4567890"
+                      value={paymentForm.easypaisa_number}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, easypaisa_number: e.target.value })}
+                      className="w-full px-3 py-2 min-h-[40px] text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. JazzCash Account */}
+              <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50/30 space-y-3">
+                <div className="font-bold text-rose-900 text-xs flex items-center gap-1.5">
+                  <Wallet className="w-4 h-4 text-rose-600" />
+                  <span>{t.jazzcashDetails || "JazzCash Account"}</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">{t.accountTitle || "Account Title"}</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Beacon Grammar School"
+                      value={paymentForm.jazzcash_title}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, jazzcash_title: e.target.value })}
+                      className="w-full px-3 py-2 min-h-[40px] text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">{t.jazzcashNumber || "JazzCash Mobile Number"}</label>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 0300-4567890"
+                      value={paymentForm.jazzcash_number}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, jazzcash_number: e.target.value })}
+                      className="w-full px-3 py-2 min-h-[40px] text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(false)}
+                  className="px-4 py-2.5 min-h-[44px] rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-2xs transition-all"
+                >
+                  {t.save || "Save Payment Accounts"}
                 </button>
               </div>
             </form>
