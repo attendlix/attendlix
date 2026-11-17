@@ -37,12 +37,14 @@ import {
 } from "@/lib/store";
 import { User, School } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
+import DashboardShell, { DashboardNavItem } from "@/components/DashboardShell";
 import { normalizePakistaniPhone } from "@/lib/whatsapp";
 
 export default function SuperAdminDashboard() {
   const router = useRouter();
   const { t, isRtl } = useLanguage();
 
+  const [activeTab, setActiveTab] = useState<"schools" | "stats">("schools");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [schoolsList, setSchoolsList] = useState<School[]>([]);
   const [platformStats, setPlatformStats] = useState<any>(null);
@@ -122,50 +124,23 @@ export default function SuperAdminDashboard() {
     return matchSearch && matchStatus;
   });
 
+  const adminNavItems: DashboardNavItem[] = [
+    { id: "schools", label: t.tenantSchools || "Schools & Tenants", icon: Building2, badge: schoolsList.length },
+    { id: "stats", label: t.platformOverview || "Platform Stats & MRR", icon: TrendingUp },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-[#111827] flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900 pb-12">
-      {/* Top Navbar */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 min-h-[56px] sm:min-h-[64px] h-auto py-2.5 flex items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
-              <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-sm">
-                <Shield className="w-5 h-5 text-emerald-400" />
-              </div>
-              <span className="font-bold tracking-tight text-slate-900 text-base sm:text-lg">
-                Attendlix<span className="text-emerald-600">.</span> Admin
-              </span>
-            </Link>
-
-            <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block flex-shrink-0" />
-
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-900 text-emerald-400 text-xs font-bold flex-shrink-0">
-              <Sparkles className="w-3 h-3 text-emerald-400" />
-              <span>Platform Super Admin</span>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            <LanguageToggle />
-
-            <div className="hidden sm:flex flex-col text-right">
-              <span className="text-xs font-semibold text-slate-800">{currentUser?.name}</span>
-              <span className="text-[10px] text-slate-400 font-mono">Tenant: GLOBAL</span>
-            </div>
-
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors flex-shrink-0 min-h-[36px] min-w-[36px] flex items-center justify-center"
-              title={t.signOut}
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 lg:p-8 space-y-6">
+    <DashboardShell
+      currentUser={currentUser}
+      schoolName="Attendlix Global"
+      schoolCity="Core Cloud"
+      tenantId="TENANT-GLOBAL"
+      navItems={adminNavItems}
+      activeTab={activeTab}
+      onTabChange={(tabId) => setActiveTab(tabId as any)}
+      onLogout={handleLogout}
+    >
+      <div className="space-y-6">
         {/* Banner */}
         {actionNotice && (
           <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
@@ -474,7 +449,7 @@ export default function SuperAdminDashboard() {
             </tbody>
           </table>
         </div>
-      </main>
+      </div>
 
       {/* ========================================================================= */}
       {/* MODAL: ONBOARD NEW SCHOOL MANUALLY */}
@@ -580,6 +555,6 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
       )}
-    </div>
+    </DashboardShell>
   );
 }

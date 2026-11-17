@@ -73,6 +73,7 @@ import {
 } from "@/lib/store";
 import { User, SchoolClass, Student, Announcement, FeeRecord, FeeStatus, PaymentMethod, TimetableSlot, DayOfWeek, StaffAttendanceRecord, StaffAttendanceStatus } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
+import DashboardShell from "@/components/DashboardShell";
 import {
   getFeeReminderWhatsAppUrl,
   getAnnouncementWhatsAppUrl,
@@ -527,183 +528,23 @@ export default function PrincipalDashboard() {
       ];
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-[#111827] flex flex-col font-sans selection:bg-emerald-100 selection:text-emerald-900 pb-12 overflow-x-hidden w-full">
-      {/* Top Principal Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 min-h-[56px] h-auto py-2.5 flex items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            {/* Mobile Hamburger Drawer Button */}
-            <button
-              type="button"
-              onClick={() => setMobileDrawerOpen(true)}
-              className="md:hidden p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 min-h-[40px] min-w-[40px] flex items-center justify-center flex-shrink-0 border border-slate-200"
-              aria-label="Open Navigation Menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-
-            <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-2xs">
-                <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-              <span className="font-bold tracking-tight text-slate-900 text-base sm:text-lg">Attendlix</span>
-            </Link>
-
-            <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block flex-shrink-0" />
-
-            <div className="hidden sm:flex items-center gap-2 text-xs truncate">
-              <span className="font-semibold text-slate-800 truncate">{schoolData?.name || "School"}</span>
-              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium border border-slate-200 flex-shrink-0">
-                {schoolData?.city || "Pakistan"}
-              </span>
-              <span className="hidden lg:inline-block px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200 flex-shrink-0">
-                Tenant: {currentUser?.school_id.substring(0, 10)}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            <LanguageToggle />
-
-            <div className="hidden md:flex flex-col text-right">
-              <span className="text-xs font-semibold text-slate-800 truncate max-w-[140px]">{currentUser?.name}</span>
-              <span
-                className={`text-[10px] font-bold tracking-wide uppercase ${
-                  isAccountant ? "text-amber-600" : "text-emerald-600"
-                }`}
-              >
-                {isAccountant ? "Accountant" : "Principal"}
-              </span>
-            </div>
-
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
-              title="Sign Out"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Navigation Pill Bar (Smooth Horizontal Scroll on Mobile) */}
-        <div className="border-t border-slate-100 bg-white">
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none py-2">
-            {availableTabs.map((tab) => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 min-h-[44px] ${
-                    active
-                      ? "bg-slate-900 text-white shadow-2xs font-bold"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 bg-slate-50 border border-slate-200/60"
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-emerald-400" : "text-slate-400"}`} />
-                  <span className="whitespace-nowrap">{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </header>
-
-      {/* MOBILE SLIDE-OVER DRAWER MENU */}
-      {mobileDrawerOpen && (
-        <div className="fixed inset-0 z-50 flex">
-          <div
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"
-            onClick={() => setMobileDrawerOpen(false)}
-          />
-          <div className="relative max-w-[280px] w-full bg-white shadow-2xl z-50 flex flex-col justify-between p-4 space-y-4 overflow-y-auto">
-            <div className="space-y-4">
-              {/* Drawer Header */}
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white shadow-2xs">
-                    <GraduationCap className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="font-bold text-slate-900 text-sm block">Attendlix</span>
-                    <span className="text-[10px] text-slate-500 truncate block max-w-[160px]">
-                      {schoolData?.name || "School Portal"}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setMobileDrawerOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 min-h-[40px] min-w-[40px] flex items-center justify-center"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* User Profile Banner in Drawer */}
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
-                <div className="font-bold text-slate-900 text-xs">{currentUser?.name}</div>
-                <div className="text-[10px] font-semibold text-emerald-700 uppercase">
-                  {isAccountant ? "Accountant / Fee Officer" : "Principal / Owner"}
-                </div>
-                <div className="text-[10px] text-slate-400 truncate">Campus: {schoolData?.city || "Pakistan"}</div>
-              </div>
-
-              {/* Navigation Links in Drawer */}
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 block mb-1">
-                  Navigation
-                </span>
-                {availableTabs.map((tab) => {
-                  const Icon = tab.icon;
-                  const active = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => {
-                        setActiveTab(tab.id as any);
-                        setMobileDrawerOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-left transition-all min-h-[44px] ${
-                        active
-                          ? "bg-slate-900 text-white shadow-2xs"
-                          : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
-                      }`}
-                    >
-                      <Icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-emerald-400" : "text-slate-400"}`} />
-                      <span>{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Drawer Footer Actions */}
-            <div className="border-t border-slate-100 pt-3 space-y-2">
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="w-full py-2.5 px-3 rounded-xl border border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100 text-xs font-bold flex items-center justify-center gap-2 min-h-[44px] transition-all"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Sign Out</span>
-              </button>
-            </div>
-          </div>
+    <DashboardShell
+      currentUser={currentUser}
+      schoolName={schoolData?.name || "Beacon Grammar School"}
+      schoolCity={schoolData?.city || "Lahore"}
+      tenantId={currentUser?.school_id}
+      navItems={availableTabs}
+      activeTab={activeTab}
+      onTabChange={(tabId) => setActiveTab(tabId as any)}
+      onLogout={handleLogout}
+    >
+      {/* Global Action Banner */}
+      {feeActionNotice && (
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <span>{feeActionNotice}</span>
         </div>
       )}
-
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
-        {/* Global Action Banner */}
-        {feeActionNotice && (
-          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-            <span>{feeActionNotice}</span>
-          </div>
-        )}
 
         {/* ========================================================================= */}
         {/* TAB 1: OVERVIEW (PRINCIPAL ONLY) */}
@@ -2645,7 +2486,6 @@ export default function PrincipalDashboard() {
             )}
           </div>
         )}
-      </main>
 
       {/* ========================================================================= */}
       {/* MODAL: 1-CLICK MARK AS PAID */}
@@ -3235,6 +3075,6 @@ export default function PrincipalDashboard() {
           </div>
         </div>
       )}
-    </div>
+    </DashboardShell>
   );
 }
