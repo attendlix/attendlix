@@ -146,6 +146,14 @@ export const translations = {
     totalMarks: "Total Marks",
     obtainedMarks: "Obtained Marks",
     grade: "Grade",
+    allExams: "All Exams",
+    monthlyTests: "Monthly Tests",
+    midTerm: "Mid-Term Exam",
+    finalTerm: "Final Term",
+    overallPercentage: "Overall Percentage",
+    overallGrade: "Overall Grade",
+    teacherRemarks: "Teacher Remarks",
+    performanceSummary: "Performance Overview",
 
     // Parent-Teacher Chat & Quiet Hours
     quietHoursActive: "Quiet Hours Active (8:00 PM – 7:00 AM)",
@@ -310,6 +318,14 @@ export const translations = {
     totalMarks: "کل نمبرات",
     obtainedMarks: "حاصل کردہ نمبرات",
     grade: "گریڈ",
+    allExams: "تمام امتحانات",
+    monthlyTests: "ماہانہ ٹیسٹ",
+    midTerm: "ششماہی امتحانات",
+    finalTerm: "سالانہ امتحانات",
+    overallPercentage: "مجموعی فیصد",
+    overallGrade: "مجموعی گریڈ",
+    teacherRemarks: "اساتذہ کی آراء",
+    performanceSummary: "مجموعی تعلیمی جائزہ",
 
     // Parent-Teacher Chat & Quiet Hours
     quietHoursActive: "آرام کا وقت (رات 8:00 تا صبح 7:00)",

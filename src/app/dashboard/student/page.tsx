@@ -24,6 +24,11 @@ import {
   Copy,
   Landmark,
   Wallet,
+  Sparkles,
+  TrendingUp,
+  BarChart3,
+  Target,
+  FileText,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -33,6 +38,7 @@ import {
   getAnnouncements,
   getHomeworkList,
   getExamMarks,
+  getStudentExamMarks,
   getStudentFeeRecords,
   payStudentFee,
   getStudentMessages,
@@ -69,6 +75,9 @@ export default function StudentDashboard() {
   const [classTimetable, setClassTimetable] = useState<TimetableSlot[]>([]);
   const [selectedDayFilter, setSelectedDayFilter] = useState<DayOfWeek | "ALL">("ALL");
 
+  // Exam Results Filter State
+  const [selectedExamFilter, setSelectedExamFilter] = useState<string>("ALL");
+
   // Payment Modal State
   const [paymentModal, setPaymentModal] = useState<{ record: FeeRecord; method: PaymentMethod; txnId: string } | null>(null);
   const [paymentSuccessToast, setPaymentSuccessToast] = useState<string | null>(null);
@@ -104,7 +113,7 @@ export default function StudentDashboard() {
       setAnnouncements(getAnnouncements(user.school_id));
       setHomeworkList(getHomeworkList(user.school_id, student.class_id));
       setClassTimetable(getClassTimetable(user.school_id, student.class_id));
-      setExamMarksList(getExamMarks(user.school_id, student.class_id, "Monthly Test (October)", "Mathematics"));
+      setExamMarksList(getStudentExamMarks(user.school_id, student.id));
       setFeeRecords(getStudentFeeRecords(user.school_id, student.id));
       setChatMessages(getStudentMessages(user.school_id, student.id));
     }
@@ -340,51 +349,313 @@ export default function StudentDashboard() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 3: EXAM MARKS */}
+        {/* TAB 3: EXAM MARKS & TEST RESULTS */}
         {/* ========================================================================= */}
-        {activeTab === "exams" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                  <Award className="w-4 h-4 text-emerald-600" />
-                  <span>Test & Examination Results</span>
-                </h3>
-                <p className="text-xs text-slate-500">Official marks posted by your class teachers.</p>
+        {activeTab === "exams" && (() => {
+          const getExamCategory = (exam: ExamMark) => {
+            if (exam.exam_type === "MID_TERM" || exam.exam_name.toLowerCase().includes("mid")) return "MID_TERM";
+            if (exam.exam_type === "FINAL_TERM" || exam.exam_name.toLowerCase().includes("final")) return "FINAL_TERM";
+            if (exam.exam_type === "MONTHLY_TEST" || exam.exam_name.toLowerCase().includes("monthly")) return "MONTHLY_TEST";
+            return "OTHER";
+          };
+
+          const filteredExams = examMarksList.filter((ex) => {
+            if (selectedExamFilter === "ALL") return true;
+            return getExamCategory(ex) === selectedExamFilter;
+          });
+
+          const totalPossibleMarks = filteredExams.reduce((sum, item) => sum + (Number(item.total_marks) || 0), 0);
+          const totalObtainedMarks = filteredExams.reduce((sum, item) => sum + (Number(item.obtained_marks) || 0), 0);
+          const overallPercentage = totalPossibleMarks > 0 ? Math.round((totalObtainedMarks / totalPossibleMarks) * 1000) / 10 : 0;
+
+          const getGradeDetails = (pct: number) => {
+            if (pct >= 80) {
+              return {
+                grade: "A+",
+                label: "Outstanding",
+                badgeBg: "bg-emerald-50 text-emerald-700 border-emerald-200",
+                barColor: "bg-emerald-500",
+                statusText: "Passed with Distinction",
+              };
+            }
+            if (pct >= 70) {
+              return {
+                grade: "A",
+                label: "Excellent",
+                badgeBg: "bg-blue-50 text-blue-700 border-blue-200",
+                barColor: "bg-blue-500",
+                statusText: "Passed with High Merit",
+              };
+            }
+            if (pct >= 60) {
+              return {
+                grade: "B",
+                label: "Very Good",
+                badgeBg: "bg-amber-50 text-amber-700 border-amber-200",
+                barColor: "bg-amber-500",
+                statusText: "Passed Satisfactorily",
+              };
+            }
+            if (pct >= 50) {
+              return {
+                grade: "C",
+                label: "Satisfactory",
+                badgeBg: "bg-orange-50 text-orange-700 border-orange-200",
+                barColor: "bg-orange-500",
+                statusText: "Passed",
+              };
+            }
+            if (pct >= 40) {
+              return {
+                grade: "D",
+                label: "Passing",
+                badgeBg: "bg-purple-50 text-purple-700 border-purple-200",
+                barColor: "bg-purple-500",
+                statusText: "Passed at Border",
+              };
+            }
+            return {
+              grade: "F",
+              label: "Needs Improvement",
+              badgeBg: "bg-rose-50 text-rose-700 border-rose-200",
+              barColor: "bg-rose-500",
+              statusText: "Academic Support Required",
+            };
+          };
+
+          const overallGrade = getGradeDetails(overallPercentage);
+
+          return (
+            <div className="space-y-4 sm:space-y-6">
+              {/* Header + Filter Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base sm:text-lg flex items-center gap-2">
+                    <Award className="w-5 h-5 text-emerald-600" />
+                    <span>{t.examResults || "Test & Examination Results"}</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Official verified marks and academic remarks recorded by class teachers.
+                  </p>
+                </div>
+
+                {/* Exam Type Selector (Horizontal scroll pills) */}
+                <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-none py-1 w-full sm:w-auto">
+                  {[
+                    { id: "ALL", label: t.allExams || "All Exams" },
+                    { id: "MID_TERM", label: t.midTerm || "Mid-Term" },
+                    { id: "MONTHLY_TEST", label: t.monthlyTests || "Monthly Tests" },
+                    { id: "FINAL_TERM", label: t.finalTerm || "Final Term" },
+                  ].map((tab) => {
+                    const count = examMarksList.filter(
+                      (e) => tab.id === "ALL" || getExamCategory(e) === tab.id
+                    ).length;
+                    const isActive = selectedExamFilter === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setSelectedExamFilter(tab.id)}
+                        className={`px-3.5 py-2 min-h-[40px] rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 flex-shrink-0 ${
+                          isActive
+                            ? "bg-slate-900 text-white shadow-2xs font-bold"
+                            : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span>{tab.label}</span>
+                        <span
+                          className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                            isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs divide-y divide-slate-100">
-              {[
-                { exam: "Monthly Test (October)", subject: "Mathematics", total: 50, obtained: 46 },
-                { exam: "Monthly Test (October)", subject: "English", total: 50, obtained: 42 },
-                { exam: "Monthly Test (October)", subject: "Urdu", total: 50, obtained: 45 },
-                { exam: "Monthly Test (October)", subject: "General Science", total: 50, obtained: 48 },
-              ].map((res, idx) => {
-                const pct = Math.round((res.obtained / res.total) * 100);
-                return (
-                  <div key={idx} className="p-4 flex items-center justify-between gap-3 text-xs sm:text-sm">
-                    <div>
-                      <div className="font-bold text-slate-900">{res.subject}</div>
-                      <div className="text-[11px] text-slate-400">{res.exam}</div>
+              {/* Aggregate Performance Summary Card */}
+              <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-md space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/60 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                      <TrendingUp className="w-5 h-5" />
                     </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <div className="font-extrabold text-slate-900">
-                          {res.obtained} <span className="text-slate-400 text-xs">/ {res.total}</span>
-                        </div>
+                    <div>
+                      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                        {t.performanceSummary || "Performance Overview"}
                       </div>
-                      <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        {pct}% ({pct >= 80 ? "A+" : "A"})
-                      </span>
+                      <div className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                        <span>{currentStudent?.name || "Student"}</span>
+                        <span className="text-xs text-slate-400 font-normal">
+                          • Roll #{currentStudent?.roll_no || "01"} • {currentStudent?.class_name || "Grade 8"} ({currentStudent?.section || "A"})
+                        </span>
+                      </div>
                     </div>
                   </div>
-                );
-              })}
+
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-400 text-xs font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>{overallGrade.statusText}</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3 Metric Pillars: Total Score, Overall %, Grade */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                  {/* Metric 1: Total Marks */}
+                  <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-1">
+                    <span className="text-[11px] font-semibold text-slate-400 uppercase">
+                      {t.totalMarks || "Total Marks"}
+                    </span>
+                    <div className="text-2xl sm:text-3xl font-extrabold text-white">
+                      {totalObtainedMarks}{" "}
+                      <span className="text-xs sm:text-sm font-normal text-slate-400">
+                        / {totalPossibleMarks}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      Aggregated across {filteredExams.length} tested subjects
+                    </div>
+                  </div>
+
+                  {/* Metric 2: Overall Percentage */}
+                  <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-1">
+                    <span className="text-[11px] font-semibold text-slate-400 uppercase">
+                      {t.overallPercentage || "Overall Percentage"}
+                    </span>
+                    <div className="text-2xl sm:text-3xl font-extrabold text-emerald-400">
+                      {overallPercentage}%
+                    </div>
+                    {/* Mini Progress Bar */}
+                    <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden mt-1.5">
+                      <div
+                        className={`h-full ${overallGrade.barColor} transition-all duration-500`}
+                        style={{ width: `${Math.min(100, overallPercentage)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Metric 3: Overall Grade */}
+                  <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-1">
+                    <span className="text-[11px] font-semibold text-slate-400 uppercase">
+                      {t.overallGrade || "Overall Grade"}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl sm:text-3xl font-black text-white">
+                        Grade {overallGrade.grade}
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-white/10 text-slate-200">
+                        {overallGrade.label}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      Official grading scale (80%+ is Grade A+)
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Subject Results Grid */}
+              {filteredExams.length === 0 ? (
+                <div className="p-8 sm:p-12 text-center bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                  <FileText className="w-8 h-8 text-slate-300 mx-auto" />
+                  <div className="text-sm font-bold text-slate-700">No exam marks found for this filter</div>
+                  <p className="text-xs text-slate-500">Try selecting another exam category or All Exams.</p>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedExamFilter("ALL")}
+                    className="px-4 py-2 min-h-[40px] rounded-xl bg-slate-900 text-white font-semibold text-xs shadow-2xs"
+                  >
+                    Show All Exams
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                  {filteredExams.map((res) => {
+                    const pct = Math.round(
+                      (Number(res.obtained_marks) / Number(res.total_marks)) * 100
+                    );
+                    const gradeDetails = getGradeDetails(pct);
+
+                    return (
+                      <div
+                        key={res.id}
+                        className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all space-y-3 flex flex-col justify-between"
+                      >
+                        <div className="space-y-2">
+                          {/* Subject Title & Term Badge */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="font-extrabold text-slate-900 text-base">{res.subject}</div>
+                              <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
+                                <BookOpen className="w-3.5 h-3.5 text-slate-400" />
+                                <span>{res.exam_name}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col items-end">
+                              <span
+                                className={`px-2.5 py-1 rounded-full text-xs font-bold border ${gradeDetails.badgeBg}`}
+                              >
+                                {pct}% • Grade {gradeDetails.grade}
+                              </span>
+                              <span className="text-[10px] text-slate-400 mt-0.5">
+                                {gradeDetails.label}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Marks & Visual Progress Bar */}
+                          <div className="space-y-1.5 pt-1">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-slate-500 font-medium">Score Obtained:</span>
+                              <div className="font-bold text-slate-900 text-sm">
+                                {res.obtained_marks}{" "}
+                                <span className="text-slate-400 text-xs font-normal">
+                                  / {res.total_marks}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                              <div
+                                className={`h-full ${gradeDetails.barColor} rounded-full transition-all duration-500`}
+                                style={{ width: `${Math.min(100, pct)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Teacher Remarks Box */}
+                        {res.remarks ? (
+                          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-700 flex items-start gap-2 mt-2">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                            <div className="space-y-0.5 flex-1">
+                              <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                                {t.teacherRemarks || "Teacher Remarks"}:
+                              </span>
+                              <p className="leading-relaxed text-slate-800 text-[11px] sm:text-xs italic">
+                                &ldquo;{res.remarks}&rdquo;
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-2.5 rounded-xl bg-slate-50/60 border border-slate-100 text-[11px] text-slate-400 italic">
+                            No teacher remarks recorded for this test.
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ========================================================================= */}
         {/* TAB 4: FEE STATUS & LOCAL PAYMENTS (JAZZCASH & EASYPAISA) */}

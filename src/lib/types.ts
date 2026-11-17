@@ -111,6 +111,8 @@ export interface ExamMark {
   subject: string;
   total_marks: number;
   obtained_marks: number;
+  remarks?: string;
+  exam_type?: "MONTHLY_TEST" | "MID_TERM" | "FINAL_TERM" | "QUIZ";
   created_at: string;
 }
 

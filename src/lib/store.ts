@@ -455,6 +455,9 @@ export function initializeStore() {
   if (!window.localStorage.getItem(KEY_STAFF_ATTENDANCE)) {
     setStorage(KEY_STAFF_ATTENDANCE, SEED_STAFF_ATTENDANCE);
   }
+  if (!window.localStorage.getItem(KEY_EXAM_MARKS)) {
+    setStorage(KEY_EXAM_MARKS, SEED_EXAM_MARKS);
+  }
 }
 
 // ----------------------------------------------------
@@ -865,19 +868,208 @@ const SEED_HOMEWORK: Homework[] = [
 
 // Seed Exam Marks
 const SEED_EXAM_MARKS: ExamMark[] = [
+  // --- Mid-Term Examination 2026 (Hamza Naveed std-01) ---
   {
-    id: "exm-01",
+    id: "exm-mid-01",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    student_id: "std-01",
+    student_name: "Hamza Naveed",
+    roll_no: "01",
+    exam_name: "Mid-Term Examination 2026",
+    exam_type: "MID_TERM",
+    subject: "Mathematics",
+    total_marks: 100,
+    obtained_marks: 92,
+    remarks: "Exceptional grasp of algebra and geometric proofs. Keep it up!",
+    created_at: new Date(Date.now() - 86400000 * 14).toISOString(),
+  },
+  {
+    id: "exm-mid-02",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    student_id: "std-01",
+    student_name: "Hamza Naveed",
+    roll_no: "01",
+    exam_name: "Mid-Term Examination 2026",
+    exam_type: "MID_TERM",
+    subject: "General Science",
+    total_marks: 100,
+    obtained_marks: 94,
+    remarks: "Brilliant score in physics numericals and plant cell diagrams.",
+    created_at: new Date(Date.now() - 86400000 * 13).toISOString(),
+  },
+  {
+    id: "exm-mid-03",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    student_id: "std-01",
+    student_name: "Hamza Naveed",
+    roll_no: "01",
+    exam_name: "Mid-Term Examination 2026",
+    exam_type: "MID_TERM",
+    subject: "English",
+    total_marks: 100,
+    obtained_marks: 86,
+    remarks: "Strong reading comprehension. Focus slightly more on essay structure.",
+    created_at: new Date(Date.now() - 86400000 * 12).toISOString(),
+  },
+  {
+    id: "exm-mid-04",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    student_id: "std-01",
+    student_name: "Hamza Naveed",
+    roll_no: "01",
+    exam_name: "Mid-Term Examination 2026",
+    exam_type: "MID_TERM",
+    subject: "Urdu",
+    total_marks: 100,
+    obtained_marks: 88,
+    remarks: "بہترین ذخیرہ الفاظ اور خوشخطی۔ قواعد میں بہت اچھی گرفت ہے۔",
+    created_at: new Date(Date.now() - 86400000 * 11).toISOString(),
+  },
+  {
+    id: "exm-mid-05",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    student_id: "std-01",
+    student_name: "Hamza Naveed",
+    roll_no: "01",
+    exam_name: "Mid-Term Examination 2026",
+    exam_type: "MID_TERM",
+    subject: "Computer Science",
+    total_marks: 100,
+    obtained_marks: 96,
+    remarks: "Top ranker! Logical problem-solving and flowcharting skills are outstanding.",
+    created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
+  },
+  {
+    id: "exm-mid-06",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    student_id: "std-01",
+    student_name: "Hamza Naveed",
+    roll_no: "01",
+    exam_name: "Mid-Term Examination 2026",
+    exam_type: "MID_TERM",
+    subject: "Islamiyat",
+    total_marks: 50,
+    obtained_marks: 47,
+    remarks: "ماشاءاللہ، حفظ، ترجمہ اور تشریح سب میں قابلِ ستائش کارکردگی۔",
+    created_at: new Date(Date.now() - 86400000 * 9).toISOString(),
+  },
+
+  // --- Monthly Tests (October) (Hamza Naveed std-01) ---
+  {
+    id: "exm-mth-01",
     school_id: SEED_SCHOOL_ID,
     class_id: "cls-01",
     student_id: "std-01",
     student_name: "Hamza Naveed",
     roll_no: "01",
     exam_name: "Monthly Test (October)",
+    exam_type: "MONTHLY_TEST",
     subject: "Mathematics",
     total_marks: 50,
     obtained_marks: 46,
-    created_at: new Date().toISOString(),
+    remarks: "Accurate formulas and clear rough work.",
+    created_at: new Date(Date.now() - 86400000 * 32).toISOString(),
   },
+  {
+    id: "exm-mth-02",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    student_id: "std-01",
+    student_name: "Hamza Naveed",
+    roll_no: "01",
+    exam_name: "Monthly Test (October)",
+    exam_type: "MONTHLY_TEST",
+    subject: "English",
+    total_marks: 50,
+    obtained_marks: 42,
+    remarks: "Good vocabulary. Practice creative story writing.",
+    created_at: new Date(Date.now() - 86400000 * 31).toISOString(),
+  },
+  {
+    id: "exm-mth-03",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    student_id: "std-01",
+    student_name: "Hamza Naveed",
+    roll_no: "01",
+    exam_name: "Monthly Test (October)",
+    exam_type: "MONTHLY_TEST",
+    subject: "Urdu",
+    total_marks: 50,
+    obtained_marks: 45,
+    remarks: "عمدہ املا اور بر وقت تحریر۔",
+    created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
+  },
+  {
+    id: "exm-mth-04",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    student_id: "std-01",
+    student_name: "Hamza Naveed",
+    roll_no: "01",
+    exam_name: "Monthly Test (October)",
+    exam_type: "MONTHLY_TEST",
+    subject: "General Science",
+    total_marks: 50,
+    obtained_marks: 48,
+    remarks: "Very neat labeling and thorough definitions.",
+    created_at: new Date(Date.now() - 86400000 * 29).toISOString(),
+  },
+
+  // --- Final Term Mock Assessment (Hamza Naveed std-01) ---
+  {
+    id: "exm-fin-01",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    student_id: "std-01",
+    student_name: "Hamza Naveed",
+    roll_no: "01",
+    exam_name: "Final Term Mock Assessment",
+    exam_type: "FINAL_TERM",
+    subject: "Mathematics",
+    total_marks: 100,
+    obtained_marks: 95,
+    remarks: "Ready for annual exams. Excellent speed and accuracy.",
+    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+  {
+    id: "exm-fin-02",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    student_id: "std-01",
+    student_name: "Hamza Naveed",
+    roll_no: "01",
+    exam_name: "Final Term Mock Assessment",
+    exam_type: "FINAL_TERM",
+    subject: "English",
+    total_marks: 100,
+    obtained_marks: 90,
+    remarks: "Impressive essay on digital literacy. Fluency is commendable.",
+    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+  {
+    id: "exm-fin-03",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    student_id: "std-01",
+    student_name: "Hamza Naveed",
+    roll_no: "01",
+    exam_name: "Final Term Mock Assessment",
+    exam_type: "FINAL_TERM",
+    subject: "General Science",
+    total_marks: 100,
+    obtained_marks: 93,
+    remarks: "Excellent grasp of periodic table and physics laws.",
+    created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+  },
+
+  // --- Other students seed marks ---
   {
     id: "exm-02",
     school_id: SEED_SCHOOL_ID,
@@ -886,9 +1078,11 @@ const SEED_EXAM_MARKS: ExamMark[] = [
     student_name: "Ayesha Noor",
     roll_no: "02",
     exam_name: "Monthly Test (October)",
+    exam_type: "MONTHLY_TEST",
     subject: "Mathematics",
     total_marks: 50,
     obtained_marks: 49,
+    remarks: "Flawless score in mental math.",
     created_at: new Date().toISOString(),
   },
   {
@@ -899,9 +1093,11 @@ const SEED_EXAM_MARKS: ExamMark[] = [
     student_name: "Bilal Zubair",
     roll_no: "03",
     exam_name: "Monthly Test (October)",
+    exam_type: "MONTHLY_TEST",
     subject: "Mathematics",
     total_marks: 50,
     obtained_marks: 38,
+    remarks: "Good effort. Review chapter 3 exercises.",
     created_at: new Date().toISOString(),
   },
 ];
@@ -1071,6 +1267,16 @@ export function getExamMarks(school_id: string, class_id: string, exam_name: str
       m.class_id === class_id &&
       m.exam_name === exam_name &&
       m.subject === subject
+  );
+}
+
+export function getStudentExamMarks(school_id: string, student_id: string): ExamMark[] {
+  initializeStore();
+  const all = getStorage<ExamMark[]>(KEY_EXAM_MARKS, SEED_EXAM_MARKS);
+  return all.filter(
+    (m) =>
+      (m.school_id === school_id || school_id === SEED_SCHOOL_ID) &&
+      m.student_id === student_id
   );
 }
 
