@@ -14,6 +14,8 @@ import {
   PaymentMethod,
   TimetableSlot,
   DayOfWeek,
+  StaffAttendanceRecord,
+  StaffAttendanceStatus,
 } from "./types";
 import { supabase } from "./supabase";
 
@@ -25,6 +27,7 @@ const KEY_CLASSES = "attendlix_classes";
 const KEY_STUDENTS = "attendlix_students";
 const KEY_ANNOUNCEMENTS = "attendlix_announcements";
 const KEY_TIMETABLES = "attendlix_timetables";
+const KEY_STAFF_ATTENDANCE = "attendlix_staff_attendance";
 
 // Default Seed Schools
 const SEED_SCHOOL_ID = "school-beacon-001";
@@ -307,6 +310,75 @@ const SEED_TIMETABLES: TimetableSlot[] = [
   { id: "tt-26", school_id: SEED_SCHOOL_ID, class_id: "cls-02", class_name: "Grade 8", section: "B", teacher_id: "usr-teacher-01", teacher_name: "Ms. Sadia Tariq", day_of_week: "MON", start_time: "08:45", end_time: "09:30", subject: "Mathematics" },
 ];
 
+// Helper to get formatted today date (YYYY-MM-DD)
+export function getTodayDateStr(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+// Seed Staff Attendance Records (Today's date)
+const SEED_STAFF_ATTENDANCE: StaffAttendanceRecord[] = [
+  {
+    id: "sa-seed-01",
+    school_id: SEED_SCHOOL_ID,
+    user_id: "usr-teacher-01",
+    user_name: "Ms. Sadia Tariq",
+    user_role: "TEACHER",
+    user_identifier: "TCH-101",
+    user_phone: "0321-7654321",
+    date: getTodayDateStr(),
+    check_in_time: "07:52 AM",
+    check_out_time: null,
+    status: "PRESENT",
+    notes: "On-time morning arrival",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "sa-seed-02",
+    school_id: SEED_SCHOOL_ID,
+    user_id: "usr-teacher-02",
+    user_name: "Sir Kamran",
+    user_role: "TEACHER",
+    user_identifier: "TCH-102",
+    user_phone: "0301-2233445",
+    date: getTodayDateStr(),
+    check_in_time: "08:24 AM",
+    check_out_time: null,
+    status: "LATE",
+    notes: "Traffic delay on Canal Road",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "sa-seed-03",
+    school_id: SEED_SCHOOL_ID,
+    user_id: "usr-teacher-03",
+    user_name: "Ms. Nida",
+    user_role: "TEACHER",
+    user_identifier: "TCH-103",
+    user_phone: "0332-4455667",
+    date: getTodayDateStr(),
+    check_in_time: "07:48 AM",
+    check_out_time: "02:00 PM",
+    status: "PRESENT",
+    notes: "Completed shift & afternoon duty",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "sa-seed-04",
+    school_id: SEED_SCHOOL_ID,
+    user_id: "usr-accountant-01",
+    user_name: "Tariq Mahmood",
+    user_role: "ACCOUNTANT",
+    user_identifier: "ACC-201",
+    user_phone: "0333-9876543",
+    date: getTodayDateStr(),
+    check_in_time: "08:02 AM",
+    check_out_time: null,
+    status: "PRESENT",
+    notes: "Fee desk & accounts reporting",
+    created_at: new Date().toISOString(),
+  },
+];
+
 // Helper to safely access browser storage
 function getStorage<T>(key: string, defaultVal: T): T {
   if (typeof window === "undefined") return defaultVal;
@@ -347,6 +419,9 @@ export function initializeStore() {
   }
   if (!window.localStorage.getItem(KEY_TIMETABLES)) {
     setStorage(KEY_TIMETABLES, SEED_TIMETABLES);
+  }
+  if (!window.localStorage.getItem(KEY_STAFF_ATTENDANCE)) {
+    setStorage(KEY_STAFF_ATTENDANCE, SEED_STAFF_ATTENDANCE);
   }
 }
 
@@ -1574,4 +1649,206 @@ export function deleteTimetableSlot(slot_id: string): boolean {
 
   return true;
 }
+
+// ==============================================================================
+// 7. TEACHER & STAFF DAILY ATTENDANCE (CHECK-IN / CHECK-OUT)
+// ==============================================================================
+
+export function formatCurrentTime(d: Date = new Date()): string {
+  let hours = d.getHours();
+  const minutes = d.getMinutes();
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  const minStr = minutes < 10 ? "0" + minutes : String(minutes);
+  const hrStr = hours < 10 ? "0" + hours : String(hours);
+  return `${hrStr}:${minStr} ${ampm}`;
+}
+
+export function getStaffAttendance(school_id: string, date: string = getTodayDateStr()): StaffAttendanceRecord[] {
+  initializeStore();
+  const allSaved = getStorage<StaffAttendanceRecord[]>(KEY_STAFF_ATTENDANCE, SEED_STAFF_ATTENDANCE);
+  const staffMembers = getStaff(school_id);
+
+  // Match saved record or synthesize an unrecorded / absent placeholder for that day
+  return staffMembers.map((staff) => {
+    const existing = allSaved.find(
+      (rec) => rec.school_id === school_id && rec.user_id === staff.id && rec.date === date
+    );
+
+    if (existing) {
+      return {
+        ...existing,
+        user_name: staff.name,
+        user_role: staff.role,
+        user_identifier: staff.identifier,
+        user_phone: staff.phone,
+      };
+    }
+
+    return {
+      id: `sa-rec-${staff.id}-${date}`,
+      school_id,
+      user_id: staff.id,
+      user_name: staff.name,
+      user_role: staff.role,
+      user_identifier: staff.identifier,
+      user_phone: staff.phone,
+      date,
+      check_in_time: null,
+      check_out_time: null,
+      status: "ABSENT" as StaffAttendanceStatus,
+      notes: "No check-in recorded",
+      created_at: new Date().toISOString(),
+    };
+  });
+}
+
+export function getStaffAttendanceStats(school_id: string, date: string = getTodayDateStr()) {
+  const records = getStaffAttendance(school_id, date);
+  const total = records.length;
+  const present = records.filter((r) => r.status === "PRESENT").length;
+  const late = records.filter((r) => r.status === "LATE").length;
+  const onLeave = records.filter((r) => r.status === "ON_LEAVE").length;
+  const absent = records.filter((r) => r.status === "ABSENT").length;
+
+  return {
+    totalStaff: total,
+    present,
+    late,
+    onLeave,
+    absent,
+  };
+}
+
+export function saveStaffAttendanceRecord(
+  school_id: string,
+  record: Partial<StaffAttendanceRecord> & { user_id: string; date: string }
+): StaffAttendanceRecord {
+  initializeStore();
+  const allSaved = getStorage<StaffAttendanceRecord[]>(KEY_STAFF_ATTENDANCE, SEED_STAFF_ATTENDANCE);
+  const staffMembers = getStaff(school_id);
+  const staff = staffMembers.find((s) => s.id === record.user_id);
+
+  const idx = allSaved.findIndex(
+    (r) => r.school_id === school_id && r.user_id === record.user_id && r.date === record.date
+  );
+
+  let updatedRecord: StaffAttendanceRecord;
+
+  if (idx !== -1) {
+    updatedRecord = {
+      ...allSaved[idx],
+      ...record,
+      user_name: staff?.name || allSaved[idx].user_name || "Staff Member",
+      user_role: staff?.role || allSaved[idx].user_role || "TEACHER",
+      user_identifier: staff?.identifier || allSaved[idx].user_identifier || "",
+      user_phone: staff?.phone || allSaved[idx].user_phone || "",
+    };
+    allSaved[idx] = updatedRecord;
+  } else {
+    updatedRecord = {
+      id: "sa-" + Math.random().toString(36).substring(2, 9),
+      school_id,
+      user_id: record.user_id,
+      user_name: staff?.name || "Staff Member",
+      user_role: staff?.role || "TEACHER",
+      user_identifier: staff?.identifier || "",
+      user_phone: staff?.phone || "",
+      date: record.date,
+      check_in_time: record.check_in_time !== undefined ? record.check_in_time : null,
+      check_out_time: record.check_out_time !== undefined ? record.check_out_time : null,
+      status: record.status || "PRESENT",
+      notes: record.notes || "",
+      created_at: new Date().toISOString(),
+    };
+    allSaved.unshift(updatedRecord);
+  }
+
+  setStorage(KEY_STAFF_ATTENDANCE, allSaved);
+
+  // Sync to Supabase
+  try {
+    supabase
+      .from("staff_attendance")
+      .upsert({
+        school_id: updatedRecord.school_id,
+        user_id: updatedRecord.user_id,
+        date: updatedRecord.date,
+        check_in_time: updatedRecord.check_in_time,
+        check_out_time: updatedRecord.check_out_time,
+        status: updatedRecord.status,
+        notes: updatedRecord.notes,
+      })
+      .then(() => {});
+  } catch (e) {
+    // Non-blocking fallback
+  }
+
+  return updatedRecord;
+}
+
+export function getStaffTodayRecord(
+  school_id: string,
+  user_id: string,
+  date: string = getTodayDateStr()
+): StaffAttendanceRecord | null {
+  initializeStore();
+  const allSaved = getStorage<StaffAttendanceRecord[]>(KEY_STAFF_ATTENDANCE, SEED_STAFF_ATTENDANCE);
+  const found = allSaved.find(
+    (r) => r.school_id === school_id && r.user_id === user_id && r.date === date
+  );
+  return found || null;
+}
+
+export function teacherCheckIn(
+  school_id: string,
+  user_id: string
+): { success: boolean; record: StaffAttendanceRecord; error?: string } {
+  initializeStore();
+  const date = getTodayDateStr();
+  const now = new Date();
+  const timeFormatted = formatCurrentTime(now);
+
+  // Late threshold: check-in after 8:15 AM
+  const isLate = now.getHours() > 8 || (now.getHours() === 8 && now.getMinutes() > 15);
+  const status: StaffAttendanceStatus = isLate ? "LATE" : "PRESENT";
+
+  const existing = getStaffTodayRecord(school_id, user_id, date);
+
+  const saved = saveStaffAttendanceRecord(school_id, {
+    user_id,
+    date,
+    check_in_time: timeFormatted,
+    status: existing?.status === "ON_LEAVE" ? "ON_LEAVE" : status,
+    notes: isLate ? "Self check-in (Late arrival)" : "Self check-in (On-time)",
+  });
+
+  return { success: true, record: saved };
+}
+
+export function teacherCheckOut(
+  school_id: string,
+  user_id: string
+): { success: boolean; record: StaffAttendanceRecord; error?: string } {
+  initializeStore();
+  const date = getTodayDateStr();
+  const now = new Date();
+  const timeFormatted = formatCurrentTime(now);
+
+  const existing = getStaffTodayRecord(school_id, user_id, date);
+  if (!existing || !existing.check_in_time) {
+    // Auto check-in first if missing
+    teacherCheckIn(school_id, user_id);
+  }
+
+  const saved = saveStaffAttendanceRecord(school_id, {
+    user_id,
+    date,
+    check_out_time: timeFormatted,
+  });
+
+  return { success: true, record: saved };
+}
+
 

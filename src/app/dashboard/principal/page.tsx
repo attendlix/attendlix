@@ -38,6 +38,9 @@ import {
   Trash2,
   Edit3,
   Calendar,
+  CalendarCheck,
+  UserCheck,
+  UserX,
   Menu,
   X,
 } from "lucide-react";
@@ -60,10 +63,15 @@ import {
   checkTeacherClash,
   saveTimetableSlot,
   deleteTimetableSlot,
+  getStaffAttendance,
+  getStaffAttendanceStats,
+  saveStaffAttendanceRecord,
+  getTodayDateStr,
+  formatCurrentTime,
   DAYS_ORDER,
   logout,
 } from "@/lib/store";
-import { User, SchoolClass, Student, Announcement, FeeRecord, FeeStatus, PaymentMethod, TimetableSlot, DayOfWeek } from "@/lib/types";
+import { User, SchoolClass, Student, Announcement, FeeRecord, FeeStatus, PaymentMethod, TimetableSlot, DayOfWeek, StaffAttendanceRecord, StaffAttendanceStatus } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 import {
   getFeeReminderWhatsAppUrl,
@@ -76,7 +84,26 @@ export default function PrincipalDashboard() {
   const { t, isRtl } = useLanguage();
 
   // Active Tab state
-  const [activeTab, setActiveTab] = useState<"overview" | "classes" | "staff" | "students" | "fees" | "announcements" | "timetable">("overview");
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "classes" | "staff" | "students" | "fees" | "announcements" | "timetable" | "staff-attendance"
+  >("overview");
+
+  // Staff Attendance Module State
+  const [staffAttendanceDate, setStaffAttendanceDate] = useState<string>(() => getTodayDateStr());
+  const [staffAttendanceList, setStaffAttendanceList] = useState<StaffAttendanceRecord[]>([]);
+  const [staffAttendanceStats, setStaffAttendanceStats] = useState<{
+    totalStaff: number;
+    present: number;
+    late: number;
+    absent: number;
+    onLeave: number;
+  }>({ totalStaff: 0, present: 0, late: 0, absent: 0, onLeave: 0 });
+  const [staffStatusFilter, setStaffStatusFilter] = useState<"ALL" | "PRESENT" | "LATE" | "ABSENT" | "ON_LEAVE">("ALL");
+  const [staffSearchQuery, setStaffSearchQuery] = useState<string>("");
+  const [staffRoleFilter, setStaffRoleFilter] = useState<"ALL" | "TEACHER" | "ACCOUNTANT">("ALL");
+  const [editingStaffRecord, setEditingStaffRecord] = useState<StaffAttendanceRecord | null>(null);
+  const [showStaffAttendanceModal, setShowStaffAttendanceModal] = useState<boolean>(false);
+  const [staffAttendanceNotice, setStaffAttendanceNotice] = useState<string | null>(null);
 
   // User and Core Data state
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -192,6 +219,80 @@ export default function PrincipalDashboard() {
 
     // Fee records
     refreshFees(user.school_id, feeMonth, feeYear, feeClassFilter, feeStatusFilter);
+
+    // Staff Attendance
+    const staffAtt = getStaffAttendance(user.school_id, staffAttendanceDate);
+    setStaffAttendanceList(staffAtt);
+    const sStats = getStaffAttendanceStats(user.school_id, staffAttendanceDate);
+    setStaffAttendanceStats(sStats);
+  };
+
+  // Re-fetch staff attendance when date changes
+  useEffect(() => {
+    if (currentUser) {
+      const staffAtt = getStaffAttendance(currentUser.school_id, staffAttendanceDate);
+      setStaffAttendanceList(staffAtt);
+      const sStats = getStaffAttendanceStats(currentUser.school_id, staffAttendanceDate);
+      setStaffAttendanceStats(sStats);
+    }
+  }, [staffAttendanceDate, currentUser]);
+
+  // Principal 1-Click Manual Override for Staff Attendance
+  const handleQuickStaffStatus = (staffId: string, newStatus: StaffAttendanceStatus) => {
+    if (!currentUser) return;
+    const existing = staffAttendanceList.find((s) => s.user_id === staffId);
+    let checkInTime = existing?.check_in_time;
+    if (!checkInTime && (newStatus === "PRESENT" || newStatus === "LATE")) {
+      checkInTime = formatCurrentTime(new Date());
+    } else if (newStatus === "ABSENT" || newStatus === "ON_LEAVE") {
+      checkInTime = null;
+    }
+
+    const updated = saveStaffAttendanceRecord(currentUser.school_id, {
+      user_id: staffId,
+      date: staffAttendanceDate,
+      status: newStatus,
+      check_in_time: checkInTime,
+      notes: `Updated by Principal (${currentUser.name})`,
+    });
+
+    const staffAtt = getStaffAttendance(currentUser.school_id, staffAttendanceDate);
+    setStaffAttendanceList(staffAtt);
+    const sStats = getStaffAttendanceStats(currentUser.school_id, staffAttendanceDate);
+    setStaffAttendanceStats(sStats);
+
+    setStaffAttendanceNotice(`✓ Updated ${updated.user_name || "staff"} status to ${newStatus}`);
+    setTimeout(() => setStaffAttendanceNotice(null), 4000);
+  };
+
+  const handleOpenEditStaffModal = (rec: StaffAttendanceRecord) => {
+    setEditingStaffRecord({ ...rec });
+    setShowStaffAttendanceModal(true);
+  };
+
+  const handleSaveStaffTimeModal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser || !editingStaffRecord) return;
+
+    saveStaffAttendanceRecord(currentUser.school_id, {
+      user_id: editingStaffRecord.user_id,
+      date: editingStaffRecord.date,
+      status: editingStaffRecord.status,
+      check_in_time: editingStaffRecord.check_in_time || null,
+      check_out_time: editingStaffRecord.check_out_time || null,
+      notes: editingStaffRecord.notes,
+    });
+
+    setShowStaffAttendanceModal(false);
+    setEditingStaffRecord(null);
+
+    const staffAtt = getStaffAttendance(currentUser.school_id, staffAttendanceDate);
+    setStaffAttendanceList(staffAtt);
+    const sStats = getStaffAttendanceStats(currentUser.school_id, staffAttendanceDate);
+    setStaffAttendanceStats(sStats);
+
+    setStaffAttendanceNotice(`✓ Attendance updated for ${editingStaffRecord.user_name}`);
+    setTimeout(() => setStaffAttendanceNotice(null), 4000);
   };
 
   const refreshTimetable = (classId?: string) => {
@@ -418,7 +519,8 @@ export default function PrincipalDashboard() {
         { id: "overview", label: t.tabOverview || "Overview", icon: TrendingUp },
         { id: "classes", label: t.tabClasses || "Classes & Sections", icon: BookOpen },
         { id: "timetable", label: t.tabTimetable || "Timetable", icon: Clock },
-        { id: "staff", label: t.tabStaff || "Staff (Teachers & Accounts)", icon: Users },
+        { id: "staff", label: t.tabStaff || "Staff Management", icon: Users },
+        { id: "staff-attendance", label: t.tabStaffAttendance || "Staff Attendance", icon: CalendarCheck },
         { id: "students", label: t.tabStudents || "Student Admissions", icon: UserPlus },
         { id: "fees", label: t.tabFees || "Fee Management", icon: CreditCard },
         { id: "announcements", label: t.tabAnnouncements || "Announcements & WhatsApp", icon: MessageSquare },
@@ -652,16 +754,20 @@ export default function PrincipalDashboard() {
                 </div>
               </div>
 
-              <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
+              <div
+                onClick={() => setActiveTab("staff-attendance")}
+                className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2 cursor-pointer hover:border-emerald-300 transition-all group"
+              >
                 <div className="flex items-center justify-between text-slate-500">
                   <span className="text-xs font-semibold uppercase tracking-wider">Teachers & Staff</span>
-                  <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
-                    <Users className="w-4 h-4" />
+                  <div className="p-2 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
+                    <UserCheck className="w-4 h-4" />
                   </div>
                 </div>
                 <div className="text-3xl font-extrabold text-slate-900">{stats?.totalStaff || 0}</div>
-                <div className="text-[11px] text-slate-500">
-                  {stats?.totalTeachers || 0} Teachers • {stats?.totalAccountants || 0} Accountants
+                <div className="text-[11px] text-slate-500 flex items-center justify-between">
+                  <span>{staffAttendanceStats.present + staffAttendanceStats.late} present today</span>
+                  <span className="text-emerald-600 font-semibold group-hover:underline">Staff Attendance →</span>
                 </div>
               </div>
 
@@ -2020,6 +2126,525 @@ export default function PrincipalDashboard() {
             </div>
           </div>
         )}
+
+        {/* ========================================================================= */}
+        {/* TAB 8: TEACHER & STAFF DAILY ATTENDANCE (CHECK-IN / CHECK-OUT) */}
+        {/* ========================================================================= */}
+        {activeTab === "staff-attendance" && !isAccountant && (
+          <div className="space-y-6">
+            {/* Top Staff Attendance Action Notice */}
+            {staffAttendanceNotice && (
+              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>{staffAttendanceNotice}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStaffAttendanceNotice(null)}
+                  className="text-emerald-700 hover:text-emerald-900 font-bold text-xs"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* Header & Date Selector */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                  <CalendarCheck className="w-6 h-6 text-emerald-600" />
+                  <span>{t.staffAttendanceTitle || "Teacher & Staff Daily Attendance"}</span>
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  {t.staffAttendanceSubtitle || "Real-time check-in, check-out tracking & principal override"}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3.5 py-2 shadow-2xs">
+                  <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                  <input
+                    type="date"
+                    value={staffAttendanceDate}
+                    onChange={(e) => setStaffAttendanceDate(e.target.value)}
+                    className="text-xs font-bold text-slate-800 bg-transparent focus:outline-none"
+                  />
+                </div>
+                {staffAttendanceDate !== getTodayDateStr() && (
+                  <button
+                    type="button"
+                    onClick={() => setStaffAttendanceDate(getTodayDateStr())}
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors min-h-[38px]"
+                  >
+                    Today
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 4 Daily Overview Stats Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-1">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                  <span>{t.totalStaff || "Total Staff"}</span>
+                  <Users className="w-4 h-4 text-slate-400" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+                  {staffAttendanceStats.totalStaff}
+                </div>
+                <div className="text-[11px] text-slate-500">Registered employees</div>
+              </div>
+
+              <div className="p-4 sm:p-5 rounded-2xl bg-white border border-emerald-200/80 shadow-2xs space-y-1 bg-gradient-to-b from-white to-emerald-50/20">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 flex items-center justify-between">
+                  <span>{t.presentToday || "Present Today"}</span>
+                  <UserCheck className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-emerald-700">
+                  {staffAttendanceStats.present}
+                </div>
+                <div className="text-[11px] text-emerald-600 font-semibold">On-time check-ins</div>
+              </div>
+
+              <div className="p-4 sm:p-5 rounded-2xl bg-white border border-amber-200/80 shadow-2xs space-y-1 bg-gradient-to-b from-white to-amber-50/20">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-amber-700 flex items-center justify-between">
+                  <span>{t.lateArrivals || "Late Arrivals"}</span>
+                  <Clock className="w-4 h-4 text-amber-600" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-amber-700">
+                  {staffAttendanceStats.late}
+                </div>
+                <div className="text-[11px] text-amber-600 font-semibold">After 8:15 AM</div>
+              </div>
+
+              <div className="p-4 sm:p-5 rounded-2xl bg-white border border-rose-200/80 shadow-2xs space-y-1 bg-gradient-to-b from-white to-rose-50/20">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-rose-700 flex items-center justify-between">
+                  <span>{t.absentToday || "Absent"}</span>
+                  <UserX className="w-4 h-4 text-rose-600" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-rose-700">
+                  {staffAttendanceStats.absent}
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  {staffAttendanceStats.onLeave > 0
+                    ? `${staffAttendanceStats.onLeave} on approved leave`
+                    : "No check-in recorded"}
+                </div>
+              </div>
+            </div>
+
+            {/* Filters & Search Toolbar */}
+            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs space-y-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                {/* Search Input */}
+                <div className="relative flex-1 max-w-md">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={staffSearchQuery}
+                    onChange={(e) => setStaffSearchQuery(e.target.value)}
+                    placeholder="Search staff by name, identifier, or phone..."
+                    className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[40px]"
+                  />
+                  {staffSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setStaffSearchQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 font-bold"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Role Filter */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <select
+                    value={staffRoleFilter}
+                    onChange={(e) => setStaffRoleFilter(e.target.value as any)}
+                    className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[40px]"
+                  >
+                    <option value="ALL">All Roles</option>
+                    <option value="TEACHER">Teachers Only</option>
+                    <option value="ACCOUNTANT">Accountants Only</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Status Filter Horizontal Scrollable Pills */}
+              <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none py-1 border-t border-slate-100 pt-3">
+                <span className="text-[11px] font-bold uppercase text-slate-400 mr-1 flex-shrink-0">Status:</span>
+                {[
+                  { id: "ALL", label: `All (${staffAttendanceList.length})` },
+                  { id: "PRESENT", label: `Present (${staffAttendanceStats.present})` },
+                  { id: "LATE", label: `Late (${staffAttendanceStats.late})` },
+                  { id: "ABSENT", label: `Absent (${staffAttendanceStats.absent})` },
+                  { id: "ON_LEAVE", label: `On Leave (${staffAttendanceStats.onLeave})` },
+                ].map((st) => {
+                  const active = staffStatusFilter === st.id;
+                  return (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => setStaffStatusFilter(st.id as any)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex-shrink-0 min-h-[36px] ${
+                        active
+                          ? "bg-slate-900 text-white shadow-2xs"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200/80"
+                      }`}
+                    >
+                      {st.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Staff Attendance List */}
+            {staffAttendanceList.filter((rec) => {
+              const matchesStatus = staffStatusFilter === "ALL" || rec.status === staffStatusFilter;
+              const matchesRole = staffRoleFilter === "ALL" || rec.user_role === staffRoleFilter;
+              const q = staffSearchQuery.toLowerCase().trim();
+              const matchesSearch =
+                !q ||
+                (rec.user_name || "").toLowerCase().includes(q) ||
+                (rec.user_identifier || "").toLowerCase().includes(q) ||
+                (rec.user_phone || "").toLowerCase().includes(q);
+              return matchesStatus && matchesRole && matchesSearch;
+            }).length === 0 ? (
+              <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 space-y-2">
+                <Users className="w-10 h-10 mx-auto text-slate-300" />
+                <p className="text-sm font-semibold">No staff records found matching your filters.</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStaffStatusFilter("ALL");
+                    setStaffRoleFilter("ALL");
+                    setStaffSearchQuery("");
+                  }}
+                  className="text-xs font-bold text-emerald-600 hover:underline"
+                >
+                  Clear all filters
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Desktop View Table (>= 768px) */}
+                <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        <th className="py-3.5 px-4">Staff Member</th>
+                        <th className="py-3.5 px-4">Role</th>
+                        <th className="py-3.5 px-4">Check-In</th>
+                        <th className="py-3.5 px-4">Check-Out</th>
+                        <th className="py-3.5 px-4">Status</th>
+                        <th className="py-3.5 px-4">Notes / Remarks</th>
+                        <th className="py-3.5 px-4 text-right">Principal Override</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs">
+                      {staffAttendanceList
+                        .filter((rec) => {
+                          const matchesStatus = staffStatusFilter === "ALL" || rec.status === staffStatusFilter;
+                          const matchesRole = staffRoleFilter === "ALL" || rec.user_role === staffRoleFilter;
+                          const q = staffSearchQuery.toLowerCase().trim();
+                          const matchesSearch =
+                            !q ||
+                            (rec.user_name || "").toLowerCase().includes(q) ||
+                            (rec.user_identifier || "").toLowerCase().includes(q) ||
+                            (rec.user_phone || "").toLowerCase().includes(q);
+                          return matchesStatus && matchesRole && matchesSearch;
+                        })
+                        .map((rec) => {
+                          return (
+                            <tr key={rec.id} className="hover:bg-slate-50/60 transition-colors">
+                              <td className="py-3.5 px-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs flex-shrink-0">
+                                    {(rec.user_name || "S").substring(0, 2).toUpperCase()}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="font-bold text-slate-900 truncate">{rec.user_name}</div>
+                                    <div className="text-[11px] text-slate-400 font-mono">
+                                      {rec.user_identifier || "ID-N/A"} • {rec.user_phone || "—"}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="py-3.5 px-4">
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                                    rec.user_role === "TEACHER"
+                                      ? "bg-blue-50 text-blue-700 border-blue-200"
+                                      : "bg-amber-50 text-amber-700 border-amber-200"
+                                  }`}
+                                >
+                                  {rec.user_role === "TEACHER" ? "Teacher" : "Accountant"}
+                                </span>
+                              </td>
+
+                              <td className="py-3.5 px-4">
+                                {rec.check_in_time ? (
+                                  <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                                    <Clock className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                                    <span>{rec.check_in_time}</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400 font-mono">—</span>
+                                )}
+                              </td>
+
+                              <td className="py-3.5 px-4">
+                                {rec.check_out_time ? (
+                                  <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                                    <Clock className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+                                    <span>{rec.check_out_time}</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400 font-mono">—</span>
+                                )}
+                              </td>
+
+                              <td className="py-3.5 px-4">
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                                    rec.status === "PRESENT"
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                      : rec.status === "LATE"
+                                      ? "bg-amber-50 text-amber-800 border-amber-200"
+                                      : rec.status === "ON_LEAVE"
+                                      ? "bg-purple-50 text-purple-700 border-purple-200"
+                                      : "bg-rose-50 text-rose-700 border-rose-200"
+                                  }`}
+                                >
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full ${
+                                      rec.status === "PRESENT"
+                                        ? "bg-emerald-500"
+                                        : rec.status === "LATE"
+                                        ? "bg-amber-500"
+                                        : rec.status === "ON_LEAVE"
+                                        ? "bg-purple-500"
+                                        : "bg-rose-500"
+                                    }`}
+                                  />
+                                  {rec.status === "PRESENT"
+                                    ? t.present || "Present"
+                                    : rec.status === "LATE"
+                                    ? t.late || "Late"
+                                    : rec.status === "ON_LEAVE"
+                                    ? t.onLeave || "On Leave"
+                                    : t.absent || "Absent"}
+                                </span>
+                              </td>
+
+                              <td className="py-3.5 px-4">
+                                <span className="text-[11px] text-slate-500 truncate max-w-[180px] block" title={rec.notes}>
+                                  {rec.notes || "—"}
+                                </span>
+                              </td>
+
+                              <td className="py-3.5 px-4 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {/* Quick 1-click status override pills */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickStaffStatus(rec.user_id, "PRESENT")}
+                                    className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all min-h-[30px] ${
+                                      rec.status === "PRESENT"
+                                        ? "bg-emerald-600 text-white"
+                                        : "bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200"
+                                    }`}
+                                    title="Mark Present"
+                                  >
+                                    P
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickStaffStatus(rec.user_id, "LATE")}
+                                    className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all min-h-[30px] ${
+                                      rec.status === "LATE"
+                                        ? "bg-amber-500 text-white"
+                                        : "bg-slate-100 text-slate-600 hover:bg-amber-50 hover:text-amber-700 border border-slate-200"
+                                    }`}
+                                    title="Mark Late"
+                                  >
+                                    L
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickStaffStatus(rec.user_id, "ABSENT")}
+                                    className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all min-h-[30px] ${
+                                      rec.status === "ABSENT"
+                                        ? "bg-rose-600 text-white"
+                                        : "bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-700 border border-slate-200"
+                                    }`}
+                                    title="Mark Absent"
+                                  >
+                                    A
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickStaffStatus(rec.user_id, "ON_LEAVE")}
+                                    className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all min-h-[30px] ${
+                                      rec.status === "ON_LEAVE"
+                                        ? "bg-purple-600 text-white"
+                                        : "bg-slate-100 text-slate-600 hover:bg-purple-50 hover:text-purple-700 border border-slate-200"
+                                    }`}
+                                    title="Mark On Leave"
+                                  >
+                                    Leave
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenEditStaffModal(rec)}
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-slate-200 transition-colors ml-1 min-h-[30px] min-w-[30px] flex items-center justify-center"
+                                    title="Edit Times & Notes"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile View Stacked Cards (< 768px) */}
+                <div className="md:hidden space-y-3">
+                  {staffAttendanceList
+                    .filter((rec) => {
+                      const matchesStatus = staffStatusFilter === "ALL" || rec.status === staffStatusFilter;
+                      const matchesRole = staffRoleFilter === "ALL" || rec.user_role === staffRoleFilter;
+                      const q = staffSearchQuery.toLowerCase().trim();
+                      const matchesSearch =
+                        !q ||
+                        (rec.user_name || "").toLowerCase().includes(q) ||
+                        (rec.user_identifier || "").toLowerCase().includes(q) ||
+                        (rec.user_phone || "").toLowerCase().includes(q);
+                      return matchesStatus && matchesRole && matchesSearch;
+                    })
+                    .map((rec) => {
+                      return (
+                        <div
+                          key={rec.id}
+                          className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-3"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs flex-shrink-0">
+                                {(rec.user_name || "S").substring(0, 2).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="font-bold text-slate-900 text-sm truncate">{rec.user_name}</h4>
+                                <div className="text-[11px] text-slate-400 font-mono">
+                                  {rec.user_identifier} • {rec.user_phone || "—"}
+                                </div>
+                              </div>
+                            </div>
+
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border flex-shrink-0 ${
+                                rec.status === "PRESENT"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : rec.status === "LATE"
+                                  ? "bg-amber-50 text-amber-800 border-amber-200"
+                                  : rec.status === "ON_LEAVE"
+                                  ? "bg-purple-50 text-purple-700 border-purple-200"
+                                  : "bg-rose-50 text-rose-700 border-rose-200"
+                              }`}
+                            >
+                              {rec.status === "PRESENT"
+                                ? t.present || "Present"
+                                : rec.status === "LATE"
+                                ? t.late || "Late"
+                                : rec.status === "ON_LEAVE"
+                                ? t.onLeave || "On Leave"
+                                : t.absent || "Absent"}
+                            </span>
+                          </div>
+
+                          {/* Times Info Grid */}
+                          <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+                            <div>
+                              <span className="text-[10px] font-bold text-slate-400 block uppercase">Check-In</span>
+                              <span className="font-bold text-slate-800">{rec.check_in_time || "Not Recorded"}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] font-bold text-slate-400 block uppercase">Check-Out</span>
+                              <span className="font-bold text-slate-800">{rec.check_out_time || "Not Recorded"}</span>
+                            </div>
+                            {rec.notes && (
+                              <div className="col-span-2 pt-1 text-[11px] text-slate-500 border-t border-slate-200/60">
+                                <strong className="text-slate-700">Note:</strong> {rec.notes}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Mobile Override Buttons Bar */}
+                          <div className="pt-1 flex items-center justify-between gap-1.5 border-t border-slate-100 flex-wrap">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">Override:</span>
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <button
+                                type="button"
+                                onClick={() => handleQuickStaffStatus(rec.user_id, "PRESENT")}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all min-h-[36px] ${
+                                  rec.status === "PRESENT"
+                                    ? "bg-emerald-600 text-white shadow-2xs"
+                                    : "bg-slate-100 text-slate-700 hover:bg-emerald-50 border border-slate-200"
+                                }`}
+                              >
+                                Present
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleQuickStaffStatus(rec.user_id, "LATE")}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all min-h-[36px] ${
+                                  rec.status === "LATE"
+                                    ? "bg-amber-500 text-white shadow-2xs"
+                                    : "bg-slate-100 text-slate-700 hover:bg-amber-50 border border-slate-200"
+                                }`}
+                              >
+                                Late
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleQuickStaffStatus(rec.user_id, "ABSENT")}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all min-h-[36px] ${
+                                  rec.status === "ABSENT"
+                                    ? "bg-rose-600 text-white shadow-2xs"
+                                    : "bg-slate-100 text-slate-700 hover:bg-rose-50 border border-slate-200"
+                                }`}
+                              >
+                                Absent
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditStaffModal(rec)}
+                                className="p-2 rounded-lg text-slate-500 bg-slate-100 hover:bg-slate-200 border border-slate-200 min-h-[36px] min-w-[36px] flex items-center justify-center"
+                                title="Edit Details"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* ========================================================================= */}
@@ -2488,6 +3113,122 @@ export default function PrincipalDashboard() {
                   }`}
                 >
                   {editingPeriod ? "Update Period" : "Save Period"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: EDIT STAFF ATTENDANCE TIMES & NOTES */}
+      {/* ========================================================================= */}
+      {showStaffAttendanceModal && editingStaffRecord && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+          <div className="w-full max-w-md max-h-[85vh] overflow-y-auto m-2 p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-xl space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">{t.editTimes || "Edit Staff Attendance"}</h3>
+                <p className="text-xs text-slate-500">{editingStaffRecord.user_name} • {editingStaffRecord.date}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowStaffAttendanceModal(false);
+                  setEditingStaffRecord(null);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-base font-semibold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveStaffTimeModal} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Attendance Status</label>
+                <select
+                  value={editingStaffRecord.status}
+                  onChange={(e) =>
+                    setEditingStaffRecord({
+                      ...editingStaffRecord,
+                      status: e.target.value as StaffAttendanceStatus,
+                    })
+                  }
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[42px]"
+                >
+                  <option value="PRESENT">PRESENT (حاضر)</option>
+                  <option value="LATE">LATE (تاخیر)</option>
+                  <option value="ABSENT">ABSENT (غیر حاضر)</option>
+                  <option value="ON_LEAVE">ON_LEAVE (رخصت)</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">Check-In Time</label>
+                  <input
+                    type="text"
+                    value={editingStaffRecord.check_in_time || ""}
+                    onChange={(e) =>
+                      setEditingStaffRecord({
+                        ...editingStaffRecord,
+                        check_in_time: e.target.value,
+                      })
+                    }
+                    placeholder="e.g. 07:55 AM"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[42px]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">Check-Out Time</label>
+                  <input
+                    type="text"
+                    value={editingStaffRecord.check_out_time || ""}
+                    onChange={(e) =>
+                      setEditingStaffRecord({
+                        ...editingStaffRecord,
+                        check_out_time: e.target.value,
+                      })
+                    }
+                    placeholder="e.g. 02:15 PM"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[42px]"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Notes / Remarks</label>
+                <textarea
+                  rows={2}
+                  value={editingStaffRecord.notes || ""}
+                  onChange={(e) =>
+                    setEditingStaffRecord({
+                      ...editingStaffRecord,
+                      notes: e.target.value,
+                    })
+                  }
+                  placeholder="e.g. Approved leave, traffic delay..."
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowStaffAttendanceModal(false);
+                    setEditingStaffRecord(null);
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 border border-slate-200 min-h-[40px]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs min-h-[40px]"
+                >
+                  Save Attendance
                 </button>
               </div>
             </form>

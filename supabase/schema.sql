@@ -304,3 +304,50 @@ ALTER TABLE public.timetables ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Timetables strictly scoped by school_id"
     ON public.timetables FOR ALL
     USING (school_id = NULLIF(current_setting('app.current_school_id', true), '')::UUID OR auth.role() = 'service_role');
+
+-- ==============================================================================
+-- ATTENDLIX: Step 7 - Teacher & Staff Daily Attendance Schema (Supabase / PostgreSQL)
+-- ==============================================================================
+
+DO $$ BEGIN
+    CREATE TYPE staff_attendance_status AS ENUM ('PRESENT', 'ABSENT', 'LATE', 'ON_LEAVE');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- staff_attendance Table (Check-In / Check-Out Tracking)
+CREATE TABLE IF NOT EXISTS public.staff_attendance (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    date DATE DEFAULT CURRENT_DATE NOT NULL,
+    check_in_time TIME,
+    check_out_time TIME,
+    status staff_attendance_status DEFAULT 'PRESENT' NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT unique_staff_daily_attendance UNIQUE (school_id, user_id, date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_staff_attendance_school ON public.staff_attendance(school_id);
+CREATE INDEX IF NOT EXISTS idx_staff_attendance_lookup ON public.staff_attendance(school_id, date, status);
+CREATE INDEX IF NOT EXISTS idx_staff_attendance_user ON public.staff_attendance(school_id, user_id, date);
+
+-- Row-Level Security (RLS)
+ALTER TABLE public.staff_attendance ENABLE ROW LEVEL SECURITY;
+
+-- 1. Strict multi-tenant isolation policy
+CREATE POLICY "Staff attendance strictly scoped by school_id"
+    ON public.staff_attendance FOR ALL
+    USING (school_id = NULLIF(current_setting('app.current_school_id', true), '')::UUID OR auth.role() = 'service_role');
+
+-- 2. Staff self-service policy: staff can read their own attendance records
+CREATE POLICY "Staff can view their own attendance"
+    ON public.staff_attendance FOR SELECT
+    USING (user_id = auth.uid() OR auth.role() = 'service_role');
+
+-- 3. Staff check-in policy: staff can record their check-in/out timestamp for today
+CREATE POLICY "Staff can update their check-in check-out times"
+    ON public.staff_attendance FOR UPDATE
+    USING (user_id = auth.uid() OR auth.role() = 'service_role');
+

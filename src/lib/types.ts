@@ -156,3 +156,22 @@ export interface TimetableSlot {
   created_at?: string;
 }
 
+export type StaffAttendanceStatus = "PRESENT" | "ABSENT" | "LATE" | "ON_LEAVE";
+
+export interface StaffAttendanceRecord {
+  id: string;
+  school_id: string;
+  user_id: string;
+  user_name?: string;
+  user_role?: UserRole;
+  user_identifier?: string;
+  user_phone?: string;
+  date: string; // "YYYY-MM-DD"
+  check_in_time?: string | null;  // e.g. "07:55 AM"
+  check_out_time?: string | null; // e.g. "02:15 PM"
+  status: StaffAttendanceStatus;
+  notes?: string;
+  created_at: string;
+}
+
+
