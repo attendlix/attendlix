@@ -27,7 +27,9 @@ export interface AnnouncementBroadcastParams {
   title: string;
   content: string;
   schoolName: string;
-  recipientPhone: string;
+  recipientPhone?: string;
+  audience?: string;
+  priority?: "NORMAL" | "IMPORTANT" | "URGENT";
 }
 
 export interface CredentialsNoticeParams {
@@ -77,9 +79,17 @@ export function getFeeReminderWhatsAppUrl(params: FeeReminderParams): string {
 }
 
 export function getAnnouncementWhatsAppUrl(params: AnnouncementBroadcastParams): string {
-  const phone = normalizePakistaniPhone(params.recipientPhone);
+  const phone = params.recipientPhone ? normalizePakistaniPhone(params.recipientPhone) : "";
 
-  const text = `📢 *OFFICIAL NOTICE — ${params.schoolName}*\n\n*${params.title}*\n\n${params.content}\n\nTamam parents aur staff baraye meharbani note farmayein.\n\nShukriya,\n*Principal / Administration*`;
+  const header = params.priority === "URGENT"
+    ? `🚨 *URGENT NOTICE — ${params.schoolName}*`
+    : params.priority === "IMPORTANT"
+    ? `⚠️ *IMPORTANT UPDATE — ${params.schoolName}*`
+    : `📢 *OFFICIAL NOTICE — ${params.schoolName}*`;
+
+  const urgentPrefix = params.priority === "URGENT" ? "🚨 *URGENT NOTICE:* " : "";
+
+  const text = `${header}\n\n*${urgentPrefix}${params.title}*\n\n${params.content}\n\nTamam parents aur staff baraye meharbani note farmayein.\n\nShukriya,\n*Principal / Administration*`;
 
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 }

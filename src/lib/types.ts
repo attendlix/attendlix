@@ -3,14 +3,25 @@ export type UserRole = "SUPER_ADMIN" | "PRINCIPAL" | "TEACHER" | "ACCOUNTANT" | 
 export interface School {
   id: string;
   name: string;
+  principal_name?: string;
   city: string;
   phone: string;
   email?: string;
+  address?: string;
   status?: "ACTIVE" | "TRIAL" | "SUSPENDED";
   plan?: "TRIAL" | "STANDARD" | "PREMIUM";
   student_count?: number;
   mrr_pkr?: number;
   trial_days_left?: number;
+  // School Timings & Attendance Cutoff
+  start_time?: string;
+  end_time?: string;
+  late_cutoff?: string;
+  // Policies & Parent-Teacher Chat Quiet Hours
+  quiet_hours_start?: string;
+  quiet_hours_end?: string;
+  late_fee_amount?: number;
+  rules_and_policies?: string;
   // Dynamic Payment Receiving Accounts
   bank_name?: string;
   bank_account_title?: string;
@@ -61,12 +72,16 @@ export interface Student {
   created_at: string;
 }
 
+export type AnnouncementAudience = "ALL" | "PARENTS" | "STAFF" | "TEACHERS" | "ACCOUNTANTS" | "CLASS";
+export type AnnouncementPriority = "NORMAL" | "IMPORTANT" | "URGENT";
+
 export interface Announcement {
   id: string;
   school_id: string;
   title: string;
   content: string;
-  audience: "ALL" | "PARENTS" | "TEACHERS" | "ACCOUNTANTS" | "CLASS";
+  audience: AnnouncementAudience;
+  priority?: AnnouncementPriority;
   class_name?: string;
   whatsapp_fallback_sent: boolean;
   recipients_count?: number;

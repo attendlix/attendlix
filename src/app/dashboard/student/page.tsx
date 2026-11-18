@@ -29,6 +29,7 @@ import {
   BarChart3,
   Target,
   FileText,
+  AlertCircle,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -36,6 +37,7 @@ import {
   getStudents,
   getClasses,
   getAnnouncements,
+  getAnnouncementsForAudience,
   getHomeworkList,
   getExamMarks,
   getStudentExamMarks,
@@ -110,7 +112,7 @@ export default function StudentDashboard() {
     setCurrentStudent(student);
 
     if (student) {
-      setAnnouncements(getAnnouncements(user.school_id));
+      setAnnouncements(getAnnouncementsForAudience(user.school_id, "STUDENT_PARENT"));
       setHomeworkList(getHomeworkList(user.school_id, student.class_id));
       setClassTimetable(getClassTimetable(user.school_id, student.class_id));
       setExamMarksList(getStudentExamMarks(user.school_id, student.id));
@@ -260,24 +262,63 @@ export default function StudentDashboard() {
             <div className="space-y-3">
               <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                 <School className="w-4 h-4 text-emerald-600" />
-                <span>Official School Announcements</span>
+                <span>{t.tabAnnouncements || "Official School Announcements"}</span>
               </h3>
 
               <div className="space-y-3">
-                {announcements.map((ann) => (
-                  <div key={ann.id} className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-900 text-xs sm:text-sm">{ann.title}</span>
-                      <span className="text-[10px] text-slate-400">
-                        {new Date(ann.created_at).toLocaleDateString("en-PK", { day: "numeric", month: "short" })}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600 leading-relaxed">{ann.content}</p>
-                    <div className="text-[10px] text-emerald-700 font-medium pt-1">
-                      📢 Broadcasted via WhatsApp & Portal
-                    </div>
+                {announcements.length === 0 ? (
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-500">
+                    No active school circulars or announcements at this time.
                   </div>
-                ))}
+                ) : (
+                  announcements.map((ann) => (
+                    <div
+                      key={ann.id}
+                      className={`p-4 rounded-2xl bg-white border shadow-2xs space-y-2 transition-all ${
+                        ann.priority === "URGENT"
+                          ? "border-rose-300 ring-1 ring-rose-200 bg-rose-50/20"
+                          : "border-slate-200/80"
+                      }`}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-slate-900 text-xs sm:text-sm">{ann.title}</span>
+
+                          {/* Priority Badge */}
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-extrabold border ${
+                              ann.priority === "URGENT"
+                                ? "bg-rose-100 text-rose-800 border-rose-300 animate-pulse"
+                                : ann.priority === "IMPORTANT"
+                                ? "bg-amber-100 text-amber-800 border-amber-300"
+                                : "bg-slate-100 text-slate-700 border-slate-200"
+                            }`}
+                          >
+                            {ann.priority === "URGENT" && (
+                              <AlertCircle className="w-3 h-3 text-rose-600 flex-shrink-0" />
+                            )}
+                            {ann.priority === "URGENT"
+                              ? `🚨 ${t.priorityUrgent || "URGENT"}`
+                              : ann.priority === "IMPORTANT"
+                              ? `⚡ ${t.priorityImportant || "IMPORTANT"}`
+                              : `📢 ${t.priorityNormal || "NORMAL"}`}
+                          </span>
+                        </div>
+
+                        <span className="text-[10px] text-slate-400">
+                          {new Date(ann.created_at).toLocaleDateString("en-PK", { day: "numeric", month: "short" })}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-700 leading-relaxed font-sans">{ann.content}</p>
+
+                      <div className="text-[10px] text-emerald-700 font-medium pt-1 flex items-center gap-1">
+                        <Check className="w-3 h-3 text-emerald-600" />
+                        <span>Broadcasted via WhatsApp & Portal</span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

@@ -48,10 +48,11 @@ import {
   getStaffTodayRecord,
   teacherCheckIn,
   teacherCheckOut,
+  getAnnouncementsForAudience,
   DAYS_ORDER,
   logout,
 } from "@/lib/store";
-import { User, SchoolClass, Student, AttendanceStatus, Homework, ExamMark, ChatMessage, TimetableSlot, DayOfWeek, StaffAttendanceRecord } from "@/lib/types";
+import { User, SchoolClass, Student, AttendanceStatus, Homework, ExamMark, ChatMessage, TimetableSlot, DayOfWeek, StaffAttendanceRecord, Announcement } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 import DashboardShell from "@/components/DashboardShell";
 import { getAbsentAlertWhatsAppUrl, dispatchWhatsAppWebhook } from "@/lib/whatsapp";
@@ -69,6 +70,7 @@ export default function TeacherDashboard() {
   const [classesList, setClassesList] = useState<SchoolClass[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [classStudents, setClassStudents] = useState<Student[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
   // Timetable State
   const [teacherSchedule, setTeacherSchedule] = useState<TimetableSlot[]>([]);
@@ -122,6 +124,9 @@ export default function TeacherDashboard() {
     setCurrentUser(user);
     const sch = getSchool(user.school_id);
     setSchoolData(sch);
+
+    // Load school circulars for staff & teachers
+    setAnnouncements(getAnnouncementsForAudience(user.school_id, "TEACHER"));
 
     // Load teacher's timetable schedule
     setTeacherSchedule(getTeacherTimetable(user.school_id, user.id));
@@ -427,6 +432,57 @@ export default function TeacherDashboard() {
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
             <span>{syncStatusMessage}</span>
+          </div>
+        )}
+
+        {/* Staff & School Official Circulars (Filtered for Teachers / Staff) */}
+        {announcements.length > 0 && (
+          <div className="space-y-2.5">
+            {announcements.map((ann) => (
+              <div
+                key={ann.id}
+                className={`p-3.5 sm:p-4 rounded-2xl border shadow-2xs space-y-1.5 transition-all ${
+                  ann.priority === "URGENT"
+                    ? "bg-rose-50/80 border-rose-300 ring-1 ring-rose-200"
+                    : ann.priority === "IMPORTANT"
+                    ? "bg-amber-50/70 border-amber-300"
+                    : "bg-white border-slate-200/90"
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-bold text-slate-900 text-xs sm:text-sm">{ann.title}</span>
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-extrabold border ${
+                        ann.priority === "URGENT"
+                          ? "bg-rose-100 text-rose-800 border-rose-300 animate-pulse"
+                          : ann.priority === "IMPORTANT"
+                          ? "bg-amber-100 text-amber-800 border-amber-300"
+                          : "bg-slate-100 text-slate-700 border-slate-200"
+                      }`}
+                    >
+                      {ann.priority === "URGENT" && (
+                        <AlertCircle className="w-3 h-3 text-rose-600 flex-shrink-0" />
+                      )}
+                      {ann.priority === "URGENT"
+                        ? `🚨 ${t.priorityUrgent || "URGENT"}`
+                        : ann.priority === "IMPORTANT"
+                        ? `⚡ ${t.priorityImportant || "IMPORTANT"}`
+                        : `📢 ${t.priorityNormal || "NORMAL"}`}
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                      {ann.audience === "STAFF" || (ann.audience as any) === "TEACHERS"
+                        ? "Staff & Teachers Only"
+                        : "All School"}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400">
+                    {new Date(ann.created_at).toLocaleDateString("en-PK", { day: "numeric", month: "short" })}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-700 leading-relaxed font-sans">{ann.content}</p>
+              </div>
+            ))}
           </div>
         )}
 

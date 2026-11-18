@@ -35,14 +35,23 @@ const SEED_SCHOOLS: School[] = [
   {
     id: SEED_SCHOOL_ID,
     name: "Beacon Grammar School",
+    principal_name: "Dr. Asim Farooq",
     city: "Lahore",
     phone: "0300-4567890",
     email: "beacon.lahore@attendlix.com",
+    address: "Plot 42-B, Main Boulevard, Gulberg III, Lahore, Pakistan",
     status: "ACTIVE",
     plan: "STANDARD",
     student_count: 148,
     mrr_pkr: 35000,
     trial_days_left: 0,
+    start_time: "08:00 AM",
+    end_time: "02:00 PM",
+    late_cutoff: "08:15 AM",
+    quiet_hours_start: "08:00 PM",
+    quiet_hours_end: "07:00 AM",
+    late_fee_amount: 200,
+    rules_and_policies: "1. Minimum 80% attendance required for examination eligibility.\n2. School gates close promptly at 08:15 AM.\n3. Student uniforms must conform to institutional dress code.\n4. Parent visits allowed during designated office hours (10:00 AM – 12:00 PM).",
     bank_name: "Meezan Bank Limited",
     bank_account_title: "Beacon Grammar School System",
     bank_account_number: "PK64MEZN0001020304050607",
@@ -283,9 +292,10 @@ const SEED_ANNOUNCEMENTS: Announcement[] = [
     title: "Winter Timings Notification",
     content: "Mohtaram Parents & Staff, School timings from Monday will be 8:30 AM to 1:45 PM due to cold weather.",
     audience: "ALL",
+    priority: "NORMAL",
     whatsapp_fallback_sent: true,
     recipients_count: 148,
-    created_at: new Date().toISOString(),
+    created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
   },
   {
     id: "ann-02",
@@ -293,9 +303,32 @@ const SEED_ANNOUNCEMENTS: Announcement[] = [
     title: "Mid-Term Examination Datesheet",
     content: "The mid-term exams will commence from December 5th. Complete syllabus is shared on parent portals.",
     audience: "PARENTS",
+    priority: "IMPORTANT",
     whatsapp_fallback_sent: true,
     recipients_count: 148,
     created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+  },
+  {
+    id: "ann-03",
+    school_id: SEED_SCHOOL_ID,
+    title: "Smog Alert & Campus Closure",
+    content: "Due to hazardous air quality index (AQI) in Lahore, the campus will remain closed on Friday as per government notification. Classes will proceed online.",
+    audience: "ALL",
+    priority: "URGENT",
+    whatsapp_fallback_sent: true,
+    recipients_count: 160,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "ann-04",
+    school_id: SEED_SCHOOL_ID,
+    title: "Faculty Evaluation & Curriculum Review",
+    content: "All teaching staff must submit term progress logs by Thursday 02:00 PM for the upcoming academic audit.",
+    audience: "STAFF",
+    priority: "IMPORTANT",
+    whatsapp_fallback_sent: true,
+    recipients_count: 12,
+    created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
   },
 ];
 
@@ -592,6 +625,21 @@ export function getSchool(school_id?: string): School {
   return schools.find((s) => s.id === school_id) || schools[0] || SEED_SCHOOLS[0];
 }
 
+export function updateSchoolProfile(school_id: string, updates: Partial<School>): School | null {
+  initializeStore();
+  const schools = getStorage<School[]>(KEY_SCHOOLS, SEED_SCHOOLS);
+  const index = schools.findIndex((s) => s.id === school_id || (school_id === SEED_SCHOOL_ID && s.id === SEED_SCHOOL_ID));
+  if (index === -1) return null;
+
+  schools[index] = {
+    ...schools[index],
+    ...updates,
+  };
+
+  setStorage(KEY_SCHOOLS, schools);
+  return schools[index];
+}
+
 export function getOverviewStats(school_id?: string) {
   initializeStore();
   const currentSchoolId = school_id || SEED_SCHOOL_ID;
@@ -787,12 +835,28 @@ export function getAnnouncements(school_id?: string): Announcement[] {
   return announcements.filter((a) => a.school_id === targetId || targetId === SEED_SCHOOL_ID);
 }
 
+export function getAnnouncementsForAudience(
+  school_id: string | undefined,
+  target: "TEACHER" | "STUDENT_PARENT" | "ALL"
+): Announcement[] {
+  const all = getAnnouncements(school_id);
+  if (target === "ALL") return all;
+  if (target === "TEACHER") {
+    return all.filter((a) => a.audience === "ALL" || a.audience === "STAFF" || a.audience === "TEACHERS");
+  }
+  if (target === "STUDENT_PARENT") {
+    return all.filter((a) => a.audience === "ALL" || a.audience === "PARENTS");
+  }
+  return all;
+}
+
 export function addAnnouncement(
   school_id: string,
   data: {
     title: string;
     content: string;
-    audience: "ALL" | "PARENTS" | "TEACHERS" | "ACCOUNTANTS" | "CLASS";
+    audience: "ALL" | "PARENTS" | "STAFF" | "TEACHERS" | "ACCOUNTANTS" | "CLASS";
+    priority?: "NORMAL" | "IMPORTANT" | "URGENT";
     class_name?: string;
   }
 ): Announcement {
@@ -802,9 +866,13 @@ export function addAnnouncement(
   const staff = getStaff(school_id);
 
   let count = students.length;
-  if (data.audience === "TEACHERS") count = staff.filter((s) => s.role === "TEACHER").length;
-  else if (data.audience === "ACCOUNTANTS") count = staff.filter((s) => s.role === "ACCOUNTANT").length;
-  else if (data.audience === "ALL") count = students.length + staff.length;
+  if (data.audience === "STAFF" || data.audience === "TEACHERS") {
+    count = staff.filter((s) => s.role === "TEACHER" || s.role === "ACCOUNTANT").length;
+  } else if (data.audience === "ACCOUNTANTS") {
+    count = staff.filter((s) => s.role === "ACCOUNTANT").length;
+  } else if (data.audience === "ALL") {
+    count = students.length + staff.length;
+  }
 
   const newAnn: Announcement = {
     id: "ann-" + Math.random().toString(36).substring(2, 9),
@@ -812,6 +880,7 @@ export function addAnnouncement(
     title: data.title.trim(),
     content: data.content.trim(),
     audience: data.audience,
+    priority: data.priority || "NORMAL",
     class_name: data.class_name,
     whatsapp_fallback_sent: true,
     recipients_count: count > 0 ? count : 35,

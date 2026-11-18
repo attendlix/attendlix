@@ -9,16 +9,27 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- 2. Create Enums
 CREATE TYPE user_role AS ENUM ('PRINCIPAL', 'TEACHER', 'ACCOUNTANT', 'STUDENT_PARENT');
 CREATE TYPE announcement_audience AS ENUM ('ALL', 'PARENTS', 'TEACHERS', 'ACCOUNTANTS', 'CLASS');
+CREATE TYPE announcement_priority AS ENUM ('NORMAL', 'IMPORTANT', 'URGENT');
 
 -- 3. Schools Table (Tenant Root)
 CREATE TABLE IF NOT EXISTS public.schools (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
+    principal_name VARCHAR(150),
     city VARCHAR(100) NOT NULL,
     phone VARCHAR(30) NOT NULL,
     email VARCHAR(255),
     address TEXT,
     logo_url TEXT,
+    -- School Timings & Attendance Cutoff
+    start_time VARCHAR(20) DEFAULT '08:00 AM',
+    end_time VARCHAR(20) DEFAULT '02:00 PM',
+    late_cutoff VARCHAR(20) DEFAULT '08:15 AM',
+    -- Policies & Quiet Hours
+    quiet_hours_start VARCHAR(20) DEFAULT '08:00 PM',
+    quiet_hours_end VARCHAR(20) DEFAULT '07:00 AM',
+    late_fee_amount NUMERIC(10, 2) DEFAULT 200.00,
+    rules_and_policies TEXT,
     -- Dynamic School Payment Receiving Accounts
     bank_name VARCHAR(100),
     bank_account_title VARCHAR(150),
@@ -89,6 +100,8 @@ CREATE TABLE IF NOT EXISTS public.announcements (
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
     audience announcement_audience DEFAULT 'ALL' NOT NULL,
+    priority announcement_priority DEFAULT 'NORMAL' NOT NULL,
+    target_audience VARCHAR(50) DEFAULT 'ALL',
     class_id UUID REFERENCES public.classes(id) ON DELETE SET NULL,
     created_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
     whatsapp_fallback_sent BOOLEAN DEFAULT false NOT NULL,
@@ -375,5 +388,28 @@ ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS jazzcash_number VARCHAR(30);
 
 -- 2. Add per-student monthly fee column to students table
 ALTER TABLE public.students ADD COLUMN IF NOT EXISTS monthly_fee NUMERIC(10, 2) DEFAULT 0.00 NOT NULL;
+
+-- ==============================================================================
+-- ATTENDLIX: Step 9 - Announcement Priority, Target Audience & School Profile Settings Schema
+-- ==============================================================================
+
+DO $$ BEGIN
+    CREATE TYPE announcement_priority AS ENUM ('NORMAL', 'IMPORTANT', 'URGENT');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+ALTER TABLE public.announcements ADD COLUMN IF NOT EXISTS priority announcement_priority DEFAULT 'NORMAL' NOT NULL;
+ALTER TABLE public.announcements ADD COLUMN IF NOT EXISTS target_audience VARCHAR(50) DEFAULT 'ALL';
+
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS principal_name VARCHAR(150);
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS start_time VARCHAR(20) DEFAULT '08:00 AM';
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS end_time VARCHAR(20) DEFAULT '02:00 PM';
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS late_cutoff VARCHAR(20) DEFAULT '08:15 AM';
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS quiet_hours_start VARCHAR(20) DEFAULT '08:00 PM';
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS quiet_hours_end VARCHAR(20) DEFAULT '07:00 AM';
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS late_fee_amount NUMERIC(10, 2) DEFAULT 200.00;
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS rules_and_policies TEXT;
+
 
 
