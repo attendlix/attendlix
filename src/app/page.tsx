@@ -40,7 +40,10 @@ import { useLanguage, LanguageToggle } from "@/context/LanguageContext";
 export default function LandingPage() {
   const { lang, t, isRtl } = useLanguage();
 
-  // Interactive Demo Student Attendance Simulator in Hero Mockup
+  // Role tab state for Hero Preview Card
+  const [heroRole, setHeroRole] = useState<"principal" | "teacher" | "parent">("principal");
+
+  // Interactive Demo Student Attendance Simulator in Hero Mockup / Teacher Card
   const [demoStudents, setDemoStudents] = useState([
     { id: 1, name: "Hamza Naveed", roll: "01", status: "PRESENT" as "PRESENT" | "ABSENT" | "LEAVE" },
     { id: 2, name: "Ayesha Noor", roll: "02", status: "PRESENT" as "PRESENT" | "ABSENT" | "LEAVE" },
@@ -48,7 +51,7 @@ export default function LandingPage() {
   ]);
   const [demoWhatsAppSent, setDemoWhatsAppSent] = useState<string | null>("Alert triggered for Bilal Zubair");
 
-  // Interactive Role Selector State
+  // Interactive Role Selector State for Portals Section
   const [selectedRole, setSelectedRole] = useState<"principal" | "teacher" | "parent" | "superadmin">("principal");
 
   // Expandable FAQ State
@@ -139,275 +142,416 @@ export default function LandingPage() {
       {/* Reusable Floating Navbar */}
       <FloatingNavbar />
 
-      {/* Ambient Royal Light Background Mesh & Subtle Gradients */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[450px] bg-emerald-100/40 rounded-full blur-[140px] opacity-70" />
-        <div className="absolute top-96 -left-32 w-[500px] h-[400px] bg-indigo-100/40 rounded-full blur-[120px] opacity-60" />
-        <div className="absolute top-[800px] -right-32 w-[550px] h-[450px] bg-slate-200/50 rounded-full blur-[130px] opacity-50" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f050_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f050_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-70" />
-      </div>
-
       {/* ========================================================================= */}
-      {/* HERO SECTION */}
+      {/* 1. HERO SECTION WITH BACKGROUND IMAGE & 2-COLUMN LIVE PREVIEW */}
       {/* ========================================================================= */}
-      <section className="relative z-10 pt-8 pb-16 sm:pt-14 sm:pb-24 max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex flex-col items-center text-center space-y-6 max-w-4xl mx-auto">
-          {/* Animated Royal Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: -15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200/80 text-indigo-900 text-[11px] font-semibold tracking-wider uppercase shadow-2xs backdrop-blur-md"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-            <span>Built for Modern Pakistani Schools • EN & اردو</span>
-            <Sparkles className="w-3 h-3 text-indigo-600" />
-          </motion.div>
-
-          {/* Main Headline */}
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight sm:leading-[1.15] text-slate-900 max-w-3xl mx-auto"
-          >
-            {lang === "en" ? (
-              <>
-                The Intelligent Operating System for{" "}
-                <span className="text-emerald-700 underline decoration-emerald-300 decoration-wavy decoration-1 underline-offset-4">
-                  Pakistan's Schools.
-                </span>
-              </>
-            ) : (
-              <>
-                پاکستانی اسکولوں کے لیے{" "}
-                <span className="text-emerald-700">
-                  جدید ترین اسمارٹ نظام۔
-                </span>
-              </>
-            )}
-          </motion.h1>
-
-          {/* Subtitle */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-sm sm:text-base text-slate-600 max-w-2xl leading-relaxed font-normal"
-          >
-            {lang === "en"
-              ? "Automate 1-tap offline attendance, instant WhatsApp broadcasts without parent apps, flexible fee adjustments, and clash-free timetables — all in one unified cloud platform."
-              : "آف لائن حاضری، واٹس ایپ پر فوری الرٹس، فیس کا خودکار حساب اور ٹائم ٹیبل کا مکمل انتظام۔ والدین کو کسی موبائل ایپ کی ضرورت نہیں۔"}
-          </motion.p>
-
-          {/* Action CTAs */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto pt-1"
-          >
-            <Link
-              href="/register"
-              className="w-full sm:w-auto px-6 py-2.5 sm:px-7 sm:py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm shadow-emerald-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
-            >
-              <span>{lang === "en" ? "Register Your School" : "اپنا اسکول رجسٹر کریں"}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-
-            <Link
-              href="/login"
-              className="w-full sm:w-auto px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-800 font-semibold text-xs sm:text-sm border border-slate-300 hover:border-slate-400 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 shadow-2xs"
-            >
-              <Zap className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{lang === "en" ? "Live Portal Login" : "پورٹل لاگ ان کریں"}</span>
-            </Link>
-          </motion.div>
-
-          {/* Micro-Features Row */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="flex flex-wrap items-center justify-center gap-5 pt-3 text-xs text-slate-600 font-medium"
-          >
-            <span className="flex items-center gap-1.5">
-              <Check className="w-4 h-4 text-emerald-600" />
-              <span>100% Offline-Ready</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Check className="w-4 h-4 text-emerald-600" />
-              <span>Direct WhatsApp Fallback</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Check className="w-4 h-4 text-emerald-600" />
-              <span>Multi-Tenant Private Isolation</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Check className="w-4 h-4 text-emerald-600" />
-              <span>Instant Setup (2 Minutes)</span>
-            </span>
-          </motion.div>
+      <section className="relative -mt-16 sm:-mt-20 pt-28 pb-16 sm:pt-36 sm:pb-24 overflow-hidden border-b border-slate-200/80">
+        {/* School Photo Background + Dark Gradient Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/images/hero-school.jpg"
+            alt="Modern School Classroom"
+            className="w-full h-full object-cover object-center scale-105"
+          />
+          {/* Smooth Dark Emerald / Royal-Slate Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-emerald-950/80 to-indigo-950/85" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-500/10 via-transparent to-slate-950/70" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]" />
         </div>
 
-        {/* ========================================================================= */}
-        {/* INTERACTIVE FLOATING MOCKUP */}
-        {/* ========================================================================= */}
-        <motion.div
-          id="interactive-demo"
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="mt-12 sm:mt-16 max-w-5xl mx-auto"
-        >
-          <motion.div
-            animate={{ y: [-6, 6, -6] }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            className="relative rounded-2xl p-1 bg-gradient-to-b from-slate-200 via-slate-100 to-slate-200/80 shadow-xl shadow-slate-900/5"
-          >
-            <div className="rounded-[14px] bg-white border border-slate-200 p-4 sm:p-7 space-y-5 text-left">
-              {/* Window Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-full bg-slate-300" />
-                    <span className="w-3 h-3 rounded-full bg-slate-300" />
-                    <span className="w-3 h-3 rounded-full bg-emerald-500" />
-                  </div>
-                  <span className="text-xs font-mono text-slate-500 flex items-center gap-1.5">
-                    <span className="font-bold text-slate-900">Beacon Grammar School</span>
-                    <span>•</span>
-                    <span className="text-emerald-700 font-semibold">Lahore Campus</span>
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                    <span>Real-Time Cloud Connected</span>
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                    Grade 8-A
-                  </span>
-                </div>
-              </div>
-
-              {/* Mockup Metric Highlights */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-1">
-                  <span className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Today's Attendance</span>
-                  <div className="text-xl sm:text-2xl font-extrabold text-slate-900">96.4%</div>
-                  <span className="text-[10px] text-emerald-700 font-medium">142 of 148 Students Present</span>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-1">
-                  <span className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">WhatsApp Engine</span>
-                  <div className="text-xl sm:text-2xl font-extrabold text-emerald-700">100% Active</div>
-                  <span className="text-[10px] text-slate-500 font-medium">Zero Parent App Installs Required</span>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-1">
-                  <span className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Fee Reconciliation</span>
-                  <div className="text-xl sm:text-2xl font-extrabold text-indigo-900">JazzCash / Bank</div>
-                  <span className="text-[10px] text-indigo-700 font-medium">1-Click Verification & Receipts</span>
-                </div>
-              </div>
-
-              {/* Interactive Attendance Simulator */}
-              <div className="space-y-3 pt-1">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <Activity className="w-4 h-4 text-emerald-600" />
-                    <span>Interactive Teacher Attendance Simulator (Click P / A / L to test):</span>
-                  </div>
-
-                  {demoWhatsAppSent && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold flex items-center gap-1.5"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                      <span>{demoWhatsAppSent}</span>
-                    </motion.div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  {demoStudents.map((st) => (
-                    <div
-                      key={st.id}
-                      className="p-3 rounded-xl bg-slate-50/70 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:border-slate-300 hover:bg-white transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-mono font-bold flex items-center justify-center shadow-2xs">
-                          {st.roll}
-                        </span>
-                        <div>
-                          <div className="font-bold text-slate-900 text-xs sm:text-sm">{st.name}</div>
-                          <div className="text-[10px] text-slate-500">Class 8-A • Roll #{st.roll}</div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 self-end sm:self-auto">
-                        <button
-                          type="button"
-                          onClick={() => toggleStudentStatus(st.id, "PRESENT")}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                            st.status === "PRESENT"
-                              ? "bg-emerald-600 text-white shadow-2xs"
-                              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-                          }`}
-                        >
-                          P (حاضر)
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => toggleStudentStatus(st.id, "ABSENT")}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                            st.status === "ABSENT"
-                              ? "bg-rose-600 text-white shadow-2xs"
-                              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-                          }`}
-                        >
-                          A (غیر حاضر)
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => toggleStudentStatus(st.id, "LEAVE")}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                            st.status === "LEAVE"
-                              ? "bg-indigo-600 text-white shadow-2xs"
-                              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-                          }`}
-                        >
-                          L (رخصت)
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Bottom Notice in Mockup */}
-              <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-500 font-mono">
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Automatic WhatsApp Fallback Ready</span>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            {/* Left Column (Refined, Non-Chunky Typography) */}
+            <div className="lg:col-span-7 space-y-5 text-left">
+              {/* Clean uppercase badge */}
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-emerald-300 text-[11px] font-semibold tracking-wider uppercase shadow-xs"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>
+                  {lang === "en"
+                    ? "PAPERLESS • OFFLINE-READY • BILINGUAL (EN / اردو)"
+                    : "پیپر لیس • آف لائن سسٹم • اردو اور انگلش"}
                 </span>
-                <span className="text-emerald-700 font-semibold">
-                  Sample Alert Prefix: 🚨 *URGENT NOTICE:*
-                </span>
-              </div>
+                <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+              </motion.div>
+
+              {/* Elegant, balanced headline */}
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight sm:leading-[1.15] text-white"
+              >
+                {lang === "en" ? (
+                  <>
+                    Run your entire school smoothly,{" "}
+                    <span className="text-emerald-400">
+                      even on low-end phones.
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    اپنا پورا اسکول آسانی سے چلائیں،{" "}
+                    <span className="text-emerald-400">
+                      کم قیمت فونز پر بھی۔
+                    </span>
+                  </>
+                )}
+              </motion.h1>
+
+              {/* Concise subtitle */}
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="text-sm sm:text-base text-slate-200/90 leading-relaxed max-w-xl font-normal"
+              >
+                {lang === "en"
+                  ? "Attendlix seamlessly connects Principals, Teachers, and Parents in one unified cloud system. 1-tap offline attendance, instant automated WhatsApp alerts, and flexible fee recovery with zero paper registers."
+                  : "اٹینڈلکس پرنسپل، اساتذہ اور والدین کو ایک مرکزی پلیٹ فارم سے جوڑتا ہے۔ 1-کلک آف لائن حاضری، واٹس ایپ اطلاعات، اور ایزی پیسہ فیس مانیٹرنگ—بغیر کسی کاغذی رجسٹر کے۔"}
+              </motion.p>
+
+              {/* Two Clean Action Buttons */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1"
+              >
+                <Link
+                  href="/register"
+                  className="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  <span>{lang === "en" ? "Register School" : "اسکول رجسٹر کریں"}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => scrollToSection("contact")}
+                  className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs sm:text-sm border border-white/20 backdrop-blur-md transition-all flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  <span>{lang === "en" ? "Contact Us" : "ہم سے رابطہ کریں"}</span>
+                </button>
+              </motion.div>
+
+              {/* Compact Feature Checklist Below */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                className="pt-2 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 text-xs text-slate-200/90 font-medium"
+              >
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/10 backdrop-blur-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <span className="truncate">
+                    {lang === "en" ? "Teacher check-in & check-out" : "اساتذہ کی صبح آمد و رخصت"}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/10 backdrop-blur-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <span className="truncate">
+                    {lang === "en" ? "1-tap attendance & WhatsApp" : "1-ٹیپ حاضری اور واٹس ایپ الرٹس"}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/10 backdrop-blur-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <span className="truncate">
+                    {lang === "en" ? "Flexible fee & JazzCash tracking" : "جاز کیش / ایزی پیسہ فیس ٹریکنگ"}
+                  </span>
+                </div>
+              </motion.div>
             </div>
-          </motion.div>
-        </motion.div>
+
+            {/* Right Column: Floating Interactive Role Preview Card */}
+            <div className="lg:col-span-5">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.2 }}
+                className="relative rounded-2xl p-0.5 bg-gradient-to-b from-white/30 via-white/15 to-white/5 shadow-2xl shadow-black/50"
+              >
+                <div className="rounded-[15px] bg-white/95 backdrop-blur-2xl border border-white/40 p-5 sm:p-6 text-slate-900 space-y-4 shadow-xs">
+                  {/* Card Top Status Bar */}
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-xs font-mono font-bold text-slate-900">
+                        Beacon Grammar • Lahore
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      Live Cloud Synced
+                    </span>
+                  </div>
+
+                  {/* Role Switcher Pills */}
+                  <div className="flex items-center p-1 rounded-xl bg-slate-100/90 border border-slate-200/80">
+                    {(["principal", "teacher", "parent"] as const).map((role) => (
+                      <button
+                        key={role}
+                        type="button"
+                        onClick={() => setHeroRole(role)}
+                        className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all relative ${
+                          heroRole === role
+                            ? "text-white shadow-xs"
+                            : "text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        {heroRole === role && (
+                          <motion.div
+                            layoutId="heroRolePillHighlight"
+                            className="absolute inset-0 rounded-lg bg-indigo-900"
+                            transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                          />
+                        )}
+                        <span className="relative z-10 flex items-center justify-center gap-1.5">
+                          {role === "principal" && <Building2 className="w-3.5 h-3.5" />}
+                          {role === "teacher" && <UserCheck className="w-3.5 h-3.5" />}
+                          {role === "parent" && <Users className="w-3.5 h-3.5" />}
+                          <span>
+                            {role === "principal"
+                              ? (lang === "en" ? "Principal" : "پرنسپل")
+                              : role === "teacher"
+                              ? (lang === "en" ? "Teacher" : "استاد")
+                              : (lang === "en" ? "Parent" : "والدین")}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Live Preview Rows Animated with AnimatePresence */}
+                  <AnimatePresence mode="wait">
+                    {heroRole === "principal" && (
+                      <motion.div
+                        key="principal"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-3"
+                      >
+                        {/* Row 1: Staff Check-In */}
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                              Today's Staff Check-In
+                            </span>
+                            <div className="text-xs font-bold text-slate-900">
+                              18 of 20 Teachers Checked In
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            Cutoff 08:15 AM
+                          </span>
+                        </div>
+
+                        {/* Row 2: Attendance % */}
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                              Overall Attendance
+                            </span>
+                            <span className="text-xs font-extrabold text-emerald-700">95.4%</span>
+                          </div>
+                          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-600 rounded-full w-[95.4%]" />
+                          </div>
+                          <div className="text-[10px] text-slate-500 flex justify-between font-medium">
+                            <span>648 Present</span>
+                            <span className="text-rose-600 font-semibold">32 Absent</span>
+                          </div>
+                        </div>
+
+                        {/* Row 3: Fee & WhatsApp Status */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 space-y-0.5">
+                            <span className="text-[10px] text-slate-500 font-bold block">Fee Collected</span>
+                            <div className="text-xs font-bold text-indigo-900">PKR 142,500</div>
+                            <span className="text-[9px] text-emerald-700 block">JazzCash / Cash</span>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 space-y-0.5">
+                            <span className="text-[10px] text-slate-500 font-bold block">Broadcast</span>
+                            <div className="text-xs font-bold text-emerald-700">720 Delivered</div>
+                            <span className="text-[9px] text-slate-500 block">WhatsApp Sync</span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {heroRole === "teacher" && (
+                      <motion.div
+                        key="teacher"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-3"
+                      >
+                        {/* Interactive Attendance Simulator in Preview Card */}
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                              Class 8-B Attendance (Tap P / A / L):
+                            </span>
+                            <span className="text-[10px] font-bold text-emerald-700">Offline-Ready</span>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            {demoStudents.map((st) => (
+                              <div
+                                key={st.id}
+                                className="p-1.5 px-2 rounded-lg bg-white border border-slate-200 flex items-center justify-between text-xs"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="w-5 h-5 rounded bg-slate-100 text-[10px] font-mono font-bold flex items-center justify-center text-slate-600">
+                                    {st.roll}
+                                  </span>
+                                  <span className="font-semibold text-slate-900 text-xs">{st.name}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleStudentStatus(st.id, "PRESENT")}
+                                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
+                                      st.status === "PRESENT"
+                                        ? "bg-emerald-600 text-white"
+                                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                    }`}
+                                  >
+                                    P
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleStudentStatus(st.id, "ABSENT")}
+                                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
+                                      st.status === "ABSENT"
+                                        ? "bg-rose-600 text-white"
+                                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                    }`}
+                                  >
+                                    A
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleStudentStatus(st.id, "LEAVE")}
+                                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
+                                      st.status === "LEAVE"
+                                        ? "bg-indigo-600 text-white"
+                                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                    }`}
+                                  >
+                                    L
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {demoWhatsAppSent && (
+                            <div className="text-[10px] font-medium text-emerald-800 bg-emerald-50 p-1.5 rounded border border-emerald-200/80 flex items-center gap-1">
+                              <MessageSquare className="w-3 h-3 text-emerald-600 flex-shrink-0" />
+                              <span className="truncate">{demoWhatsAppSent}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Row 2: Teaching Schedule */}
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                              My Teaching Schedule
+                            </span>
+                            <div className="text-xs font-bold text-slate-900">
+                              Period 3: Mathematics • Class 8-B
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-900 border border-indigo-200">
+                            09:45 AM
+                          </span>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {heroRole === "parent" && (
+                      <motion.div
+                        key="parent"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-3"
+                      >
+                        {/* Row 1: Student Status */}
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                              Student Profile
+                            </span>
+                            <div className="text-xs font-bold text-slate-900">
+                              Hamza Naveed • Class 8-B
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                            <Check className="w-3 h-3 text-emerald-600" />
+                            <span>Present 07:55 AM</span>
+                          </span>
+                        </div>
+
+                        {/* Row 2: Fee Slip & Online Payment */}
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                              Monthly Fee Status
+                            </span>
+                            <span className="text-xs font-bold text-emerald-700">Paid • Receipt #9041</span>
+                          </div>
+                          <div className="text-xs font-bold text-slate-900">
+                            PKR 4,500 (Verified via JazzCash)
+                          </div>
+                        </div>
+
+                        {/* Row 3: Report Card & Diary */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 space-y-0.5">
+                            <span className="text-[10px] text-slate-500 font-bold block">Exam Marks</span>
+                            <div className="text-xs font-bold text-indigo-900">92.4% (Grade A+)</div>
+                            <span className="text-[9px] text-emerald-700 block">Mid-Term Exams</span>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 space-y-0.5">
+                            <span className="text-[10px] text-slate-500 font-bold block">Daily Diary</span>
+                            <div className="text-xs font-bold text-slate-800">Math Ex 4.2</div>
+                            <span className="text-[9px] text-slate-500 block">Due Tomorrow</span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Card Bottom Indicator */}
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Direct WhatsApp Fallback</span>
+                    </span>
+                    <span className="text-indigo-900 font-semibold">Zero App Installs</span>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* ========================================================================= */}
-      {/* BENTO-GRID FEATURE SHOWCASE */}
+      {/* 2. BENTO-GRID FEATURE SHOWCASE */}
       {/* ========================================================================= */}
       <section id="features" className="relative z-10 py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center space-y-3 max-w-2xl mx-auto mb-12 sm:mb-14">
@@ -425,7 +569,7 @@ export default function LandingPage() {
 
         {/* Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-          {/* Bento Card 1: 1-Tap Offline Attendance (Span 2 cols on desktop) */}
+          {/* Bento Card 1: 1-Tap Offline Attendance */}
           <motion.div
             whileInView={{ opacity: 1, y: 0 }}
             initial={{ opacity: 0, y: 30 }}
@@ -580,7 +724,7 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================================= */}
-      {/* 4 UNIFIED ROLE PORTALS SHOWCASE */}
+      {/* 3. 4 UNIFIED ROLE PORTALS SHOWCASE */}
       {/* ========================================================================= */}
       <section id="portals" className="relative z-10 py-16 sm:py-24 bg-white border-y border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -599,196 +743,161 @@ export default function LandingPage() {
               { id: "principal", label: "Principal & Admin", icon: Building2 },
               { id: "teacher", label: "Teacher Workspace", icon: UserCheck },
               { id: "parent", label: "Parent & Student", icon: Users },
-              { id: "superadmin", label: "Multi-Campus Admin", icon: Layers },
+              { id: "superadmin", label: "Super Admin", icon: ShieldCheck },
             ].map((tab) => {
               const Icon = tab.icon;
-              const active = selectedRole === tab.id;
+              const isActive = selectedRole === tab.id;
               return (
                 <button
                   key={tab.id}
-                  type="button"
                   onClick={() => setSelectedRole(tab.id as any)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 min-h-[38px] ${
-                    active
-                      ? "bg-indigo-900 text-white shadow-xs font-bold"
-                      : "bg-slate-50 text-slate-700 hover:text-slate-950 border border-slate-200 hover:bg-slate-100"
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                    isActive
+                      ? "bg-indigo-900 text-white shadow-xs"
+                      : "bg-slate-50 text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200/80"
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
+                  <Icon className={`w-4 h-4 ${isActive ? "text-emerald-400" : "text-slate-500"}`} />
                   <span>{tab.label}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* Active Role Content Card */}
-          <div className="max-w-4xl mx-auto rounded-2xl bg-[#F8FAFC] border border-slate-200 p-5 sm:p-8 shadow-xs">
+          {/* Portal Content Card */}
+          <motion.div
+            key={selectedRole}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="rounded-2xl bg-slate-50/70 border border-slate-200/90 p-6 sm:p-8 max-w-4xl mx-auto"
+          >
             {selectedRole === "principal" && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
-                    <Building2 className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">Principal & Campus Governance</h3>
-                    <p className="text-[11px] text-slate-500">Command center for campus administration</p>
-                  </div>
+              <div className="space-y-4 text-left">
+                <div className="flex items-center gap-2 text-indigo-900 font-bold text-sm">
+                  <Building2 className="w-4 h-4 text-indigo-700" />
+                  <span>Principal Command Center</span>
                 </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                  High-level oversight of campus attendance, fee recovery, and staff punctuality.
+                </h3>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
-                  Real-time visibility over all classes, teacher attendance, student admissions, fee reconciliation, and
-                  automated WhatsApp circular broadcasts with urgency priority routing.
+                  Principals get a live bird's-eye view of every classroom. Broadcast priority-tagged announcements to parents
+                  via WhatsApp, manage morning teacher check-in rules with cutoff enforcement, and review fee vouchers.
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-[11px] font-medium">
-                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-slate-700">
-                    ✓ Fee Recovery Overviews
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-slate-700">
-                    ✓ Staff Check-In Tracking
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-slate-700">
-                    ✓ Weekly Timetable Builder
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-slate-700">
-                    ✓ Official Announcements
-                  </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 text-xs font-medium text-slate-700">
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200">✓ Staff Check-In Log</div>
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200">✓ Fee Reconciliation</div>
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200">✓ Urgent WhatsApp Notice</div>
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200">✓ School Profile Config</div>
                 </div>
               </div>
             )}
 
             {selectedRole === "teacher" && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold">
-                    <UserCheck className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">Teacher Daily Classroom Companion</h3>
-                    <p className="text-[11px] text-slate-500">Fast, streamlined tools for classroom educators</p>
-                  </div>
+              <div className="space-y-4 text-left">
+                <div className="flex items-center gap-2 text-emerald-800 font-bold text-sm">
+                  <UserCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Teacher Attendance & Diary Workspace</span>
                 </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                  Mark 40 students in 15 seconds. Works completely offline.
+                </h3>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
-                  Mark full classroom attendance in under 10 seconds, assign daily homework diaries, log monthly exam marks,
-                  and access personal teaching timetables with zero technical friction.
+                  Designed specifically for fast classroom transitions. Teachers can record attendance, log daily homework
+                  diaries, enter exam marks in batch, and check their clash-free timetable from any phone.
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-[11px] font-medium">
-                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-slate-700">
-                    ✓ 1-Tap Offline Attendance
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-slate-700">
-                    ✓ Homework Diary Updates
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-slate-700">
-                    ✓ Exam Marks Entry Batch
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-slate-700">
-                    ✓ Parent Chat with Quiet Hours
-                  </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 text-xs font-medium text-slate-700">
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200">✓ 1-Tap Offline Log</div>
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200">✓ Digital Homework Diary</div>
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200">✓ Batch Marks Entry</div>
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200">✓ Weekly Schedule</div>
                 </div>
               </div>
             )}
 
             {selectedRole === "parent" && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold">
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">Parent & Student Transparency Portal</h3>
-                    <p className="text-[11px] text-slate-500">Direct academic visibility for families</p>
-                  </div>
+              <div className="space-y-4 text-left">
+                <div className="flex items-center gap-2 text-indigo-900 font-bold text-sm">
+                  <Users className="w-4 h-4 text-indigo-700" />
+                  <span>Parent & Student Portal (Zero App Required)</span>
                 </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                  Instant WhatsApp alerts and clear mobile browser report cards.
+                </h3>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
-                  Parents stay informed via instant WhatsApp notifications or can log into the portal to review daily homework,
-                  view term exam report cards, verify monthly fee records, and inspect weekly class schedules.
+                  Parents receive immediate WhatsApp notifications if their child is marked absent. Opening the secure web portal
+                  reveals daily homework diaries, exam marks with grade breakdowns, and payment info.
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-[11px] font-medium">
-                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-slate-700">
-                    ✓ Instant WhatsApp Alerts
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-slate-700">
-                    ✓ Monthly Fee Payment Portal
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-slate-700">
-                    ✓ Exam Grade Analytics
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-slate-700">
-                    ✓ Direct Teacher Messaging
-                  </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 text-xs font-medium text-slate-700">
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200">✓ WhatsApp Alerts</div>
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200">✓ Daily Diary Feed</div>
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200">✓ Exam Report Cards</div>
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200">✓ JazzCash Fee Vouchers</div>
                 </div>
               </div>
             )}
 
             {selectedRole === "superadmin" && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
-                    <Layers className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">Multi-Campus & Tenant Control</h3>
-                    <p className="text-[11px] text-slate-500">Enterprise control across school branches</p>
-                  </div>
+              <div className="space-y-4 text-left">
+                <div className="flex items-center gap-2 text-slate-800 font-bold text-sm">
+                  <ShieldCheck className="w-4 h-4 text-indigo-700" />
+                  <span>Multi-Tenant Platform Governance</span>
                 </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                  Manage hundreds of independent school tenants with isolated databases.
+                </h3>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
-                  Manage multiple campuses or entire school networks from a single pane of glass. Onboard new campuses,
-                  monitor branch performance, manage subscriptions, and oversee platform health.
+                  Super Admins provision new campuses, verify school licenses, monitor real-time sync performance, and review
+                  cross-platform health without ever breaching individual school privacy.
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-[11px] font-medium">
-                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-slate-700">
-                    ✓ Multi-Branch Governance
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-slate-700">
-                    ✓ Campus Subscription Control
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-slate-700">
-                    ✓ Payment Account Scoping
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-slate-700">
-                    ✓ Database Tenant Security
-                  </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 text-xs font-medium text-slate-700">
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200">✓ Multi-Tenant Isolation</div>
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200">✓ Instant Provisioning</div>
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200">✓ RLS Security Policies</div>
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200">✓ School Audit Logs</div>
                 </div>
               </div>
             )}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* ========================================================================= */}
-      {/* INTERACTIVE FAQ SECTION */}
+      {/* 4. EXPANDABLE FAQ SECTION */}
       {/* ========================================================================= */}
       <section id="faq" className="relative z-10 py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-6">
         <div className="text-center space-y-3 mb-10 sm:mb-12">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200/80 text-indigo-900 text-[11px] font-semibold tracking-wider uppercase">
             <span>Frequently Asked Questions</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
-            {lang === "en" ? "Got Questions? We Have Answers." : "عام پوچھے جانے والے سوالات"}
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Common questions from Pakistani school administrators.
           </h2>
-          <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto leading-relaxed">
-            {lang === "en"
-              ? "Everything Pakistani school leaders need to know before getting started."
-              : "پاکستانی اسکول مالکان اور پرنسپلز کے عام سوالات کے جوابات۔"}
+          <p className="text-xs sm:text-sm text-slate-600">
+            Everything you need to know about setting up and running Attendlix.
           </p>
         </div>
 
-        <div className="space-y-2.5">
-          {faqItems.map((item, index) => {
-            const isOpen = openFaqIndex === index;
+        <div className="space-y-3">
+          {faqItems.map((item, idx) => {
+            const isOpen = openFaqIndex === idx;
             return (
               <div
-                key={index}
-                className="rounded-xl bg-white border border-slate-200/90 overflow-hidden shadow-xs transition-all"
+                key={idx}
+                className="rounded-xl bg-white border border-slate-200/90 overflow-hidden shadow-2xs transition-all"
               >
                 <button
                   type="button"
-                  onClick={() => setOpenFaqIndex(isOpen ? null : index)}
-                  className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-xs sm:text-sm text-slate-900 hover:text-emerald-700 transition-colors"
+                  onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
+                  className="w-full p-4 sm:p-5 flex items-center justify-between text-left gap-4 hover:bg-slate-50/70 transition-colors"
                 >
-                  <span>{item.q}</span>
+                  <span className="font-bold text-slate-900 text-xs sm:text-sm leading-snug">
+                    {item.q}
+                  </span>
                   <ChevronDown
-                    className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform duration-200 ${
-                      isOpen ? "rotate-180 text-emerald-600" : ""
+                    className={`w-4 h-4 text-slate-500 flex-shrink-0 transition-transform duration-200 ${
+                      isOpen ? "rotate-180 text-indigo-900" : ""
                     }`}
                   />
                 </button>
@@ -801,7 +910,7 @@ export default function LandingPage() {
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.25 }}
                     >
-                      <div className="p-4 sm:p-5 pt-0 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 mt-1 font-normal">
+                      <div className="px-4 pb-4 sm:px-5 sm:pb-5 pt-1 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 font-normal">
                         {item.a}
                       </div>
                     </motion.div>
@@ -814,245 +923,172 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================================= */}
-      {/* CONTACT US SECTION */}
+      {/* 5. CONTACT US SECTION */}
       {/* ========================================================================= */}
-      <section id="contact" className="relative z-10 py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="text-center space-y-3 max-w-2xl mx-auto mb-10 sm:mb-12">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200/80 text-indigo-900 text-[11px] font-semibold tracking-wider uppercase">
-            <MessageSquare className="w-3.5 h-3.5 text-indigo-700" />
-            <span>
-              {lang === "en" ? "CONTACT ATTENDLIX TEAM" : "اٹینڈلکس ٹیم سے رابطہ کریں"}
-            </span>
-          </div>
-
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-            {lang === "en" ? (
-              <>
-                Let's discuss how Attendlix transforms{" "}
-                <span className="text-emerald-700">
-                  your school campus.
-                </span>
-              </>
-            ) : (
-              <>
-                اپنے اسکول کو ڈیجیٹل بنانے کے لیے{" "}
-                <span className="text-emerald-700">
-                  ہم سے فوری رابطہ کریں۔
-                </span>
-              </>
-            )}
-          </h2>
-
-          <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto leading-relaxed">
-            {lang === "en"
-              ? "Get answers within 15 minutes. We provide free assisted onboarding, teacher training, and dedicated WhatsApp support for Pakistani schools."
-              : "سکول کے اوقات میں 15 منٹ کے اندر جواب حاصل کریں۔ ہم مفت آن بورڈنگ اور اساتذہ کی تربیت فراہم کرتے ہیں۔"}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
-          {/* Left Column: Fast Hotline & School Support Info */}
-          <div className="lg:col-span-5 space-y-4">
-            <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-5 relative overflow-hidden">
-              <div>
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                  <span>{lang === "en" ? "Live Helpline & WhatsApp" : "لائیو واٹس ایپ ہیلپ لائن"}</span>
-                </span>
-                <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-1 tracking-tight">
-                  {lang === "en" ? "Direct Campus Representative" : "براہ راست کیمپس نمائندہ"}
-                </h3>
+      <section id="contact" className="relative z-10 py-16 sm:py-24 bg-white border-y border-slate-200">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+            {/* Left Info Column */}
+            <div className="lg:col-span-5 space-y-5 text-left">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] font-semibold tracking-wider uppercase">
+                <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Get In Touch</span>
               </div>
 
-              {/* Direct WhatsApp Callout */}
-              <a
-                href="https://wa.me/923001234567?text=Assalam-o-Alaikum%20Attendlix%20Team!%20I%20would%20like%20to%20know%20more%20about%20onboarding%20our%20school."
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200/80 flex items-center justify-between gap-3 group transition-all"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold shadow-2xs group-hover:scale-105 transition-transform flex-shrink-0">
-                    <MessageCircle className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-[11px] font-semibold text-slate-900 group-hover:text-emerald-800 transition-colors">
-                      WhatsApp Support Line
-                    </div>
-                    <div className="text-xs sm:text-sm font-bold text-emerald-800 font-mono">
-                      +92 300 1234567
-                    </div>
-                  </div>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5 text-emerald-700 group-hover:translate-x-0.5 transition-transform" />
-              </a>
-
-              {/* Response Time & Operating Hours */}
-              <div className="space-y-2.5 text-xs text-slate-600 pt-0.5">
-                <div className="flex items-start gap-2.5">
-                  <Clock className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-semibold text-slate-900">
-                      {lang === "en" ? "Operating Hours: " : "اوقاتِ کار: "}
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                {lang === "en" ? (
+                  <>
+                    Have questions about{" "}
+                    <span className="text-emerald-700">
+                      onboarding your campus?
                     </span>
-                    <span className="text-slate-600">Mon – Sat, 8:00 AM – 6:00 PM PKT</span>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2.5">
-                  <Mail className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-semibold text-slate-900">Email: </span>
-                    <span className="font-mono text-slate-600">support@attendlix.com</span>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2.5">
-                  <MapPin className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-semibold text-slate-900">
-                      {lang === "en" ? "Nationwide Support: " : "ملک بھر میں سپورٹ: "}
+                  </>
+                ) : (
+                  <>
+                    اپنے اسکول کو رجسٹر کرنے میں{" "}
+                    <span className="text-emerald-700">
+                      رہنمائی چاہیے؟
                     </span>
-                    <span className="text-slate-600">Lahore, Karachi, Islamabad, Rawalpindi & nationwide</span>
+                  </>
+                )}
+              </h2>
+
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
+                {lang === "en"
+                  ? "Our education specialists are available 6 days a week to help configure your classes, subjects, and staff accounts. Send us a message or chat directly via WhatsApp."
+                  : "ہماری ٹیم اسکول کلاسز، مضامین اور عملے کے اکاؤنٹس بنانے میں آپ کی مکمل رہنمائی کے لیے ہمہ وقت تیار ہے۔ واٹس ایپ پر براہِ راست رابطہ کریں۔"}
+              </p>
+
+              <div className="space-y-3 pt-2 text-xs text-slate-700">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <Phone className="w-4 h-4 text-emerald-600" />
+                  <div>
+                    <span className="font-bold block text-slate-900">Direct WhatsApp Helpline</span>
+                    <span className="text-slate-500 font-mono">+92 300 1234567</span>
                   </div>
                 </div>
-              </div>
 
-              {/* Guarantees */}
-              <div className="pt-3.5 border-t border-slate-100 space-y-2 text-[11px] text-slate-600">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                  <span>Free Campus Data Migration (Excel to Cloud)</span>
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <Mail className="w-4 h-4 text-indigo-700" />
+                  <div>
+                    <span className="font-bold block text-slate-900">Official Support Email</span>
+                    <span className="text-slate-500 font-mono">support@attendlix.com</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                  <span>Staff Training via WhatsApp Video Session</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                  <span>Zero Disruption to Daily School Classes</span>
+
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <MapPin className="w-4 h-4 text-slate-600" />
+                  <div>
+                    <span className="font-bold block text-slate-900">Headquarters</span>
+                    <span className="text-slate-500">Lahore, Punjab, Pakistan</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Right Column: Interactive Inquiry Form */}
-          <div className="lg:col-span-7">
-            <div className="p-5 sm:p-7 rounded-2xl bg-white border border-slate-200/90 shadow-sm relative">
-              <form onSubmit={handleContactSubmit} className="space-y-3.5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {/* School / Campus Name */}
-                  <div className="space-y-1 text-left">
-                    <label className="text-[11px] sm:text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                      <Building2 className="w-3 h-3 text-emerald-700" />
-                      <span>{lang === "en" ? "School / Campus Name *" : "اسکول یا کیمپس کا نام *"}</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder={lang === "en" ? "e.g. Beacon Grammar School" : "مثال: بیکن گرامر اسکول"}
-                      value={contactForm.schoolName}
-                      onChange={(e) => setContactForm({ ...contactForm, schoolName: e.target.value })}
-                      className="w-full px-3.5 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-xs sm:text-sm focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition-all"
-                    />
-                  </div>
-
-                  {/* City */}
-                  <div className="space-y-1 text-left">
-                    <label className="text-[11px] sm:text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                      <MapPin className="w-3 h-3 text-emerald-700" />
-                      <span>{lang === "en" ? "City / District" : "شہر / ضلع"}</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder={lang === "en" ? "e.g. Lahore, Rawalpindi" : "مثال: لاہور، راولپنڈی"}
-                      value={contactForm.city}
-                      onChange={(e) => setContactForm({ ...contactForm, city: e.target.value })}
-                      className="w-full px-3.5 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-xs sm:text-sm focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* WhatsApp Mobile Number */}
-                <div className="space-y-1 text-left">
-                  <label className="text-[11px] sm:text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                    <Phone className="w-3 h-3 text-emerald-700" />
-                    <span>{lang === "en" ? "Principal / Admin WhatsApp Number *" : "پرنسپل / ایڈمن کا واٹس ایپ نمبر *"}</span>
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="0300-1234567"
-                    value={contactForm.phone}
-                    onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-xs sm:text-sm focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition-all font-mono"
-                  />
-                  <p className="text-[10px] text-slate-500">
-                    {lang === "en"
-                      ? "We will connect directly via WhatsApp to answer questions or arrange a demo."
-                      : "ہم فوری رابطہ کے لیے واٹس ایپ کا استعمال کرتے ہیں۔"}
-                  </p>
-                </div>
-
-                {/* Message / Requirements */}
-                <div className="space-y-1 text-left">
-                  <label className="text-[11px] sm:text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                    <FileText className="w-3 h-3 text-emerald-700" />
-                    <span>{lang === "en" ? "Message / Questions (Optional)" : "پیغام یا ضروریات (اختیاری)"}</span>
-                  </label>
-                  <textarea
-                    rows={2}
-                    placeholder={
-                      lang === "en"
-                        ? "Student strength, current pain points, or when you'd like to onboard..."
-                        : "اپنے اسکول کے طلباء کی تعداد یا خاص ضروریات کے بارے میں بتائیں..."
-                    }
-                    value={contactForm.message}
-                    onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-xs sm:text-sm focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition-all resize-none"
-                  />
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  className="w-full py-2.5 sm:py-3 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm shadow-emerald-600/20 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 mt-1"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>
-                    {lang === "en"
-                      ? "Send Message & Chat on WhatsApp"
-                      : "پیغام بھیجیں اور واٹس ایپ پر بات کریں"}
-                  </span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-
-                {/* Instant Feedback Alert */}
-                <AnimatePresence>
-                  {contactSubmitted && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2 mt-2"
+            {/* Right Contact Form Card */}
+            <div className="lg:col-span-7">
+              <div className="rounded-2xl bg-slate-50/70 border border-slate-200/90 p-6 sm:p-8 shadow-xs">
+                {contactSubmitted ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="p-6 text-center space-y-3"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 mx-auto flex items-center justify-center">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900">Thank you! Message forwarded.</h3>
+                    <p className="text-xs text-slate-600 max-w-sm mx-auto leading-relaxed">
+                      Your inquiry has been opened in WhatsApp. Our representative will assist you within a few minutes.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setContactSubmitted(false)}
+                      className="text-xs font-semibold text-emerald-700 underline"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                      <span>
-                        {lang === "en"
-                          ? "Thank you! We have opened WhatsApp with your details. Our campus representative will assist you right away."
-                          : "شکریہ! آپ کی تفصیلات موصول ہو گئیں۔ ہماری ٹیم فوری طور پر واٹس ایپ پر رابطہ کرے گی۔"}
-                      </span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </form>
+                      Send another message
+                    </button>
+                  </motion.div>
+                ) : (
+                  <form onSubmit={handleContactSubmit} className="space-y-4 text-left">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-700">
+                          {lang === "en" ? "School / Campus Name *" : "اسکول کا نام *"}
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={contactForm.schoolName}
+                          onChange={(e) => setContactForm({ ...contactForm, schoolName: e.target.value })}
+                          placeholder={lang === "en" ? "e.g. Al-Huda Academy" : "مثلاً الہدیٰ اکیڈمی"}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs sm:text-sm focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-2xs transition-all"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-700">
+                          {lang === "en" ? "City" : "شہر"}
+                        </label>
+                        <input
+                          type="text"
+                          value={contactForm.city}
+                          onChange={(e) => setContactForm({ ...contactForm, city: e.target.value })}
+                          placeholder={lang === "en" ? "e.g. Lahore / Rawalpindi" : "مثلاً لاہور / راولپنڈی"}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs sm:text-sm focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-2xs transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-700">
+                        {lang === "en" ? "WhatsApp / Phone Number *" : "موبائل یا واٹس ایپ نمبر *"}
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={contactForm.phone}
+                        onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                        placeholder="0300 1234567"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs sm:text-sm focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-2xs transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-700">
+                        {lang === "en" ? "Questions or Requirements" : "کوئی سوال یا خصوصی ضرورت"}
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={contactForm.message}
+                        onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                        placeholder={
+                          lang === "en"
+                            ? "Tell us how many students you have or any special setup needs..."
+                            : "طلباء کی تعداد یا کوئی خاص معلومات..."
+                        }
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs sm:text-sm focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-2xs transition-all resize-none"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>{lang === "en" ? "Inquire via WhatsApp" : "واٹس ایپ پر رابطہ کریں"}</span>
+                    </button>
+                  </form>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* ========================================================================= */}
-      {/* ROYAL CTA BANNER */}
+      {/* 6. ROYAL CTA BANNER */}
       {/* ========================================================================= */}
       <section className="relative z-10 py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6">
         <div className="relative rounded-2xl overflow-hidden p-6 sm:p-12 bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-950 text-white border border-indigo-900/50 text-center space-y-4 shadow-xl">
@@ -1101,7 +1137,7 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================================= */}
-      {/* CLEAN MINIMALIST FOOTER */}
+      {/* 7. CLEAN MINIMALIST FOOTER */}
       {/* ========================================================================= */}
       <footer className="relative z-10 border-t border-slate-200 bg-white py-12 text-slate-500 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-6">
@@ -1125,13 +1161,13 @@ export default function LandingPage() {
             <Link href="/about" className="hover:text-slate-900 transition-colors">
               {lang === "en" ? "About Us" : "ہمارے بارے میں"}
             </Link>
-            <button onClick={() => scrollToSection("features")} className="hover:text-slate-900 transition-colors">
+            <button type="button" onClick={() => scrollToSection("features")} className="hover:text-slate-900 transition-colors">
               {lang === "en" ? "Features" : "خصوصیات"}
             </button>
-            <button onClick={() => scrollToSection("faq")} className="hover:text-slate-900 transition-colors">
+            <button type="button" onClick={() => scrollToSection("faq")} className="hover:text-slate-900 transition-colors">
               {lang === "en" ? "FAQ" : "عام سوالات"}
             </button>
-            <button onClick={() => scrollToSection("contact")} className="hover:text-slate-900 transition-colors">
+            <button type="button" onClick={() => scrollToSection("contact")} className="hover:text-slate-900 transition-colors">
               {lang === "en" ? "Contact" : "رابطہ"}
             </button>
             <Link href="/login" className="hover:text-slate-900 transition-colors">

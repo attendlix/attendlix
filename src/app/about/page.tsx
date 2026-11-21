@@ -41,170 +41,177 @@ export default function AboutPage() {
       {/* Shared Floating Glass Navbar */}
       <FloatingNavbar />
 
-      {/* Ambient Royal Light Background Mesh & Subtle Gradients */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[450px] bg-emerald-100/40 rounded-full blur-[140px] opacity-70" />
-        <div className="absolute top-96 -left-32 w-[500px] h-[400px] bg-indigo-100/40 rounded-full blur-[120px] opacity-60" />
-        <div className="absolute top-[800px] -right-32 w-[550px] h-[450px] bg-slate-200/50 rounded-full blur-[130px] opacity-50" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f050_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f050_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-70" />
-      </div>
-
       {/* ========================================================================= */}
-      {/* 1. HERO SECTION WITH INTERACTIVE ECOSYSTEM NODE DIAGRAM */}
+      {/* 1. HERO SECTION WITH BACKGROUND IMAGE & CAMPUS ECOSYSTEM CARD */}
       {/* ========================================================================= */}
-      <section className="relative z-10 pt-8 pb-14 sm:pt-14 sm:pb-20 max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          {/* Left Column: Mission & Story */}
-          <div className="lg:col-span-6 space-y-5 text-left">
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200/80 text-indigo-900 text-[11px] font-semibold tracking-wider uppercase"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-              <span>{lang === "en" ? "ABOUT ATTENDLIX" : "اٹینڈلکس کا تعارف"}</span>
-            </motion.div>
+      <section className="relative -mt-16 sm:-mt-20 pt-28 pb-16 sm:pt-36 sm:pb-24 overflow-hidden border-b border-slate-200/80">
+        {/* School Campus Photo Background + Dark Gradient Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/images/about-school.jpg"
+            alt="School Campus Learning Environment"
+            className="w-full h-full object-cover object-center scale-105"
+          />
+          {/* Smooth Dark Emerald / Royal-Slate Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-emerald-950/80 to-indigo-950/85" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-500/10 via-transparent to-slate-950/70" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]" />
+        </div>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight sm:leading-[1.15] text-slate-900"
-            >
-              {lang === "en" ? (
-                <>
-                  Our mission:{" "}
-                  <span className="text-emerald-700">
-                    every Pakistani school paperless,
-                  </span>{" "}
-                  efficient, and connected.
-                </>
-              ) : (
-                <>
-                  ہمارا مقصد:{" "}
-                  <span className="text-emerald-700">
-                    پاکستان کے ہر اسکول کو پیپر لیس،
-                  </span>{" "}
-                  منظم اور باہم مربوط بنانا۔
-                </>
-              )}
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-sm sm:text-base text-slate-600 leading-relaxed font-normal"
-            >
-              {lang === "en"
-                ? "Pakistani schools still lose hours every morning to manual attendance registers, handwritten fee vouchers, and paper circulars lost in student backpacks. Attendlix replaces that friction with a unified, offline-ready cloud architecture designed around the local realities of load-shedding, budget Android phones, and WhatsApp."
-                : "پاکستانی اسکول ہر روز حاضری کے پرانے رجسٹروں، ہاتھ سے لکھے گئے فیس واؤچرز اور نوٹس بکس پر گھنٹوں ضائع کرتے ہیں۔ اٹینڈلکس لوڈ شیڈنگ، سستے اینڈرائیڈ فونز اور واٹس ایپ کی مقامی ضروریات کو مدنظر رکھتے ہوئے اس سارے نظام کو کلاؤڈ پر منتقل کرتا ہے۔"}
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
-            >
-              <Link
-                href="/register"
-                className="px-6 py-2.5 sm:px-7 sm:py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-xs transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            {/* Left Column: Mission & Story */}
+            <div className="lg:col-span-6 space-y-5 text-left">
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-emerald-300 text-[11px] font-semibold tracking-wider uppercase shadow-xs"
               >
-                <span>{lang === "en" ? "Register Your Campus" : "کیمپس رجسٹر کریں"}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{lang === "en" ? "ABOUT ATTENDLIX" : "اٹینڈلکس کا تعارف"}</span>
+              </motion.div>
 
-              <Link
-                href="/login"
-                className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm border border-slate-300 shadow-2xs transition-all flex items-center justify-center gap-2"
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight sm:leading-[1.15] text-white"
               >
-                <span>{lang === "en" ? "Explore Live Portal" : "پورٹل لاگ ان"}</span>
-              </Link>
-            </motion.div>
-          </div>
+                {lang === "en" ? (
+                  <>
+                    Our mission:{" "}
+                    <span className="text-emerald-400">
+                      every Pakistani school paperless,
+                    </span>{" "}
+                    efficient, and connected.
+                  </>
+                ) : (
+                  <>
+                    ہمارا مقصد:{" "}
+                    <span className="text-emerald-400">
+                      پاکستان کے ہر اسکول کو پیپر لیس،
+                    </span>{" "}
+                    منظم اور باہم مربوط بنانا۔
+                  </>
+                )}
+              </motion.h1>
 
-          {/* Right Column: Floating Interactive Ecosystem Node Diagram */}
-          <div className="lg:col-span-6">
-            <motion.div
-              animate={{ y: [-4, 4, -4] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-              className="relative rounded-2xl p-1 bg-gradient-to-b from-slate-200/80 via-indigo-100/50 to-slate-200/80 shadow-xl shadow-slate-900/5"
-            >
-              <div className="rounded-[18px] bg-white border border-slate-200 p-5 sm:p-7 space-y-5 shadow-xs">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs font-mono font-bold text-slate-800">
-                      Attendlix Unified Campus Brain
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="text-sm sm:text-base text-slate-200/90 leading-relaxed font-normal"
+              >
+                {lang === "en"
+                  ? "Pakistani schools still lose hours every morning to manual attendance registers, handwritten fee vouchers, and paper circulars lost in student backpacks. Attendlix replaces that friction with a unified, offline-ready cloud architecture designed around the local realities of load-shedding, budget Android phones, and WhatsApp."
+                  : "پاکستانی اسکول ہر روز حاضری کے پرانے رجسٹروں، ہاتھ سے لکھے گئے فیس واؤچرز اور نوٹس بکس پر گھنٹوں ضائع کرتے ہیں۔ اٹینڈلکس لوڈ شیڈنگ، سستے اینڈرائیڈ فونز اور واٹس ایپ کی مقامی ضروریات کو مدنظر رکھتے ہوئے اس سارے نظام کو کلاؤڈ پر منتقل کرتا ہے۔"}
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
+              >
+                <Link
+                  href="/register"
+                  className="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  <span>{lang === "en" ? "Register Your Campus" : "کیمپس رجسٹر کریں"}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+
+                <Link
+                  href="/login"
+                  className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs sm:text-sm border border-white/20 backdrop-blur-md transition-all flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  <span>{lang === "en" ? "Explore Live Portal" : "پورٹل لاگ ان"}</span>
+                </Link>
+              </motion.div>
+            </div>
+
+            {/* Right Column: Floating Interactive Ecosystem Node Diagram */}
+            <div className="lg:col-span-6">
+              <motion.div
+                animate={{ y: [-4, 4, -4] }}
+                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                className="relative rounded-2xl p-0.5 bg-gradient-to-b from-white/30 via-white/15 to-white/5 shadow-2xl shadow-black/50"
+              >
+                <div className="rounded-[15px] bg-white/95 backdrop-blur-2xl border border-white/40 p-5 sm:p-7 space-y-5 text-slate-900 shadow-xs">
+                  {/* Header */}
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-xs font-mono font-bold text-slate-800">
+                        Attendlix Unified Campus Brain
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono font-semibold text-indigo-900 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/70">
+                      Real-Time Mesh
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono font-semibold text-indigo-900 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/70">
-                    Real-Time Mesh
-                  </span>
-                </div>
 
-                {/* Interactive Node Graph Visual */}
-                <div className="relative py-3 sm:py-4 flex flex-col items-center justify-center min-h-[240px]">
-                  {/* Central Node: School Hub */}
-                  <div className="relative z-20 w-20 h-20 rounded-2xl bg-gradient-to-tr from-emerald-600 to-indigo-700 p-0.5 shadow-md shadow-emerald-700/20 animate-pulse">
-                    <div className="w-full h-full bg-slate-950 rounded-[14px] flex flex-col items-center justify-center text-center p-2 text-white">
-                      <GraduationCap className="w-5 h-5 text-emerald-400 mb-0.5" />
-                      <span className="text-[10px] font-bold text-white leading-tight">School Hub</span>
-                      <span className="text-[8px] font-mono text-emerald-300">Cloud Sync</span>
-                    </div>
-                  </div>
-
-                  {/* Radiating Role Nodes */}
-                  <div className="w-full grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-5 z-10">
-                    {/* Node 1: Principal */}
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-left space-y-0.5 shadow-2xs">
-                      <div className="flex items-center gap-1.5 text-indigo-900">
-                        <Building2 className="w-3 h-3 text-indigo-700" />
-                        <span className="text-xs font-bold text-slate-900">Principal</span>
+                  {/* Interactive Node Graph Visual */}
+                  <div className="relative py-3 sm:py-4 flex flex-col items-center justify-center min-h-[240px]">
+                    {/* Central Node: School Hub */}
+                    <div className="relative z-20 w-20 h-20 rounded-2xl bg-gradient-to-tr from-emerald-600 to-indigo-700 p-0.5 shadow-md shadow-emerald-700/20 animate-pulse">
+                      <div className="w-full h-full bg-slate-950 rounded-[14px] flex flex-col items-center justify-center text-center p-2 text-white">
+                        <GraduationCap className="w-5 h-5 text-emerald-400 mb-0.5" />
+                        <span className="text-[10px] font-bold text-white leading-tight">School Hub</span>
+                        <span className="text-[8px] font-mono text-emerald-300">Cloud Sync</span>
                       </div>
-                      <span className="text-[10px] text-slate-500 block">Governance & Fees</span>
                     </div>
 
-                    {/* Node 2: Teacher */}
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-left space-y-0.5 shadow-2xs">
-                      <div className="flex items-center gap-1.5 text-emerald-800">
-                        <UserCheck className="w-3 h-3 text-emerald-600" />
-                        <span className="text-xs font-bold text-slate-900">Teachers</span>
+                    {/* Radiating Role Nodes */}
+                    <div className="w-full grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-5 z-10">
+                      {/* Node 1: Principal */}
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-left space-y-0.5 shadow-2xs">
+                        <div className="flex items-center gap-1.5 text-indigo-900">
+                          <Building2 className="w-3 h-3 text-indigo-700" />
+                          <span className="text-xs font-bold text-slate-900">Principal</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 block">Governance & Fees</span>
                       </div>
-                      <span className="text-[10px] text-slate-500 block">1-Tap Attendance</span>
-                    </div>
 
-                    {/* Node 3: Parents & Students */}
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-left space-y-0.5 shadow-2xs col-span-2 sm:col-span-1">
-                      <div className="flex items-center gap-1.5 text-indigo-900">
-                        <MessageSquare className="w-3 h-3 text-indigo-700" />
-                        <span className="text-xs font-bold text-slate-900">Parents</span>
+                      {/* Node 2: Teacher */}
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-left space-y-0.5 shadow-2xs">
+                        <div className="flex items-center gap-1.5 text-emerald-800">
+                          <UserCheck className="w-3 h-3 text-emerald-600" />
+                          <span className="text-xs font-bold text-slate-900">Teachers</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 block">1-Tap Attendance</span>
                       </div>
-                      <span className="text-[10px] text-slate-500 block">Instant WhatsApp</span>
+
+                      {/* Node 3: Parents & Students */}
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-left space-y-0.5 shadow-2xs col-span-2 sm:col-span-1">
+                        <div className="flex items-center gap-1.5 text-indigo-900">
+                          <MessageSquare className="w-3 h-3 text-indigo-700" />
+                          <span className="text-xs font-bold text-slate-900">Parents</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 block">Instant WhatsApp</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* 3 Animated Stat Counters at Bottom */}
-                <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100 text-center">
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 shadow-2xs">
-                    <div className="text-lg sm:text-xl font-extrabold text-emerald-700">0</div>
-                    <div className="text-[10px] text-slate-600 font-medium">Paper Registers</div>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 shadow-2xs">
-                    <div className="text-lg sm:text-xl font-extrabold text-indigo-900">&lt; 30s</div>
-                    <div className="text-[10px] text-slate-600 font-medium">Daily Attendance</div>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 shadow-2xs">
-                    <div className="text-lg sm:text-xl font-extrabold text-emerald-700">100%</div>
-                    <div className="text-[10px] text-slate-600 font-medium">Live Cloud Sync</div>
+                  {/* 3 Animated Stat Counters at Bottom */}
+                  <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100 text-center">
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 shadow-2xs">
+                      <div className="text-lg sm:text-xl font-extrabold text-emerald-700">0</div>
+                      <div className="text-[10px] text-slate-600 font-medium">Paper Registers</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 shadow-2xs">
+                      <div className="text-lg sm:text-xl font-extrabold text-indigo-900">&lt; 30s</div>
+                      <div className="text-[10px] text-slate-600 font-medium">Daily Attendance</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 shadow-2xs">
+                      <div className="text-lg sm:text-xl font-extrabold text-emerald-700">100%</div>
+                      <div className="text-[10px] text-slate-600 font-medium">Live Cloud Sync</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </div>
         </div>
       </section>
