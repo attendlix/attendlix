@@ -539,11 +539,23 @@ export default function AboutPage() {
       </section>
 
       {/* ========================================================================= */}
-      {/* 4. ROYAL CTA BANNER */}
+      {/* 4. ROYAL CTA BANNER WITH SCHOOL BACKGROUND PHOTO */}
       {/* ========================================================================= */}
       <section className="relative z-10 py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="relative rounded-2xl overflow-hidden p-6 sm:p-12 bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-950 text-white border border-indigo-900/50 text-center space-y-4 shadow-xl">
-          <div className="relative z-10 max-w-2xl mx-auto space-y-3">
+        <div className="relative rounded-2xl overflow-hidden p-6 sm:p-12 text-center space-y-4 shadow-xl border border-indigo-900/50">
+          {/* Background Image + Dark Emerald & Royal-Indigo Gradient Overlay */}
+          <div className="absolute inset-0 z-0">
+            <img
+              src="/images/cta-school.jpg"
+              alt="Attendlix Modern Education"
+              className="w-full h-full object-cover object-center scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-emerald-950/80 to-indigo-950/85" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-500/10 via-transparent to-slate-950/70" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]" />
+          </div>
+
+          <div className="relative z-10 max-w-2xl mx-auto space-y-3 text-white">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-tight">
               {lang === "en" ? (
                 <>
@@ -606,7 +618,7 @@ export default function AboutPage() {
             <Link href="/about" className="text-emerald-600 font-bold transition-colors">
               {lang === "en" ? "About Us" : "ہمارے بارے میں"}
             </Link>
-            <Link href="/#contact" className="hover:text-slate-900 transition-colors">
+            <Link href="/contact" className="hover:text-slate-900 transition-colors">
               {lang === "en" ? "Contact Us" : "رابطہ"}
             </Link>
             <Link href="/login" className="hover:text-slate-900 transition-colors">

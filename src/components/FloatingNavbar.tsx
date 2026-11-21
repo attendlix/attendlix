@@ -24,23 +24,13 @@ export default function FloatingNavbar() {
   const navLinks = [
     { name: lang === "en" ? "Home" : "ہوم", href: "/" },
     { name: lang === "en" ? "About Us" : "ہمارے بارے میں", href: "/about" },
-    { name: lang === "en" ? "Contact Us" : "رابطہ کریں", href: "/#contact" },
+    { name: lang === "en" ? "Contact Us" : "رابطہ کریں", href: "/contact" },
   ];
-
-  const handleContactClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (pathname === "/") {
-      e.preventDefault();
-      const el = document.getElementById("contact");
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth" });
-        setMobileMenuOpen(false);
-      }
-    }
-  };
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
     if (href === "/about") return pathname === "/about";
+    if (href === "/contact") return pathname === "/contact";
     return false;
   };
 
@@ -71,7 +61,6 @@ export default function FloatingNavbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                onClick={link.href === "/#contact" ? handleContactClick : undefined}
                 className={`relative px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                   active ? "text-emerald-800 font-bold" : "text-slate-600 hover:text-slate-900"
                 }`}
@@ -141,10 +130,7 @@ export default function FloatingNavbar() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    onClick={(e) => {
-                      if (link.href === "/#contact") handleContactClick(e);
-                      setMobileMenuOpen(false);
-                    }}
+                    onClick={() => setMobileMenuOpen(false)}
                     className={`px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-between ${
                       active
                         ? "bg-emerald-50 text-emerald-800 border border-emerald-200/80 font-bold"
