@@ -55,10 +55,10 @@ export default function FloatingNavbar() {
       >
         {/* Left: Brand Logo */}
         <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group flex-shrink-0">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-            <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+            <GraduationCap className="w-4 h-4" />
           </div>
-          <span className="text-lg sm:text-xl font-black tracking-tight text-white group-hover:text-emerald-400 transition-colors">
+          <span className="text-base sm:text-lg font-extrabold tracking-tight text-white group-hover:text-emerald-400 transition-colors">
             Attendlix<span className="text-emerald-400">.</span>
           </span>
         </Link>
@@ -72,7 +72,7 @@ export default function FloatingNavbar() {
                 key={link.href}
                 href={link.href}
                 onClick={link.href === "/#contact" ? handleContactClick : undefined}
-                className={`relative px-4 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                className={`relative px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                   active ? "text-emerald-300" : "text-slate-300 hover:text-white"
                 }`}
               >
@@ -95,14 +95,14 @@ export default function FloatingNavbar() {
 
           <Link
             href="/login"
-            className="px-3.5 py-1.5 rounded-full text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800/80 border border-slate-700/60 transition-all min-h-[36px] flex items-center justify-center"
+            className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/80 border border-slate-700/60 transition-all min-h-[34px] flex items-center justify-center"
           >
             {lang === "en" ? "Sign In" : "لاگ ان"}
           </Link>
 
           <Link
             href="/register"
-            className="px-4 py-1.5 rounded-full text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 shadow-lg shadow-emerald-500/25 transition-all hover:scale-[1.03] active:scale-[0.98] min-h-[36px] flex items-center justify-center gap-1.5"
+            className="px-4 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 shadow-md shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] min-h-[34px] flex items-center justify-center gap-1.5"
           >
             <span>{lang === "en" ? "Register School" : "اسکول رجسٹر کریں"}</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -162,14 +162,14 @@ export default function FloatingNavbar() {
               <Link
                 href="/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full py-2.5 rounded-xl text-center text-xs font-bold text-slate-300 bg-slate-900 border border-slate-800"
+                className="w-full py-2.5 rounded-xl text-center text-xs font-semibold text-slate-300 bg-slate-900 border border-slate-800"
               >
                 {lang === "en" ? "Sign In to Portal" : "پورٹل لاگ ان کریں"}
               </Link>
               <Link
                 href="/register"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full py-2.5 rounded-xl text-center text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/20"
+                className="w-full py-2.5 rounded-xl text-center text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 shadow-md shadow-emerald-500/20"
               >
                 {lang === "en" ? "Register Your School" : "اسکول رجسٹر کریں"}
               </Link>
