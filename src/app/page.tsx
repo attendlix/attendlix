@@ -29,7 +29,12 @@ import {
   AlertCircle,
   FileText,
   Lock,
+  Phone,
+  Mail,
+  MapPin,
+  MessageCircle,
 } from "lucide-react";
+import FloatingNavbar from "@/components/FloatingNavbar";
 import { useLanguage, LanguageToggle } from "@/context/LanguageContext";
 
 export default function LandingPage() {
@@ -48,6 +53,25 @@ export default function LandingPage() {
 
   // Expandable FAQ State
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+
+  // Contact Form State
+  const [contactForm, setContactForm] = useState({
+    schoolName: "",
+    city: "",
+    phone: "",
+    message: "",
+  });
+  const [contactSubmitted, setContactSubmitted] = useState(false);
+
+  const handleContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactForm.schoolName || !contactForm.phone) return;
+    setContactSubmitted(true);
+    const text = encodeURIComponent(
+      `Assalam-o-Alaikum Attendlix Team! I would like to inquire about onboarding for ${contactForm.schoolName}${contactForm.city ? ` in ${contactForm.city}` : ""}.\nContact: ${contactForm.phone}\n${contactForm.message ? `Notes: ${contactForm.message}` : ""}`
+    );
+    window.open(`https://wa.me/923001234567?text=${text}`, "_blank");
+  };
 
   const toggleStudentStatus = (id: number, newStatus: "PRESENT" | "ABSENT" | "LEAVE") => {
     setDemoStudents((prev) =>
@@ -111,7 +135,10 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-300 font-sans relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#030712] text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-300 font-sans relative overflow-x-hidden pt-16 sm:pt-20">
+      {/* Floating Glassmorphic Navbar */}
+      <FloatingNavbar />
+
       {/* Ambient Futuristic Background Mesh & Glow Gradients */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[450px] bg-emerald-500/15 rounded-full blur-[140px] opacity-70" />
@@ -123,85 +150,10 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b12_1px,transparent_1px),linear-gradient(to_bottom,#1e293b12_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
       </div>
 
-      {/* Top Banner Notice */}
-      <div className="relative z-50 bg-gradient-to-r from-emerald-950/80 via-emerald-900/60 to-slate-950 border-b border-emerald-500/20 text-emerald-200 text-xs py-2 px-4 text-center font-medium flex items-center justify-center gap-2 backdrop-blur-md">
-        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
-        <span>
-          {lang === "en"
-            ? "🇵🇰 The Complete Cloud School Operating System Built Exclusively for Pakistan"
-            : "🇵🇰 پاکستان کے تمام اسکولوں کے لیے مکمل کلاؤڈ سسٹم — اردو اور انگریزی سپورٹ کے ساتھ"}
-        </span>
-      </div>
-
-      {/* Futuristic Glass Navbar */}
-      <header className="sticky top-0 z-50 bg-[#030712]/75 backdrop-blur-xl border-b border-slate-800/80 transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-              <GraduationCap className="w-5 h-5" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-black tracking-tight text-white group-hover:text-emerald-400 transition-colors">
-                Attendlix<span className="text-emerald-400">.</span>
-              </span>
-            </div>
-          </Link>
-
-          {/* Desktop Nav Anchor Links */}
-          <nav className="hidden md:flex items-center gap-7 text-xs font-semibold text-slate-300">
-            <button
-              onClick={() => scrollToSection("features")}
-              className="hover:text-emerald-400 transition-colors"
-            >
-              {lang === "en" ? "Bento Features" : "خصوصیات"}
-            </button>
-            <button
-              onClick={() => scrollToSection("interactive-demo")}
-              className="hover:text-emerald-400 transition-colors"
-            >
-              {lang === "en" ? "Live Dashboard" : "لائیو ڈیش بورڈ"}
-            </button>
-            <button
-              onClick={() => scrollToSection("portals")}
-              className="hover:text-emerald-400 transition-colors"
-            >
-              {lang === "en" ? "4 Unified Portals" : "پورٹلز"}
-            </button>
-            <button
-              onClick={() => scrollToSection("faq")}
-              className="hover:text-emerald-400 transition-colors"
-            >
-              {lang === "en" ? "FAQ" : "عام سوالات"}
-            </button>
-          </nav>
-
-          {/* Right Action Buttons */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <LanguageToggle />
-
-            <Link
-              href="/login"
-              className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800/80 border border-slate-700/80 transition-all min-h-[38px] flex items-center justify-center"
-            >
-              {lang === "en" ? "Sign In" : "لاگ ان"}
-            </Link>
-
-            <Link
-              href="/register"
-              className="px-4 py-1.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] min-h-[38px] flex items-center justify-center gap-1.5"
-            >
-              <span>{lang === "en" ? "Register School" : "اسکول رجسٹر کریں"}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </div>
-      </header>
-
       {/* ========================================================================= */}
       {/* HERO SECTION */}
       {/* ========================================================================= */}
-      <section className="relative z-10 pt-16 pb-20 sm:pt-24 sm:pb-28 max-w-7xl mx-auto px-4 sm:px-6">
+      <section className="relative z-10 pt-8 pb-20 sm:pt-14 sm:pb-28 max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex flex-col items-center text-center space-y-7 max-w-4xl mx-auto">
           {/* Animated Glowing Badge */}
           <motion.div
@@ -311,7 +263,11 @@ export default function LandingPage() {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="mt-14 sm:mt-20 max-w-5xl mx-auto"
         >
-          <div className="relative rounded-3xl p-1 bg-gradient-to-b from-emerald-500/40 via-slate-800/60 to-slate-900/80 shadow-2xl shadow-emerald-950/50">
+          <motion.div
+            animate={{ y: [-6, 6, -6] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            className="relative rounded-3xl p-1 bg-gradient-to-b from-emerald-500/40 via-slate-800/60 to-slate-900/80 shadow-2xl shadow-emerald-950/50"
+          >
             <div className="rounded-[22px] bg-[#0B101E]/95 backdrop-blur-2xl border border-slate-800/90 p-4 sm:p-7 space-y-5 text-left">
               {/* Window Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/90 pb-4">
@@ -449,7 +405,7 @@ export default function LandingPage() {
                 </span>
               </div>
             </div>
-          </div>
+          </motion.div>
         </motion.div>
       </section>
 
@@ -860,6 +816,246 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================================= */}
+      {/* CONTACT US SECTION */}
+      {/* ========================================================================= */}
+      <section id="contact" className="relative z-10 py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="text-center space-y-4 max-w-3xl mx-auto mb-14">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold shadow-sm shadow-emerald-500/10">
+            <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+            <span>
+              {lang === "en" ? "CONTACT ATTENDLIX TEAM" : "اٹینڈلکس ٹیم سے رابطہ کریں"}
+            </span>
+          </div>
+
+          <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
+            {lang === "en" ? (
+              <>
+                Let's discuss how Attendlix transforms{" "}
+                <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
+                  your school campus.
+                </span>
+              </>
+            ) : (
+              <>
+                اپنے اسکول کو ڈیجیٹل بنانے کے لیے{" "}
+                <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
+                  ہم سے فوری رابطہ کریں۔
+                </span>
+              </>
+            )}
+          </h2>
+
+          <p className="text-xs sm:text-sm text-slate-400 max-w-2xl mx-auto">
+            {lang === "en"
+              ? "Get answers within 15 minutes. We provide free assisted onboarding, teacher training, and dedicated WhatsApp support for Pakistani schools."
+              : "سکول کے اوقات میں 15 منٹ کے اندر جواب حاصل کریں۔ ہم مفت آن بورڈنگ اور اساتذہ کی تربیت فراہم کرتے ہیں۔"}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Fast Hotline & School Support Info */}
+          <div className="lg:col-span-5 space-y-4">
+            <div className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800/90 backdrop-blur-xl space-y-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>{lang === "en" ? "Live Helpline & WhatsApp" : "لائیو واٹس ایپ ہیلپ لائن"}</span>
+                </span>
+                <h3 className="text-xl font-black text-white mt-1">
+                  {lang === "en" ? "Direct Campus Representative" : "براہ راست کیمپس نمائندہ"}
+                </h3>
+              </div>
+
+              {/* Direct WhatsApp Callout */}
+              <a
+                href="https://wa.me/923001234567?text=Assalam-o-Alaikum%20Attendlix%20Team!%20I%20would%20like%20to%20know%20more%20about%20onboarding%20our%20school."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-4 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-between gap-4 group transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center font-bold shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform flex-shrink-0">
+                    <MessageCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors">
+                      WhatsApp Support Line
+                    </div>
+                    <div className="text-sm font-extrabold text-emerald-400 font-mono tracking-wide">
+                      +92 300 1234567
+                    </div>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-emerald-400 group-hover:translate-x-1 transition-transform" />
+              </a>
+
+              {/* Response Time & Operating Hours */}
+              <div className="space-y-3 text-xs text-slate-300 pt-1">
+                <div className="flex items-start gap-2.5">
+                  <Clock className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-white">
+                      {lang === "en" ? "Operating Hours: " : "اوقاتِ کار: "}
+                    </span>
+                    <span>Monday – Saturday, 8:00 AM – 6:00 PM PKT</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <Mail className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-white">Email: </span>
+                    <span className="font-mono text-slate-300">support@attendlix.com</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <MapPin className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-white">
+                      {lang === "en" ? "Nationwide Support: " : "ملک بھر میں سپورٹ: "}
+                    </span>
+                    <span>Lahore, Karachi, Islamabad, Rawalpindi, Faisalabad & all Pakistani cities</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Guarantees */}
+              <div className="pt-4 border-t border-slate-800 space-y-2 text-xs text-slate-400">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <span>100% Free Campus Data Migration (Excel to Cloud)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <span>Staff Training via WhatsApp Video Session</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <span>Zero Disruption to Daily Ongoing School Classes</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Interactive Inquiry Form */}
+          <div className="lg:col-span-7">
+            <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 backdrop-blur-2xl shadow-2xl relative">
+              <form onSubmit={handleContactSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* School / Campus Name */}
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{lang === "en" ? "School / Campus Name *" : "اسکول یا کیمپس کا نام *"}</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder={lang === "en" ? "e.g. Beacon Grammar School" : "مثال: بیکن گرامر اسکول"}
+                      value={contactForm.schoolName}
+                      onChange={(e) => setContactForm({ ...contactForm, schoolName: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                    />
+                  </div>
+
+                  {/* City */}
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{lang === "en" ? "City / District" : "شہر / ضلع"}</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={lang === "en" ? "e.g. Lahore, Rawalpindi" : "مثال: لاہور، راولپنڈی"}
+                      value={contactForm.city}
+                      onChange={(e) => setContactForm({ ...contactForm, city: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* WhatsApp Mobile Number */}
+                <div className="space-y-1.5 text-left">
+                  <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>{lang === "en" ? "Principal / Admin WhatsApp Number *" : "پرنسپل / ایڈمن کا واٹس ایپ نمبر *"}</span>
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="0300-1234567"
+                    value={contactForm.phone}
+                    onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
+                  />
+                  <p className="text-[11px] text-slate-500">
+                    {lang === "en"
+                      ? "We will connect directly via WhatsApp to answer questions or arrange a demo."
+                      : "ہم فوری رابطہ کے لیے واٹس ایپ کا استعمال کرتے ہیں۔"}
+                  </p>
+                </div>
+
+                {/* Message / Requirements */}
+                <div className="space-y-1.5 text-left">
+                  <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>{lang === "en" ? "Message / Questions (Optional)" : "پیغام یا ضروریات (اختیاری)"}</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder={
+                      lang === "en"
+                        ? "Tell us about your student strength, current pain points, or when you'd like to onboard..."
+                        : "اپنے اسکول کے طلباء کی تعداد یا خاص ضروریات کے بارے میں بتائیں..."
+                    }
+                    value={contactForm.message}
+                    onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all resize-none"
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm shadow-xl shadow-emerald-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 mt-2"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>
+                    {lang === "en"
+                      ? "Send Message & Chat on WhatsApp"
+                      : "پیغام بھیجیں اور واٹس ایپ پر بات کریں"}
+                  </span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+
+                {/* Instant Feedback Alert */}
+                <AnimatePresence>
+                  {contactSubmitted && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2.5 mt-3"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <span>
+                        {lang === "en"
+                          ? "Thank you! We have opened WhatsApp with your details. Our campus representative will assist you right away."
+                          : "شکریہ! آپ کی تفصیلات موصول ہو گئیں۔ ہماری ٹیم فوری طور پر واٹس ایپ پر رابطہ کرے گی۔"}
+                      </span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
       {/* MINIMALIST FUTURISTIC CTA BANNER */}
       {/* ========================================================================= */}
       <section className="relative z-10 py-16 max-w-7xl mx-auto px-4 sm:px-6">
@@ -928,18 +1124,24 @@ export default function LandingPage() {
             </span>
           </div>
 
-          <div className="flex items-center gap-6 text-slate-400">
+          <div className="flex flex-wrap items-center gap-5 text-slate-400">
+            <Link href="/" className="hover:text-white transition-colors">
+              {lang === "en" ? "Home" : "ہوم"}
+            </Link>
+            <Link href="/about" className="hover:text-white transition-colors">
+              {lang === "en" ? "About Us" : "ہمارے بارے میں"}
+            </Link>
             <button onClick={() => scrollToSection("features")} className="hover:text-white transition-colors">
-              Features
-            </button>
-            <button onClick={() => scrollToSection("interactive-demo")} className="hover:text-white transition-colors">
-              Demo
+              {lang === "en" ? "Features" : "خصوصیات"}
             </button>
             <button onClick={() => scrollToSection("faq")} className="hover:text-white transition-colors">
-              FAQ
+              {lang === "en" ? "FAQ" : "عام سوالات"}
+            </button>
+            <button onClick={() => scrollToSection("contact")} className="hover:text-white transition-colors">
+              {lang === "en" ? "Contact" : "رابطہ"}
             </button>
             <Link href="/login" className="hover:text-white transition-colors">
-              Portal
+              {lang === "en" ? "Portal" : "لاگ ان"}
             </Link>
           </div>
 
