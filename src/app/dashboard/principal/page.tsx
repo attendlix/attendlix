@@ -103,6 +103,7 @@ import {
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 import DashboardShell from "@/components/DashboardShell";
 import UserSettingsTab from "@/components/UserSettingsTab";
+import { SparklineGreenWave, SparklineBluePulse, MiniBarChart, SparklineAmberWave } from "@/components/MiniCharts";
 import {
   getFeeReminderWhatsAppUrl,
   getAnnouncementWhatsAppUrl,
@@ -702,90 +703,103 @@ export default function PrincipalDashboard() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowStudentModal(true)}
-                  className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-2xs flex items-center gap-1.5 transition-all"
+                  className="bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-semibold shadow-xs flex items-center gap-2 transition-all"
                 >
-                  <UserPlus className="w-3.5 h-3.5" />
+                  <UserPlus className="w-4 h-4 text-slate-600" />
                   <span>Admit Student</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("fees")}
-                  className="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-2xs flex items-center gap-1.5 transition-all"
+                  className="bg-[#0B3B2E] hover:bg-[#082C22] text-white rounded-xl px-4 py-2.5 text-xs sm:text-sm font-semibold shadow-sm flex items-center gap-2 transition-all"
                 >
-                  <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+                  <CreditCard className="w-4 h-4 text-emerald-300" />
                   <span>Fee Register</span>
                 </button>
               </div>
             </div>
 
-            {/* Stats Cards */}
+            {/* Elevated Stats Cards with Inline Mini Sparklines & Bar Graphs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
-                <div className="flex items-center justify-between text-slate-500">
-                  <span className="text-xs font-semibold uppercase tracking-wider">Total Students</span>
-                  <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+              {/* Card 1: Total Students with Green Wave Sparkline */}
+              <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Students</span>
+                  <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
                     <GraduationCap className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-3xl font-extrabold text-slate-900">{stats?.totalStudents || 0}</div>
-                <div className="text-[11px] text-slate-500 flex items-center gap-1">
+                <div className="flex items-end justify-between">
+                  <div className="text-3xl font-extrabold text-slate-900">{stats?.totalStudents || 0}</div>
+                  <SparklineGreenWave />
+                </div>
+                <div className="text-xs text-slate-500 flex items-center gap-1 font-medium">
                   <span className="text-emerald-600 font-semibold">{stats?.attendanceTodayPercent}%</span>
                   <span>attendance average</span>
                 </div>
               </div>
 
+              {/* Card 2: Teachers & Staff with Blue Pulse Sparkline */}
               <div
                 onClick={() => setActiveTab("staff-attendance")}
-                className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2 cursor-pointer hover:border-emerald-300 transition-all group"
+                className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 cursor-pointer hover:border-emerald-300 transition-all group relative overflow-hidden"
               >
-                <div className="flex items-center justify-between text-slate-500">
-                  <span className="text-xs font-semibold uppercase tracking-wider">Teachers & Staff</span>
-                  <div className="p-2 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Teachers & Staff</span>
+                  <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
                     <UserCheck className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-3xl font-extrabold text-slate-900">{stats?.totalStaff || 0}</div>
-                <div className="text-[11px] text-slate-500 flex items-center justify-between">
+                <div className="flex items-end justify-between">
+                  <div className="text-3xl font-extrabold text-slate-900">{stats?.totalStaff || 0}</div>
+                  <SparklineBluePulse />
+                </div>
+                <div className="text-xs text-slate-500 flex items-center justify-between font-medium">
                   <span>{staffAttendanceStats.present + staffAttendanceStats.late} present today</span>
-                  <span className="text-emerald-600 font-semibold group-hover:underline">Staff Attendance →</span>
+                  <span className="text-emerald-700 font-semibold group-hover:underline">Staff Attendance →</span>
                 </div>
               </div>
 
-              <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
-                <div className="flex items-center justify-between text-slate-500">
-                  <span className="text-xs font-semibold uppercase tracking-wider">Classes & Sections</span>
-                  <div className="p-2 rounded-lg bg-amber-50 text-amber-600">
+              {/* Card 3: Classes & Sections with Vertical Mini Bar Chart */}
+              <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Classes & Sections</span>
+                  <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600">
                     <BookOpen className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-3xl font-extrabold text-slate-900">{classesList.length || 0}</div>
-                <div className="text-[11px] text-slate-500">All grades active</div>
+                <div className="flex items-end justify-between">
+                  <div className="text-3xl font-extrabold text-slate-900">{classesList.length || 0}</div>
+                  <MiniBarChart />
+                </div>
+                <div className="text-xs text-slate-500 font-medium">All grades active</div>
               </div>
 
-              <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
-                <div className="flex items-center justify-between text-slate-500">
-                  <span className="text-xs font-semibold uppercase tracking-wider">November Fee Collection</span>
-                  <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+              {/* Card 4: November Fee Collection */}
+              <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">November Fee Collection</span>
+                  <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
                     <CreditCard className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-2xl font-extrabold text-emerald-600">
+                <div className="text-2xl sm:text-3xl font-extrabold text-emerald-700">
                   PKR {(feeSummary?.totalCollectedPKR || 0).toLocaleString()}
                 </div>
-                <div className="text-[11px] text-slate-500">
+                <div className="text-xs text-slate-500 font-medium">
                   {feeSummary?.paidCount || 0} Paid • {feeSummary?.unpaidCount || 0} Unpaid (PKR{" "}
                   {(feeSummary?.totalPendingPKR || 0).toLocaleString()} pending)
                 </div>
               </div>
             </div>
 
-            {/* Quick Preview Grid */}
+            {/* Quick Preview Grid (Classroom Distribution + Fee Recovery Pulse) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs space-y-4">
+              <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-slate-900 text-sm">Classroom Distribution</h3>
                   <button
                     onClick={() => setActiveTab("classes")}
-                    className="text-xs text-emerald-600 font-semibold hover:underline flex items-center gap-1"
+                    className="text-xs text-emerald-700 font-semibold hover:underline flex items-center gap-1"
                   >
                     <span>Manage Classes</span>
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -796,7 +810,7 @@ export default function PrincipalDashboard() {
                   {classesList.slice(0, 4).map((c) => (
                     <div
                       key={c.id}
-                      className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 flex items-center justify-between"
+                      className="p-4 rounded-2xl border border-slate-100 bg-white shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex items-center justify-between hover:border-slate-200 transition-all"
                     >
                       <div>
                         <div className="font-bold text-slate-900 text-sm">
@@ -804,7 +818,7 @@ export default function PrincipalDashboard() {
                         </div>
                         <div className="text-xs text-slate-500">Teacher: {c.class_teacher_name || "Unassigned"}</div>
                       </div>
-                      <span className="px-2.5 py-1 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-700">
+                      <span className="px-3 py-1 rounded-full bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700">
                         {c.student_count || 0} Students
                       </span>
                     </div>
@@ -812,23 +826,23 @@ export default function PrincipalDashboard() {
                 </div>
               </div>
 
-              {/* Fee Quick Access */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs space-y-4 flex flex-col justify-between">
+              {/* Fee Recovery Pulse Featured Highlight Card */}
+              <div className="bg-[#ECFDF5]/80 border border-emerald-100 rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] space-y-4 flex flex-col justify-between">
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs uppercase tracking-wider">
+                  <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-[11px] uppercase tracking-wider">
                     <Receipt className="w-4 h-4 text-emerald-600" />
                     <span>Fee Recovery Pulse</span>
                   </div>
                   <h3 className="text-base font-bold text-slate-900">JazzCash & Easypaisa Active</h3>
-                  <p className="text-xs text-slate-600 leading-relaxed">
+                  <p className="text-xs text-slate-600 leading-relaxed font-normal">
                     Accountants and Principals manage monthly dues and send 1-click WhatsApp payment reminders with ease.
                   </p>
-                  <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900 space-y-1">
-                    <div className="font-semibold flex items-center gap-1.5">
+                  <div className="p-3 bg-white/80 rounded-xl border border-emerald-100 text-xs text-emerald-900 space-y-1 shadow-2xs">
+                    <div className="font-semibold flex items-center gap-1.5 text-slate-800">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                       <span>{feeSummary?.paidCount || 0} Payments Reconciled</span>
                     </div>
-                    <div className="text-[11px] text-emerald-700">
+                    <div className="text-[11px] text-slate-600">
                       PKR {(feeSummary?.totalPendingPKR || 0).toLocaleString()} awaiting parent clearance.
                     </div>
                   </div>
@@ -836,9 +850,9 @@ export default function PrincipalDashboard() {
 
                 <button
                   onClick={() => setActiveTab("fees")}
-                  className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2"
+                  className="w-full py-2.5 rounded-xl bg-[#0B3B2E] hover:bg-[#082C22] text-white font-semibold text-xs shadow-sm transition-all flex items-center justify-center gap-2"
                 >
-                  <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+                  <CreditCard className="w-3.5 h-3.5 text-emerald-300" />
                   <span>Open Fee Management Tab</span>
                 </button>
               </div>

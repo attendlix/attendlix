@@ -43,6 +43,7 @@ import { User, School } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 import DashboardShell, { DashboardNavItem } from "@/components/DashboardShell";
 import UserSettingsTab from "@/components/UserSettingsTab";
+import { SparklineGreenWave, SparklineBluePulse, MiniBarChart, SparklineAmberWave } from "@/components/MiniCharts";
 import { normalizePakistaniPhone } from "@/lib/whatsapp";
 
 export default function SuperAdminDashboard() {
@@ -214,68 +215,88 @@ export default function SuperAdminDashboard() {
 
           <button
             onClick={() => setShowOnboardModal(true)}
-            className="w-full sm:w-auto px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-md transition-all flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-4 py-2.5 min-h-[44px] rounded-xl bg-[#0B3B2E] hover:bg-[#082C22] text-white font-semibold text-xs shadow-sm transition-all flex items-center justify-center gap-2"
           >
-            <Plus className="w-4 h-4 text-emerald-400" />
+            <Plus className="w-4 h-4 text-emerald-300" />
             <span>{t.onboardSchool}</span>
           </button>
         </div>
 
-        {/* 4 Platform Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* 4 Platform Stats Cards with Mini Sparklines & Depth */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Total Schools */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
-            <div className="flex items-center justify-between text-slate-500">
-              <span className="text-xs font-semibold uppercase tracking-wider">{t.totalSchools}</span>
-              <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
-                <Building2 className="w-4 h-4" />
+          <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3">
+            <div>
+              <div className="flex items-center justify-between text-slate-500 mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.totalSchools}</span>
+                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                  <Building2 className="w-4 h-4" />
+                </div>
               </div>
+              <div className="text-3xl font-extrabold text-slate-900 tracking-tight">{platformStats?.totalSchools || 0}</div>
+              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Isolated database tenants</div>
             </div>
-            <div className="text-3xl font-extrabold text-slate-900">{platformStats?.totalSchools || 0}</div>
-            <div className="text-[11px] text-slate-500">Isolated database tenants</div>
+            <div className="pt-2 border-t border-slate-50">
+              <SparklineGreenWave />
+            </div>
           </div>
 
           {/* Card 2: Active Subscriptions */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
-            <div className="flex items-center justify-between text-slate-500">
-              <span className="text-xs font-semibold uppercase tracking-wider">{t.activeSubscriptions}</span>
-              <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
-                <CheckCircle2 className="w-4 h-4" />
+          <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3">
+            <div>
+              <div className="flex items-center justify-between text-slate-500 mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.activeSubscriptions}</span>
+                <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-3xl font-extrabold text-blue-600 tracking-tight">{platformStats?.activeSubscriptions || 0}</div>
+              <div className="text-[11px] font-medium text-slate-400 mt-0.5">
+                {platformStats?.totalSchools
+                  ? Math.round((platformStats.activeSubscriptions / platformStats.totalSchools) * 100)
+                  : 0}
+                % conversion rate
               </div>
             </div>
-            <div className="text-3xl font-extrabold text-blue-600">{platformStats?.activeSubscriptions || 0}</div>
-            <div className="text-[11px] text-slate-500">
-              {platformStats?.totalSchools
-                ? Math.round((platformStats.activeSubscriptions / platformStats.totalSchools) * 100)
-                : 0}
-              % conversion rate
+            <div className="pt-2 border-t border-slate-50">
+              <SparklineBluePulse />
             </div>
           </div>
 
           {/* Card 3: Total Students Platform */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
-            <div className="flex items-center justify-between text-slate-500">
-              <span className="text-xs font-semibold uppercase tracking-wider">{t.totalStudentsPlatform}</span>
-              <div className="p-2 rounded-lg bg-amber-50 text-amber-600">
-                <Users className="w-4 h-4" />
+          <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3">
+            <div>
+              <div className="flex items-center justify-between text-slate-500 mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.totalStudentsPlatform}</span>
+                <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
+                  <Users className="w-4 h-4" />
+                </div>
               </div>
+              <div className="text-3xl font-extrabold text-slate-900 tracking-tight">{platformStats?.totalStudentsPlatform || 0}</div>
+              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Enrolled across all campuses</div>
             </div>
-            <div className="text-3xl font-extrabold text-slate-900">{platformStats?.totalStudentsPlatform || 0}</div>
-            <div className="text-[11px] text-slate-500">Enrolled across all campuses</div>
+            <div className="pt-2 border-t border-slate-50">
+              <MiniBarChart />
+            </div>
           </div>
 
           {/* Card 4: Platform MRR */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
-            <div className="flex items-center justify-between text-slate-500">
-              <span className="text-xs font-semibold uppercase tracking-wider">{t.platformMRR}</span>
-              <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
-                <TrendingUp className="w-4 h-4" />
+          <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3">
+            <div>
+              <div className="flex items-center justify-between text-slate-500 mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.platformMRR}</span>
+                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
               </div>
+              <div className="text-2xl font-extrabold text-emerald-600 tracking-tight">
+                PKR {(platformStats?.platformMRR || 0).toLocaleString()}
+              </div>
+              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Recurring SaaS billing in PKR</div>
             </div>
-            <div className="text-2xl font-extrabold text-emerald-600">
-              PKR {(platformStats?.platformMRR || 0).toLocaleString()}
+            <div className="pt-2 border-t border-slate-50">
+              <SparklineAmberWave />
             </div>
-            <div className="text-[11px] text-slate-500">Recurring SaaS billing in PKR</div>
           </div>
         </div>
 

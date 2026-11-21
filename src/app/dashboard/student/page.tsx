@@ -55,6 +55,7 @@ import { User, Student, Announcement, Homework, ExamMark, FeeRecord, ChatMessage
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 import DashboardShell from "@/components/DashboardShell";
 import UserSettingsTab from "@/components/UserSettingsTab";
+import { SparklineGreenWave, SparklineAmberWave, MiniBarChart } from "@/components/MiniCharts";
 
 export default function StudentDashboard() {
   const router = useRouter();
@@ -231,33 +232,54 @@ export default function StudentDashboard() {
         {/* ========================================================================= */}
         {activeTab === "overview" && (
           <div className="space-y-6">
-            {/* Quick Status Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase">Today's Attendance</span>
-                <div className="text-xl font-bold text-emerald-600 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Present</span>
+            {/* Elevated Quick Status Cards with Inline Mini Sparklines */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Today's Attendance</span>
+                  <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
                 </div>
-                <div className="text-[11px] text-slate-400">Marked at 08:15 AM</div>
+                <div className="flex items-end justify-between">
+                  <div className="text-2xl font-extrabold text-emerald-700">Present</div>
+                  <SparklineGreenWave className="w-20 h-7" />
+                </div>
+                <div className="text-xs text-slate-500 font-medium">Marked at 08:15 AM • 96% Overall Rate</div>
               </div>
 
-              <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase">November Fee</span>
-                <div className="text-xl font-bold text-slate-900">
-                  {feeRecords.some((f) => f.month === "November" && f.status === "PAID") ? (
-                    <span className="text-emerald-600">Paid ✓</span>
-                  ) : (
-                    <span className="text-amber-600">PKR 4,500 (Due)</span>
-                  )}
+              <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">November Fee</span>
+                  <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
                 </div>
-                <div className="text-[11px] text-slate-400">Via JazzCash / Easypaisa</div>
+                <div className="flex items-end justify-between">
+                  <div className="text-2xl font-extrabold text-slate-900">
+                    {feeRecords.some((f) => f.month === "November" && f.status === "PAID") ? (
+                      <span className="text-emerald-700">Paid ✓</span>
+                    ) : (
+                      <span className="text-amber-600">PKR 4,500</span>
+                    )}
+                  </div>
+                  <SparklineAmberWave className="w-20 h-7" />
+                </div>
+                <div className="text-xs text-slate-500 font-medium">Via JazzCash / Easypaisa Direct Hub</div>
               </div>
 
-              <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
-                <span className="text-xs font-semibold text-slate-500 uppercase">Pending Homework</span>
-                <div className="text-xl font-bold text-slate-900">{homeworkList.length} Tasks</div>
-                <div className="text-[11px] text-slate-400">Check Diary tab</div>
+              <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Pending Homework</span>
+                  <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="flex items-end justify-between">
+                  <div className="text-2xl font-extrabold text-slate-900">{homeworkList.length} Tasks</div>
+                  <MiniBarChart className="w-16 h-7" />
+                </div>
+                <div className="text-xs text-slate-500 font-medium">Syncing with Teacher Diary</div>
               </div>
             </div>
 
@@ -752,7 +774,7 @@ export default function StudentDashboard() {
                       {!isPaid ? (
                         <button
                           onClick={() => setPaymentModal({ record: fee, method: "JAZZCASH", txnId: "" })}
-                          className="w-full sm:w-auto px-4 py-2.5 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs flex items-center justify-center gap-1.5 transition-all"
+                          className="w-full sm:w-auto px-4 py-2.5 min-h-[44px] rounded-xl bg-[#0B3B2E] hover:bg-[#082C22] text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 transition-all"
                         >
                           <CreditCard className="w-4 h-4" />
                           <span>Pay via JazzCash / Easypaisa</span>
@@ -1215,7 +1237,7 @@ export default function StudentDashboard() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-2xs"
+                  className="px-5 py-2.5 min-h-[44px] rounded-xl bg-[#0B3B2E] hover:bg-[#082C22] text-white font-bold shadow-sm"
                 >
                   Verify & Mark Paid
                 </button>
