@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     password_hash VARCHAR(255) NOT NULL,
     role user_role NOT NULL,
     status VARCHAR(20) DEFAULT 'ACTIVE' NOT NULL,
+    avatar_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     CONSTRAINT unique_school_identifier UNIQUE (school_id, identifier)
 );
@@ -410,6 +411,9 @@ ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS quiet_hours_start VARCHAR(20
 ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS quiet_hours_end VARCHAR(20) DEFAULT '07:00 AM';
 ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS late_fee_amount NUMERIC(10, 2) DEFAULT 200.00;
 ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS rules_and_policies TEXT;
+
+-- Step 10: User Profile Avatar & Settings
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 
 
 

@@ -30,6 +30,7 @@ import {
   Target,
   FileText,
   AlertCircle,
+  Settings,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -53,13 +54,14 @@ import {
 import { User, Student, Announcement, Homework, ExamMark, FeeRecord, ChatMessage, PaymentMethod, TimetableSlot, DayOfWeek } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 import DashboardShell from "@/components/DashboardShell";
+import UserSettingsTab from "@/components/UserSettingsTab";
 
 export default function StudentDashboard() {
   const router = useRouter();
   const { t, isRtl } = useLanguage();
 
   // Navigation tab
-  const [activeTab, setActiveTab] = useState<"overview" | "attendance_hw" | "timetable" | "exams" | "fees" | "chat">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "attendance_hw" | "timetable" | "exams" | "fees" | "chat" | "settings">("overview");
 
   // State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -173,6 +175,7 @@ export default function StudentDashboard() {
     { id: "exams", label: t.tabExams || "Exam Marks", icon: Award },
     { id: "fees", label: t.tabFees || "Fee Status", icon: CreditCard },
     { id: "chat", label: t.tabChat || "Teacher Chat", icon: MessageSquare },
+    { id: "settings", label: t.tabSettings || "Settings", icon: Settings },
   ];
 
   return (
@@ -979,6 +982,16 @@ export default function StudentDashboard() {
               );
             })()}
           </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB: PERSONAL SETTINGS & ACCOUNT SECURITY */}
+        {/* ========================================================================= */}
+        {activeTab === "settings" && (
+          <UserSettingsTab
+            currentUser={currentUser}
+            onUserUpdate={(updated) => setCurrentUser(updated)}
+          />
         )}
       </div>
 

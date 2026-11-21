@@ -43,6 +43,7 @@ export interface User {
   role: UserRole;
   status: "ACTIVE" | "INACTIVE";
   tempPassword?: string;
+  avatar_url?: string;
   created_at: string;
 }
 

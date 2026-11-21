@@ -27,6 +27,7 @@ import {
   Award,
   LogIn,
   UserCheck,
+  Settings,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -55,6 +56,7 @@ import {
 import { User, SchoolClass, Student, AttendanceStatus, Homework, ExamMark, ChatMessage, TimetableSlot, DayOfWeek, StaffAttendanceRecord, Announcement } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 import DashboardShell from "@/components/DashboardShell";
+import UserSettingsTab from "@/components/UserSettingsTab";
 import { getAbsentAlertWhatsAppUrl, dispatchWhatsAppWebhook } from "@/lib/whatsapp";
 
 export default function TeacherDashboard() {
@@ -62,7 +64,7 @@ export default function TeacherDashboard() {
   const { t, isRtl } = useLanguage();
 
   // Active navigation tab
-  const [activeTab, setActiveTab] = useState<"attendance" | "homework" | "timetable" | "exams" | "messages">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "homework" | "timetable" | "exams" | "messages" | "settings">("attendance");
 
   // User and Class context
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -339,6 +341,7 @@ export default function TeacherDashboard() {
     { id: "timetable", label: t.mySchedule || "My Schedule", icon: Clock },
     { id: "exams", label: t.tabExams || "Exam Marks", icon: Award },
     { id: "messages", label: t.tabChat || "Parent Messages", icon: MessageSquare },
+    { id: "settings", label: t.tabSettings || "Settings", icon: Settings },
   ];
 
   const headerExtra = (
@@ -1331,6 +1334,16 @@ export default function TeacherDashboard() {
               })()}
             </div>
           </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 6: PERSONAL SETTINGS & ACCOUNT SECURITY */}
+        {/* ========================================================================= */}
+        {activeTab === "settings" && (
+          <UserSettingsTab
+            currentUser={currentUser}
+            onUserUpdate={(updated) => setCurrentUser(updated)}
+          />
         )}
       </div>
     </DashboardShell>

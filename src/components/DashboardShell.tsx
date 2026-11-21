@@ -170,9 +170,17 @@ export default function DashboardShell({
         <div className="p-3 border-t border-slate-100 bg-slate-50/50">
           <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-slate-900 text-emerald-400 flex items-center justify-center font-bold text-xs flex-shrink-0">
-                {(currentUser?.name || "U").substring(0, 2).toUpperCase()}
-              </div>
+              {currentUser?.avatar_url ? (
+                <img
+                  src={currentUser.avatar_url}
+                  alt={currentUser.name}
+                  className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-slate-200 shadow-2xs"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-slate-900 text-emerald-400 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                  {(currentUser?.name || "U").substring(0, 2).toUpperCase()}
+                </div>
+              )}
               <div className="min-w-0">
                 <span className="font-bold text-slate-800 text-xs truncate block" title={currentUser?.name}>
                   {currentUser?.name || "User"}
@@ -267,15 +275,28 @@ export default function DashboardShell({
               </div>
 
               {/* User Profile in Drawer */}
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
-                <div className="font-bold text-slate-900 text-xs">{currentUser?.name}</div>
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${roleInfo.color}`}
-                  >
-                    {roleInfo.label}
-                  </span>
-                  <span className="text-[10px] text-slate-400 truncate max-w-[100px]">{schoolCity}</span>
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center gap-2.5">
+                {currentUser?.avatar_url ? (
+                  <img
+                    src={currentUser.avatar_url}
+                    alt={currentUser.name}
+                    className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-slate-200 shadow-2xs"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-slate-900 text-emerald-400 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                    {(currentUser?.name || "U").substring(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <div className="font-bold text-slate-900 text-xs truncate">{currentUser?.name}</div>
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`inline-block px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider border ${roleInfo.color}`}
+                    >
+                      {roleInfo.label}
+                    </span>
+                    <span className="text-[10px] text-slate-400 truncate max-w-[90px]">{schoolCity}</span>
+                  </div>
                 </div>
               </div>
 

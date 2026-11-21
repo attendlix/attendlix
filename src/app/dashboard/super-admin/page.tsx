@@ -27,6 +27,7 @@ import {
   Globe,
   Landmark,
   Wallet,
+  Settings,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -41,13 +42,14 @@ import {
 import { User, School } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 import DashboardShell, { DashboardNavItem } from "@/components/DashboardShell";
+import UserSettingsTab from "@/components/UserSettingsTab";
 import { normalizePakistaniPhone } from "@/lib/whatsapp";
 
 export default function SuperAdminDashboard() {
   const router = useRouter();
   const { t, isRtl } = useLanguage();
 
-  const [activeTab, setActiveTab] = useState<"schools" | "stats">("schools");
+  const [activeTab, setActiveTab] = useState<"schools" | "stats" | "settings">("schools");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [schoolsList, setSchoolsList] = useState<School[]>([]);
   const [platformStats, setPlatformStats] = useState<any>(null);
@@ -168,6 +170,7 @@ export default function SuperAdminDashboard() {
   const adminNavItems: DashboardNavItem[] = [
     { id: "schools", label: t.tenantSchools || "Schools & Tenants", icon: Building2, badge: schoolsList.length },
     { id: "stats", label: t.platformOverview || "Platform Stats & MRR", icon: TrendingUp },
+    { id: "settings", label: t.tabSettings || "Settings", icon: Settings },
   ];
 
   return (
@@ -190,7 +193,15 @@ export default function SuperAdminDashboard() {
           </div>
         )}
 
-        {/* Header Greeting */}
+        {/* Settings Tab vs Main Platform View */}
+        {activeTab === "settings" ? (
+          <UserSettingsTab
+            currentUser={currentUser}
+            onUserUpdate={(updated) => setCurrentUser(updated)}
+          />
+        ) : (
+          <>
+            {/* Header Greeting */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -532,6 +543,8 @@ export default function SuperAdminDashboard() {
             </tbody>
           </table>
         </div>
+          </>
+        )}
       </div>
 
       {/* ========================================================================= */}

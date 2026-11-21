@@ -198,6 +198,20 @@ export const translations = {
     defaultLateFee: "Default Late Fee (PKR)",
     saveChanges: "Save Changes",
     profileUpdatedSuccess: "School Profile updated successfully!",
+
+    // Personal Settings & Account Security
+    tabSettings: "Personal Settings",
+    profilePhoto: "Profile Photo",
+    uploadNewPhoto: "Upload New Photo",
+    pickPresetAvatar: "Or Pick Avatar Preset",
+    changePassword: "Change Password",
+    newPassword: "New Password",
+    confirmPassword: "Confirm Password",
+    updatePassword: "Update Password",
+    passwordUpdatedSuccess: "Password updated successfully!",
+    profilePhotoUpdated: "Profile photo updated successfully!",
+    passwordsDoNotMatch: "Passwords do not match.",
+    passwordTooShort: "Password must be at least 6 characters long.",
   },
   ur: {
     // Brand & General
@@ -396,5 +410,19 @@ export const translations = {
     defaultLateFee: "لیٹ فیس جرمانہ (روپے)",
     saveChanges: "تبدیلیاں محفوظ کریں",
     profileUpdatedSuccess: "اسکول پروفائل کامیابی سے محفوظ ہوگئی!",
+
+    // Personal Settings & Account Security
+    tabSettings: "ذاتی سیٹنگز",
+    profilePhoto: "پروفائل تصویر",
+    uploadNewPhoto: "نئی تصویر اپلوڈ کریں",
+    pickPresetAvatar: "یا اوتار منتخب کریں",
+    changePassword: "پاس ورڈ تبدیل کریں",
+    newPassword: "نیا پاس ورڈ",
+    confirmPassword: "پاس ورڈ کی تصدیق کریں",
+    updatePassword: "پاس ورڈ اپ ڈیٹ کریں",
+    passwordUpdatedSuccess: "پاس ورڈ کامیابی سے تبدیل ہو گیا!",
+    profilePhotoUpdated: "پروفائل تصویر کامیابی سے محفوظ ہو گئی!",
+    passwordsDoNotMatch: "پاس ورڈ مطابقت نہیں رکھتے۔",
+    passwordTooShort: "پاس ورڈ کم از کم 6 حروف پر مشتمل ہونا چاہیے۔",
   },
 };

@@ -102,6 +102,7 @@ import {
 } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 import DashboardShell from "@/components/DashboardShell";
+import UserSettingsTab from "@/components/UserSettingsTab";
 import {
   getFeeReminderWhatsAppUrl,
   getAnnouncementWhatsAppUrl,
@@ -114,7 +115,7 @@ export default function PrincipalDashboard() {
 
   // Active Tab state
   const [activeTab, setActiveTab] = useState<
-    "overview" | "classes" | "staff" | "students" | "fees" | "announcements" | "timetable" | "staff-attendance" | "profile"
+    "overview" | "classes" | "staff" | "students" | "fees" | "announcements" | "timetable" | "staff-attendance" | "profile" | "settings"
   >("overview");
 
   // Staff Attendance Module State
@@ -647,7 +648,10 @@ export default function PrincipalDashboard() {
 
   // Tab definitions based on role
   const availableTabs = isAccountant
-    ? [{ id: "fees", label: "Fee Management & Payments", icon: CreditCard }]
+    ? [
+        { id: "fees", label: "Fee Management & Payments", icon: CreditCard },
+        { id: "settings", label: t.tabSettings || "Settings", icon: Settings },
+      ]
     : [
         { id: "overview", label: t.tabOverview || "Overview", icon: TrendingUp },
         { id: "classes", label: t.tabClasses || "Classes & Sections", icon: BookOpen },
@@ -658,6 +662,7 @@ export default function PrincipalDashboard() {
         { id: "fees", label: t.tabFees || "Fee Management", icon: CreditCard },
         { id: "announcements", label: t.tabAnnouncements || "Announcements & WhatsApp", icon: MessageSquare },
         { id: "profile", label: t.tabSchoolProfile || "School Profile", icon: Building2 },
+        { id: "settings", label: t.tabSettings || "Settings", icon: Settings },
       ];
 
   return (
@@ -3559,6 +3564,16 @@ export default function PrincipalDashboard() {
               </form>
             )}
           </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 10: PERSONAL SETTINGS & ACCOUNT SECURITY */}
+        {/* ========================================================================= */}
+        {activeTab === "settings" && (
+          <UserSettingsTab
+            currentUser={currentUser}
+            onUserUpdate={(updated) => setCurrentUser(updated)}
+          />
         )}
 
       {/* ========================================================================= */}

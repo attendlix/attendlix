@@ -516,6 +516,87 @@ export function logout(): void {
   }
 }
 
+export async function updateUserProfile(
+  userId: string,
+  updates: Partial<User>
+): Promise<{ success: boolean; user: User | null; error?: string }> {
+  initializeStore();
+  const users = getStorage<User[]>(KEY_USERS, SEED_USERS);
+  const index = users.findIndex((u) => u.id === userId);
+
+  let updatedUser: User | null = null;
+  if (index !== -1) {
+    users[index] = { ...users[index], ...updates };
+    setStorage(KEY_USERS, users);
+    updatedUser = users[index];
+  }
+
+  const currentUser = getStorage<User | null>(KEY_CURRENT_USER, null);
+  if (currentUser && currentUser.id === userId) {
+    const merged = { ...currentUser, ...updates };
+    setStorage(KEY_CURRENT_USER, merged);
+    if (!updatedUser) updatedUser = merged;
+  } else if (!currentUser && updatedUser) {
+    setStorage(KEY_CURRENT_USER, updatedUser);
+  }
+
+  // Non-blocking sync to Supabase users table if schema is available
+  try {
+    const payload: Record<string, any> = {};
+    if (updates.name !== undefined) payload.name = updates.name;
+    if (updates.phone !== undefined) payload.phone = updates.phone;
+    if (updates.email !== undefined) payload.email = updates.email;
+    if (updates.avatar_url !== undefined) payload.avatar_url = updates.avatar_url;
+
+    if (Object.keys(payload).length > 0) {
+      await supabase.from("users").update(payload).eq("id", userId);
+    }
+  } catch (err) {
+    // Non-blocking
+  }
+
+  return { success: true, user: updatedUser };
+}
+
+export async function updateUserPassword(
+  newPassword: string
+): Promise<{ success: boolean; error?: string }> {
+  initializeStore();
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    return { success: false, error: "No authenticated user session found." };
+  }
+
+  // 1. Update in local storage
+  const users = getStorage<User[]>(KEY_USERS, SEED_USERS);
+  const index = users.findIndex((u) => u.id === currentUser.id);
+  if (index !== -1) {
+    users[index] = { ...users[index], tempPassword: newPassword };
+    setStorage(KEY_USERS, users);
+  }
+  const updatedCurrent = { ...currentUser, tempPassword: newPassword };
+  setStorage(KEY_CURRENT_USER, updatedCurrent);
+
+  // 2. Update via Supabase Auth (supabase.auth.updateUser)
+  try {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      console.warn("Supabase auth updateUser:", error.message);
+    }
+  } catch (err: any) {
+    console.warn("Supabase auth error:", err?.message || err);
+  }
+
+  // Sync password_hash to users table
+  try {
+    await supabase.from("users").update({ password_hash: newPassword }).eq("id", currentUser.id);
+  } catch (e) {
+    // Non-blocking
+  }
+
+  return { success: true };
+}
+
 export async function loginUser(identifier: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {
   initializeStore();
   const cleanId = identifier.trim().toLowerCase();
