@@ -9,9 +9,10 @@ export interface School {
   email?: string;
   address?: string;
   status?: "ACTIVE" | "TRIAL" | "SUSPENDED";
-  plan?: "TRIAL" | "STANDARD" | "PREMIUM";
+  plan?: "TRIAL" | "STANDARD" | "PREMIUM" | string;
   student_count?: number;
   mrr_pkr?: number;
+  billing_note?: string;
   trial_days_left?: number;
   // School Timings & Attendance Cutoff
   start_time?: string;

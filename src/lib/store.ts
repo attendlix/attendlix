@@ -1089,6 +1089,47 @@ export async function loginUser(identifier: string, password: string): Promise<{
   };
 }
 
+export function generatePrincipalId(schoolName?: string, city?: string): string {
+  let prefix = "PRN";
+  if (schoolName && schoolName.trim()) {
+    const clean = schoolName.trim().replace(/[^a-zA-Z0-9\s]/g, "");
+    const words = clean.split(/\s+/).filter(Boolean);
+    if (words.length >= 2) {
+      prefix = ("PRN-" + words.map((w) => w[0].toUpperCase()).slice(0, 3).join("")).toUpperCase();
+    } else if (words.length === 1 && words[0].length >= 3) {
+      prefix = ("PRN-" + words[0].substring(0, 3).toUpperCase());
+    } else {
+      prefix = "PRN-SCH";
+    }
+  } else {
+    prefix = "PRN-SCH";
+  }
+  const randomNum = Math.floor(100 + Math.random() * 900);
+  return `${prefix}-${randomNum}`;
+}
+
+export function generateStrongPassword(): string {
+  const charsUpper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const charsLower = "abcdefghjkmnpqrstuvwxyz";
+  const charsNum = "23456789";
+  const charsSpecial = "@#$!%*";
+
+  let pwd = "";
+  pwd += charsUpper[Math.floor(Math.random() * charsUpper.length)];
+  pwd += charsUpper[Math.floor(Math.random() * charsUpper.length)];
+  pwd += charsLower[Math.floor(Math.random() * charsLower.length)];
+  pwd += charsLower[Math.floor(Math.random() * charsLower.length)];
+  pwd += charsNum[Math.floor(Math.random() * charsNum.length)];
+  pwd += charsNum[Math.floor(Math.random() * charsNum.length)];
+  pwd += charsSpecial[Math.floor(Math.random() * charsSpecial.length)];
+  pwd += charsUpper[Math.floor(Math.random() * charsUpper.length)];
+
+  return pwd
+    .split("")
+    .sort(() => 0.5 - Math.random())
+    .join("");
+}
+
 export async function registerSchool(data: {
   schoolName: string;
   principalName: string;
@@ -1096,6 +1137,7 @@ export async function registerSchool(data: {
   phone: string;
   email: string;
   password: string;
+  principalId?: string;
 }): Promise<{ success: boolean; school?: School; user?: User; error?: string }> {
   initializeStore();
 
@@ -1103,17 +1145,25 @@ export async function registerSchool(data: {
   const newSchool: School = {
     id: newSchoolId,
     name: data.schoolName,
+    principal_name: data.principalName,
     city: data.city,
     phone: data.phone,
     email: data.email,
+    status: "TRIAL",
+    plan: "STANDARD",
+    trial_days_left: 14,
+    student_count: 0,
+    mrr_pkr: 35000,
     created_at: new Date().toISOString(),
   };
+
+  const finalPrincipalId = data.principalId?.trim() || generatePrincipalId(data.schoolName, data.city);
 
   const newPrincipal: User = {
     id: "usr-" + Math.random().toString(36).substring(2, 9),
     school_id: newSchoolId,
     name: data.principalName,
-    identifier: data.email || data.phone,
+    identifier: finalPrincipalId,
     phone: data.phone,
     email: data.email,
     role: "PRINCIPAL",
@@ -2316,7 +2366,7 @@ export function getPlatformStats() {
   const totalStudentsPlatform = schools.reduce((acc, curr) => acc + (curr.student_count || 148), 0);
   const platformMRR = schools
     .filter((s) => s.status === "ACTIVE")
-    .reduce((acc, curr) => acc + (curr.mrr_pkr || 35000), 0);
+    .reduce((acc, curr) => acc + (curr.mrr_pkr !== undefined ? Number(curr.mrr_pkr) : 35000), 0);
 
   return {
     totalSchools,
@@ -2338,10 +2388,52 @@ export function updateSchoolStatus(
   schools[index] = {
     ...schools[index],
     status,
-    mrr_pkr: status === "ACTIVE" ? schools[index].mrr_pkr || 35000 : 0,
+    mrr_pkr: status === "ACTIVE" ? (schools[index].mrr_pkr ?? 35000) : 0,
   };
 
   setStorage(KEY_SCHOOLS, schools);
+  return schools[index];
+}
+
+export function updateSchoolBilling(
+  school_id: string,
+  billing: {
+    mrr_pkr: number;
+    plan: string;
+    status: "ACTIVE" | "TRIAL" | "SUSPENDED";
+    billing_note?: string;
+  }
+): School | null {
+  initializeStore();
+  const schools = getStorage<School[]>(KEY_SCHOOLS, SEED_SCHOOLS);
+  const index = schools.findIndex((s) => s.id === school_id);
+  if (index === -1) return null;
+
+  schools[index] = {
+    ...schools[index],
+    mrr_pkr: Number(billing.mrr_pkr) || 0,
+    plan: billing.plan,
+    status: billing.status,
+    billing_note: billing.billing_note !== undefined ? billing.billing_note : schools[index].billing_note,
+  };
+
+  setStorage(KEY_SCHOOLS, schools);
+
+  try {
+    supabase
+      .from("schools")
+      .update({
+        mrr_pkr: schools[index].mrr_pkr,
+        plan: schools[index].plan,
+        status: schools[index].status,
+        billing_note: schools[index].billing_note,
+      })
+      .eq("id", school_id)
+      .then();
+  } catch (e) {
+    // Non-blocking
+  }
+
   return schools[index];
 }
 
@@ -2366,30 +2458,98 @@ export function onboardManualSchool(data: {
   city: string;
   phone: string;
   email: string;
-  plan?: "TRIAL" | "STANDARD" | "PREMIUM";
-}): School {
+  plan?: "TRIAL" | "STANDARD" | "PREMIUM" | string;
+  principalName?: string;
+  principalId?: string;
+  principalPassword?: string;
+  mrr_pkr?: number;
+  billing_note?: string;
+}): { school: School; principal: User; tempPassword: string } {
   initializeStore();
   const schools = getStorage<School[]>(KEY_SCHOOLS, SEED_SCHOOLS);
   const newId = "sch-" + Math.random().toString(36).substring(2, 9);
 
-  const plan = data.plan || "TRIAL";
+  const plan = data.plan || "STANDARD";
+  const defaultMrr = plan === "PREMIUM" ? 55000 : plan === "STANDARD" ? 35000 : 0;
+  const mrr_pkr = data.mrr_pkr !== undefined ? Number(data.mrr_pkr) : defaultMrr;
+
   const newSchool: School = {
     id: newId,
     name: data.name.trim(),
+    principal_name: data.principalName?.trim() || "Principal",
     city: data.city.trim(),
     phone: data.phone.trim(),
     email: data.email?.trim() || "",
     status: plan === "TRIAL" ? "TRIAL" : "ACTIVE",
     plan,
     student_count: 50,
-    mrr_pkr: plan === "PREMIUM" ? 55000 : plan === "STANDARD" ? 35000 : 0,
+    mrr_pkr: plan === "TRIAL" ? 0 : mrr_pkr,
+    billing_note: data.billing_note?.trim() || "",
     trial_days_left: plan === "TRIAL" ? 14 : 0,
     created_at: new Date().toISOString(),
   };
 
   const updated = [newSchool, ...schools];
   setStorage(KEY_SCHOOLS, updated);
-  return newSchool;
+
+  const principalId = data.principalId?.trim() || generatePrincipalId(data.name, data.city);
+  const tempPassword = data.principalPassword?.trim() || generateStrongPassword();
+
+  const newPrincipal: User = {
+    id: "usr-" + Math.random().toString(36).substring(2, 9),
+    school_id: newId,
+    name: data.principalName?.trim() || "Principal",
+    identifier: principalId,
+    phone: data.phone.trim(),
+    email: data.email?.trim() || "",
+    role: "PRINCIPAL",
+    status: "ACTIVE",
+    tempPassword: tempPassword,
+    created_at: new Date().toISOString(),
+  };
+
+  const users = getStorage<User[]>(KEY_USERS, SEED_USERS);
+  setStorage(KEY_USERS, [newPrincipal, ...users]);
+
+  // Set default classes
+  const defaultClasses: SchoolClass[] = [
+    { id: "cls-" + Math.random().toString(36).substring(2, 7), school_id: newId, name: "Grade 1", section: "A", student_count: 0, created_at: new Date().toISOString() },
+    { id: "cls-" + Math.random().toString(36).substring(2, 7), school_id: newId, name: "Grade 5", section: "A", student_count: 0, created_at: new Date().toISOString() },
+    { id: "cls-" + Math.random().toString(36).substring(2, 7), school_id: newId, name: "Grade 8", section: "A", student_count: 0, created_at: new Date().toISOString() },
+  ];
+  const classes = getStorage<SchoolClass[]>(KEY_CLASSES, SEED_CLASSES);
+  setStorage(KEY_CLASSES, [...defaultClasses, ...classes]);
+
+  // Attempt to write to Supabase if schema is ready
+  try {
+    supabase.from("schools").insert([{
+      id: newSchool.id,
+      name: newSchool.name,
+      principal_name: newSchool.principal_name,
+      city: newSchool.city,
+      phone: newSchool.phone,
+      email: newSchool.email,
+      status: newSchool.status,
+      plan: newSchool.plan,
+      mrr_pkr: newSchool.mrr_pkr,
+      billing_note: newSchool.billing_note
+    }]).then();
+
+    supabase.from("users").insert([{
+      id: newPrincipal.id,
+      school_id: newSchool.id,
+      name: newPrincipal.name,
+      identifier: newPrincipal.identifier,
+      phone: newPrincipal.phone,
+      email: newPrincipal.email,
+      password_hash: tempPassword,
+      role: "PRINCIPAL"
+    }]).then();
+  } catch (err) {
+    // Non-blocking
+  }
+
+  return { school: newSchool, principal: newPrincipal, tempPassword };
 }
 
 export function updateSchoolPaymentDetails(
