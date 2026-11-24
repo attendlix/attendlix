@@ -2652,6 +2652,109 @@ export function updateSchoolPaymentDetails(
   return schools[index];
 }
 
+export function getSchoolPrincipal(schoolId: string): User | null {
+  initializeStore();
+  const users = getStorage<User[]>(KEY_USERS, SEED_USERS);
+  let principal = users.find((u) => u.school_id === schoolId && u.role === "PRINCIPAL");
+
+  // Fallback for default seed school
+  if (!principal && (schoolId === "school-beacon-001" || schoolId.includes("beacon"))) {
+    principal = users.find((u) => u.id === "usr-principal-01") || SEED_PRINCIPAL_USER;
+  }
+
+  // If still not found, check if a school exists and provision a clean principal record
+  if (!principal) {
+    const schools = getAllSchools();
+    const sch = schools.find((s) => s.id === schoolId);
+    if (sch) {
+      const generatedId = generatePrincipalId(sch.name, sch.city);
+      const generatedPass = "admin";
+      principal = {
+        id: "usr-" + Math.random().toString(36).substring(2, 9),
+        school_id: sch.id,
+        name: sch.principal_name || `${sch.name} Principal`,
+        identifier: generatedId,
+        phone: sch.phone,
+        email: sch.email || `${sch.id}@attendlix.school`,
+        role: "PRINCIPAL",
+        status: "ACTIVE",
+        tempPassword: generatedPass,
+        created_at: new Date().toISOString(),
+      };
+      setStorage(KEY_USERS, [principal, ...users]);
+    }
+  }
+
+  return principal || null;
+}
+
+export function updatePrincipalCredentialsBySchool(
+  schoolId: string,
+  updates: {
+    password?: string;
+    name?: string;
+    identifier?: string;
+    phone?: string;
+    email?: string;
+  }
+): { success: boolean; principal?: User; error?: string } {
+  initializeStore();
+  const users = getStorage<User[]>(KEY_USERS, SEED_USERS);
+  let index = users.findIndex((u) => u.school_id === schoolId && u.role === "PRINCIPAL");
+
+  if (index === -1) {
+    // If not found, provision one first using getSchoolPrincipal
+    const p = getSchoolPrincipal(schoolId);
+    if (!p) {
+      return { success: false, error: "School tenant not found." };
+    }
+    const refreshedUsers = getStorage<User[]>(KEY_USERS, SEED_USERS);
+    index = refreshedUsers.findIndex((u) => u.school_id === schoolId && u.role === "PRINCIPAL");
+  }
+
+  const currentUsers = getStorage<User[]>(KEY_USERS, SEED_USERS);
+  if (index === -1 || !currentUsers[index]) {
+    return { success: false, error: "Could not find principal record for school." };
+  }
+
+  const updatedPrincipal: User = {
+    ...currentUsers[index],
+    tempPassword: updates.password !== undefined ? updates.password.trim() : currentUsers[index].tempPassword,
+    name: updates.name !== undefined ? updates.name.trim() : currentUsers[index].name,
+    identifier: updates.identifier !== undefined ? updates.identifier.trim() : currentUsers[index].identifier,
+    phone: updates.phone !== undefined ? updates.phone.trim() : currentUsers[index].phone,
+    email: updates.email !== undefined ? updates.email.trim() : currentUsers[index].email,
+  };
+
+  currentUsers[index] = updatedPrincipal;
+  setStorage(KEY_USERS, currentUsers);
+
+  // If the currently logged in user happens to be this principal, sync current session too
+  const currentUser = getStorage<User | null>(KEY_CURRENT_USER, null);
+  if (currentUser && currentUser.id === updatedPrincipal.id) {
+    setStorage(KEY_CURRENT_USER, updatedPrincipal);
+  }
+
+  // Also sync to Supabase in background
+  try {
+    supabase
+      .from("users")
+      .update({
+        name: updatedPrincipal.name,
+        identifier: updatedPrincipal.identifier,
+        phone: updatedPrincipal.phone,
+        email: updatedPrincipal.email,
+        password_hash: updatedPrincipal.tempPassword,
+      })
+      .eq("id", updatedPrincipal.id)
+      .then();
+  } catch (err) {
+    // Non-blocking
+  }
+
+  return { success: true, principal: updatedPrincipal };
+}
+
 // ----------------------------------------------------
 // TIMETABLE SYSTEM (Principal, Teacher & Student)
 // ----------------------------------------------------
