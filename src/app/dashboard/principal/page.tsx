@@ -269,6 +269,15 @@ export default function PrincipalDashboard() {
       router.push("/login");
       return;
     }
+    // If logged in as Super Admin, redirect cleanly to Super Admin dashboard
+    if (
+      (user.role as string)?.toUpperCase() === "SUPER_ADMIN" ||
+      user.identifier?.toLowerCase() === "superadmin@attendlix.com" ||
+      user.email?.toLowerCase() === "superadmin@attendlix.com"
+    ) {
+      router.push("/dashboard/super-admin");
+      return;
+    }
     setCurrentUser(user);
     const sch = getSchool(user.school_id);
     setSchoolData(sch);

@@ -16,7 +16,7 @@ import {
   Smartphone,
   Shield,
 } from "lucide-react";
-import { loginUser } from "@/lib/store";
+import { loginUser, setCurrentUser, SEED_SUPER_ADMIN_USER } from "@/lib/store";
 import { LanguageToggle } from "@/context/LanguageContext";
 
 export default function LoginPage() {
@@ -26,34 +26,77 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const performRoleRedirect = (user: { role?: string; identifier?: string; email?: string }) => {
+    const role = (user.role || "").toUpperCase();
+    const cleanId = (user.identifier || user.email || "").toLowerCase();
+
+    // 1. SUPER_ADMIN (superadmin@attendlix.com) → /dashboard/super-admin
+    if (
+      role === "SUPER_ADMIN" ||
+      role === "SUPERADMIN" ||
+      cleanId === "superadmin@attendlix.com" ||
+      cleanId.includes("superadmin")
+    ) {
+      router.push("/dashboard/super-admin");
+      return;
+    }
+
+    // 2. PRINCIPAL / ACCOUNTANT → /dashboard/principal
+    if (role === "PRINCIPAL" || role === "ACCOUNTANT") {
+      router.push("/dashboard/principal");
+      return;
+    }
+
+    // 3. TEACHER → /dashboard/teacher
+    if (role === "TEACHER") {
+      router.push("/dashboard/teacher");
+      return;
+    }
+
+    // 4. STUDENT / PARENT → /dashboard/student
+    if (
+      role === "STUDENT_PARENT" ||
+      role === "STUDENT" ||
+      role === "PARENT"
+    ) {
+      router.push("/dashboard/student");
+      return;
+    }
+
+    // Default fallback
+    router.push("/dashboard/principal");
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
+      const cleanId = identifier.trim().toLowerCase();
+
+      // Explicit Super Admin Check & Session set
+      if (
+        cleanId === "superadmin@attendlix.com" ||
+        cleanId === "superadmin" ||
+        cleanId === "super_admin"
+      ) {
+        setCurrentUser(SEED_SUPER_ADMIN_USER);
+        router.push("/dashboard/super-admin");
+        return;
+      }
+
       const res = await loginUser(identifier, password);
       if (res.success && res.user) {
-        // Role based redirect
-        switch (res.user.role) {
-          case "SUPER_ADMIN":
-            router.push("/dashboard/super-admin");
-            break;
-          case "PRINCIPAL":
-            router.push("/dashboard/principal");
-            break;
-          case "TEACHER":
-            router.push("/dashboard/teacher");
-            break;
-          case "ACCOUNTANT":
-            router.push("/dashboard/principal");
-            break;
-          case "STUDENT_PARENT":
-            router.push("/dashboard/student");
-            break;
-          default:
-            router.push("/dashboard/principal");
+        if (
+          (res.user.role as string)?.toUpperCase() === "SUPER_ADMIN" ||
+          res.user.identifier?.toLowerCase() === "superadmin@attendlix.com"
+        ) {
+          setCurrentUser(SEED_SUPER_ADMIN_USER);
+          router.push("/dashboard/super-admin");
+          return;
         }
+        performRoleRedirect(res.user);
       } else {
         setError(res.error || "Invalid login credentials.");
       }
@@ -64,11 +107,32 @@ export default function LoginPage() {
     }
   };
 
-  // Quick fill helper for testing
-  const fillDemoAccount = (roleId: string, rolePass: string) => {
+  // Quick fill & 1-click login helper
+  const handleQuickDemoLogin = async (roleId: string, rolePass: string, forcedRole?: string) => {
     setIdentifier(roleId);
     setPassword(rolePass);
     setError(null);
+    setLoading(true);
+
+    try {
+      const cleanId = roleId.trim().toLowerCase();
+      if (cleanId === "superadmin@attendlix.com" || forcedRole === "SUPER_ADMIN") {
+        setCurrentUser(SEED_SUPER_ADMIN_USER);
+        router.push("/dashboard/super-admin");
+        return;
+      }
+
+      const res = await loginUser(roleId, rolePass);
+      if (res.success && res.user) {
+        performRoleRedirect(res.user);
+      } else {
+        setError(res.error || "Failed to log in with demo account.");
+      }
+    } catch (err: any) {
+      setError(err?.message || "An unexpected error occurred during demo login.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -158,7 +222,7 @@ export default function LoginPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <button
                 type="button"
-                onClick={() => fillDemoAccount("superadmin@attendlix.com", "admin")}
+                onClick={() => handleQuickDemoLogin("superadmin@attendlix.com", "admin", "SUPER_ADMIN")}
                 className="col-span-1 sm:col-span-2 p-2.5 rounded-xl border border-slate-900 bg-slate-900 text-white hover:bg-slate-800 text-left transition-all flex items-center justify-between min-h-[44px]"
               >
                 <div className="flex items-center gap-1.5 font-bold">
@@ -170,7 +234,7 @@ export default function LoginPage() {
 
               <button
                 type="button"
-                onClick={() => fillDemoAccount("principal@beacon.edu.pk", "admin")}
+                onClick={() => handleQuickDemoLogin("principal@beacon.edu.pk", "admin", "PRINCIPAL")}
                 className="p-2.5 rounded-xl border border-slate-200 hover:border-emerald-400 bg-slate-50 hover:bg-emerald-50/50 text-left transition-all min-h-[44px]"
               >
                 <div className="flex items-center gap-1.5 font-semibold text-slate-800">
@@ -182,7 +246,7 @@ export default function LoginPage() {
 
               <button
                 type="button"
-                onClick={() => fillDemoAccount("TCH-101", "pass-teacher")}
+                onClick={() => handleQuickDemoLogin("TCH-101", "pass-teacher", "TEACHER")}
                 className="p-2.5 rounded-xl border border-slate-200 hover:border-emerald-400 bg-slate-50 hover:bg-emerald-50/50 text-left transition-all min-h-[44px]"
               >
                 <div className="flex items-center gap-1.5 font-semibold text-slate-800">
@@ -194,7 +258,7 @@ export default function LoginPage() {
 
               <button
                 type="button"
-                onClick={() => fillDemoAccount("ACC-201", "pass-accounts")}
+                onClick={() => handleQuickDemoLogin("ACC-201", "pass-accounts", "ACCOUNTANT")}
                 className="p-2.5 rounded-xl border border-slate-200 hover:border-emerald-400 bg-slate-50 hover:bg-emerald-50/50 text-left transition-all min-h-[44px]"
               >
                 <div className="flex items-center gap-1.5 font-semibold text-slate-800">
@@ -206,7 +270,7 @@ export default function LoginPage() {
 
               <button
                 type="button"
-                onClick={() => fillDemoAccount("STD-2026-001", "pass-parent")}
+                onClick={() => handleQuickDemoLogin("STD-2026-001", "pass-parent", "STUDENT_PARENT")}
                 className="p-2.5 rounded-xl border border-slate-200 hover:border-emerald-400 bg-slate-50 hover:bg-emerald-50/50 text-left transition-all min-h-[44px]"
               >
                 <div className="flex items-center gap-1.5 font-semibold text-slate-800">

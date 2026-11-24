@@ -122,10 +122,17 @@ export default function SuperAdminDashboard() {
 
   const refreshAll = () => {
     const user = getCurrentUser();
-    if (!user || user.role !== "SUPER_ADMIN") {
+    const isSuperAdmin =
+      user &&
+      ((user.role as string)?.toUpperCase() === "SUPER_ADMIN" ||
+        user.identifier?.toLowerCase() === "superadmin@attendlix.com" ||
+        user.email?.toLowerCase() === "superadmin@attendlix.com");
+
+    if (!user || !isSuperAdmin) {
       router.push("/login");
       return;
     }
+    user.role = "SUPER_ADMIN";
     setCurrentUser(user);
 
     const schools = getAllSchools();

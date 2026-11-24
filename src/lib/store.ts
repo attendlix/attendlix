@@ -125,31 +125,35 @@ const SEED_SCHOOLS: School[] = [
 const SEED_SCHOOL = SEED_SCHOOLS[0];
 
 // Seed Users
+export const SEED_SUPER_ADMIN_USER: User = {
+  id: "usr-superadmin-01",
+  school_id: "global",
+  name: "Platform Super Admin (Me)",
+  identifier: "superadmin@attendlix.com",
+  phone: "0300-0000000",
+  email: "superadmin@attendlix.com",
+  role: "SUPER_ADMIN",
+  status: "ACTIVE",
+  tempPassword: "admin",
+  created_at: new Date().toISOString(),
+};
+
+export const SEED_PRINCIPAL_USER: User = {
+  id: "usr-principal-01",
+  school_id: SEED_SCHOOL_ID,
+  name: "Dr. Asim Farooq (Principal)",
+  identifier: "principal@beacon.edu.pk",
+  phone: "0300-4567890",
+  email: "principal@beacon.edu.pk",
+  role: "PRINCIPAL",
+  status: "ACTIVE",
+  tempPassword: "admin",
+  created_at: new Date().toISOString(),
+};
+
 const SEED_USERS: User[] = [
-  {
-    id: "usr-superadmin-01",
-    school_id: "global",
-    name: "Platform Super Admin (Me)",
-    identifier: "superadmin@attendlix.com",
-    phone: "0300-0000000",
-    email: "superadmin@attendlix.com",
-    role: "SUPER_ADMIN",
-    status: "ACTIVE",
-    tempPassword: "admin",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "usr-principal-01",
-    school_id: SEED_SCHOOL_ID,
-    name: "Dr. Asim Farooq (Principal)",
-    identifier: "principal@beacon.edu.pk",
-    phone: "0300-4567890",
-    email: "principal@beacon.edu.pk",
-    role: "PRINCIPAL",
-    status: "ACTIVE",
-    tempPassword: "admin",
-    created_at: new Date().toISOString(),
-  },
+  SEED_SUPER_ADMIN_USER,
+  SEED_PRINCIPAL_USER,
   {
     id: "usr-teacher-01",
     school_id: SEED_SCHOOL_ID,
@@ -925,6 +929,18 @@ export function initializeStore() {
   }
   if (!window.localStorage.getItem(KEY_USERS)) {
     setStorage(KEY_USERS, SEED_USERS);
+  } else {
+    // Ensure Super Admin exists in existing stored users
+    const currentUsers = getStorage<User[]>(KEY_USERS, []);
+    const hasSuperAdmin = currentUsers.some(
+      (u) =>
+        u.identifier?.toLowerCase() === "superadmin@attendlix.com" ||
+        u.email?.toLowerCase() === "superadmin@attendlix.com" ||
+        (u.role as string)?.toUpperCase() === "SUPER_ADMIN"
+    );
+    if (!hasSuperAdmin) {
+      setStorage(KEY_USERS, [SEED_SUPER_ADMIN_USER, ...currentUsers]);
+    }
   }
   if (!window.localStorage.getItem(KEY_CLASSES)) {
     setStorage(KEY_CLASSES, SEED_CLASSES);
@@ -957,7 +973,7 @@ export function getCurrentUser(): User | null {
   const user = getStorage<User | null>(KEY_CURRENT_USER, null);
   if (!user) {
     // Default to seed principal for frictionless preview
-    return SEED_USERS[0];
+    return SEED_PRINCIPAL_USER;
   }
   return user;
 }
@@ -1058,7 +1074,31 @@ export async function loginUser(identifier: string, password: string): Promise<{
   const cleanId = identifier.trim().toLowerCase();
   const cleanPass = password.trim();
 
-  // 1. Check local storage
+  // 1. Explicit Super Admin check (case-insensitive)
+  if (
+    cleanId === "superadmin@attendlix.com" ||
+    cleanId === "superadmin" ||
+    cleanId === "super_admin" ||
+    cleanId.includes("superadmin")
+  ) {
+    if (
+      cleanPass &&
+      cleanPass !== "admin" &&
+      cleanPass !== "demo123" &&
+      cleanPass !== SEED_SUPER_ADMIN_USER.tempPassword
+    ) {
+      return { success: false, error: "Incorrect password for Super Admin. (Tip: Try 'admin')" };
+    }
+    setCurrentUser(SEED_SUPER_ADMIN_USER);
+    // Ensure Super Admin exists in KEY_USERS storage
+    const users = getStorage<User[]>(KEY_USERS, SEED_USERS);
+    if (!users.some((u) => u.identifier.toLowerCase() === "superadmin@attendlix.com")) {
+      setStorage(KEY_USERS, [SEED_SUPER_ADMIN_USER, ...users]);
+    }
+    return { success: true, user: SEED_SUPER_ADMIN_USER };
+  }
+
+  // 2. Check local storage
   const users = getStorage<User[]>(KEY_USERS, SEED_USERS);
   const found = users.find(
     (u) =>
@@ -1072,13 +1112,41 @@ export async function loginUser(identifier: string, password: string): Promise<{
     if (found.tempPassword && found.tempPassword !== cleanPass && cleanPass !== "demo123" && cleanPass !== "admin") {
       return { success: false, error: "Incorrect password. (Tip: Try 'admin' or 'demo123')" };
     }
+    if (found.role === "SUPER_ADMIN" || found.identifier.toLowerCase() === "superadmin@attendlix.com") {
+      setCurrentUser(SEED_SUPER_ADMIN_USER);
+      return { success: true, user: SEED_SUPER_ADMIN_USER };
+    }
     setCurrentUser(found);
     return { success: true, user: found };
   }
 
-  // Fallback demo matching
-  if (cleanId.includes("admin") || cleanId.includes("principal")) {
-    const principal = SEED_USERS[0];
+  // 3. Fallback demo matching
+  if (cleanId.includes("principal")) {
+    const principal = users.find((u) => u.role === "PRINCIPAL") || SEED_PRINCIPAL_USER;
+    setCurrentUser(principal);
+    return { success: true, user: principal };
+  }
+
+  if (cleanId.includes("teacher") || cleanId.startsWith("tch")) {
+    const teacher = users.find((u) => u.role === "TEACHER") || SEED_USERS.find((u) => u.role === "TEACHER")!;
+    setCurrentUser(teacher);
+    return { success: true, user: teacher };
+  }
+
+  if (cleanId.includes("account") || cleanId.startsWith("acc")) {
+    const accountant = users.find((u) => u.role === "ACCOUNTANT") || SEED_USERS.find((u) => u.role === "ACCOUNTANT")!;
+    setCurrentUser(accountant);
+    return { success: true, user: accountant };
+  }
+
+  if (cleanId.includes("parent") || cleanId.includes("student") || cleanId.startsWith("std")) {
+    const studentParent = users.find((u) => u.role === "STUDENT_PARENT") || SEED_USERS.find((u) => u.role === "STUDENT_PARENT")!;
+    setCurrentUser(studentParent);
+    return { success: true, user: studentParent };
+  }
+
+  if (cleanId === "admin") {
+    const principal = users.find((u) => u.role === "PRINCIPAL") || SEED_PRINCIPAL_USER;
     setCurrentUser(principal);
     return { success: true, user: principal };
   }
