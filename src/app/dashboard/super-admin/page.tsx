@@ -28,6 +28,7 @@ import {
   Landmark,
   Wallet,
   Settings,
+  ChevronRight,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -222,31 +223,49 @@ export default function SuperAdminDashboard() {
           </button>
         </div>
 
-        {/* 4 Platform Stats Cards with Mini Sparklines & Depth */}
+        {/* 4 Platform Stats Cards with Mini Sparklines & Depth - Clickable shortcuts */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Total Schools */}
-          <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3">
+          {/* Card 1: Total Schools -> switches to schools tab with ALL filter */}
+          <div
+            onClick={() => {
+              setActiveTab("schools");
+              setStatusFilter("ALL");
+            }}
+            className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3 cursor-pointer hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md transition-all group"
+            title="Click to view all registered school tenants"
+          >
             <div>
               <div className="flex items-center justify-between text-slate-500 mb-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.totalSchools}</span>
-                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
                   <Building2 className="w-4 h-4" />
                 </div>
               </div>
               <div className="text-3xl font-extrabold text-slate-900 tracking-tight">{platformStats?.totalSchools || 0}</div>
               <div className="text-[11px] font-medium text-slate-400 mt-0.5">Isolated database tenants</div>
             </div>
-            <div className="pt-2 border-t border-slate-50">
+            <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
               <SparklineGreenWave />
+              <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                <span>Tenants</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </span>
             </div>
           </div>
 
-          {/* Card 2: Active Subscriptions */}
-          <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3">
+          {/* Card 2: Active Subscriptions -> switches to schools tab with ACTIVE filter */}
+          <div
+            onClick={() => {
+              setActiveTab("schools");
+              setStatusFilter("ACTIVE");
+            }}
+            className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3 cursor-pointer hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md transition-all group"
+            title="Click to filter active paid subscriptions"
+          >
             <div>
               <div className="flex items-center justify-between text-slate-500 mb-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.activeSubscriptions}</span>
-                <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                <div className="p-2 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
               </div>
@@ -258,34 +277,53 @@ export default function SuperAdminDashboard() {
                 % conversion rate
               </div>
             </div>
-            <div className="pt-2 border-t border-slate-50">
+            <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
               <SparklineBluePulse />
+              <span className="text-[11px] font-bold text-blue-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                <span>Active Only</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </span>
             </div>
           </div>
 
-          {/* Card 3: Total Students Platform */}
-          <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3">
+          {/* Card 3: Total Students Platform -> switches to schools tab */}
+          <div
+            onClick={() => {
+              setActiveTab("schools");
+              setStatusFilter("ALL");
+            }}
+            className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3 cursor-pointer hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-md transition-all group"
+            title="Click to inspect campus student rosters"
+          >
             <div>
               <div className="flex items-center justify-between text-slate-500 mb-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.totalStudentsPlatform}</span>
-                <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
+                <div className="p-2 rounded-xl bg-amber-50 text-amber-600 group-hover:bg-amber-100 transition-colors">
                   <Users className="w-4 h-4" />
                 </div>
               </div>
               <div className="text-3xl font-extrabold text-slate-900 tracking-tight">{platformStats?.totalStudentsPlatform || 0}</div>
               <div className="text-[11px] font-medium text-slate-400 mt-0.5">Enrolled across all campuses</div>
             </div>
-            <div className="pt-2 border-t border-slate-50">
+            <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
               <MiniBarChart />
+              <span className="text-[11px] font-bold text-amber-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                <span>Campuses</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </span>
             </div>
           </div>
 
-          {/* Card 4: Platform MRR */}
-          <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3">
+          {/* Card 4: Platform MRR -> switches to stats tab */}
+          <div
+            onClick={() => setActiveTab("stats")}
+            className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3 cursor-pointer hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md transition-all group"
+            title="Click to view Platform Stats & MRR Analytics"
+          >
             <div>
               <div className="flex items-center justify-between text-slate-500 mb-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.platformMRR}</span>
-                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
                   <TrendingUp className="w-4 h-4" />
                 </div>
               </div>
@@ -294,8 +332,12 @@ export default function SuperAdminDashboard() {
               </div>
               <div className="text-[11px] font-medium text-slate-400 mt-0.5">Recurring SaaS billing in PKR</div>
             </div>
-            <div className="pt-2 border-t border-slate-50">
+            <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
               <SparklineAmberWave />
+              <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                <span>MRR Analytics</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </span>
             </div>
           </div>
         </div>

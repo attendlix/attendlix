@@ -385,16 +385,17 @@ export default function StudentDashboard() {
           <div className="space-y-6">
             {/* Elevated Quick Status Cards with Inline Mini Sparklines */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Card 1: Today's Attendance -> switches to attendance */}
               <div
                 onClick={() => setActiveTab("attendance")}
-                className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden cursor-pointer hover:border-emerald-300 transition-all"
-                title="Click to view full attendance history"
+                className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md transition-all group"
+                title="Click to view full date-wise attendance log"
               >
                 <div className="flex items-center justify-between text-slate-400">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     {isRtl ? "آج کی حاضری" : "Today's Attendance"}
                   </span>
-                  <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+                  <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
                     <CheckCircle2 className="w-4 h-4" />
                   </div>
                 </div>
@@ -404,15 +405,26 @@ export default function StudentDashboard() {
                   </div>
                   <SparklineGreenWave className="w-20 h-7" />
                 </div>
-                <div className="text-xs text-slate-500 font-medium">
-                  {isRtl ? `آمد: 08:05 AM • ${overallAttendancePercent}% شرح حاضری` : `Marked at 08:05 AM • ${overallAttendancePercent}% Overall Rate`}
+                <div className="text-xs text-slate-500 font-medium flex items-center justify-between pt-0.5">
+                  <span>{isRtl ? `آمد: 08:05 AM` : `Marked at 08:05 AM`}</span>
+                  <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                    <span>{isRtl ? "ریکارڈ دیکھیں" : "View Record"}</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
                 </div>
               </div>
 
-              <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden">
+              {/* Card 2: November Fee -> switches to fees */}
+              <div
+                onClick={() => setActiveTab("fees")}
+                className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md transition-all group"
+                title="Click to view and pay school fees"
+              >
                 <div className="flex items-center justify-between text-slate-400">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">November Fee</span>
-                  <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {isRtl ? "نومبر فیس" : "November Fee"}
+                  </span>
+                  <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600 group-hover:bg-amber-100 transition-colors">
                     <CreditCard className="w-4 h-4" />
                   </div>
                 </div>
@@ -426,13 +438,26 @@ export default function StudentDashboard() {
                   </div>
                   <SparklineAmberWave className="w-20 h-7" />
                 </div>
-                <div className="text-xs text-slate-500 font-medium">Via JazzCash / Easypaisa Direct Hub</div>
+                <div className="text-xs text-slate-500 font-medium flex items-center justify-between pt-0.5">
+                  <span>Via JazzCash / Easypaisa</span>
+                  <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                    <span>{isRtl ? "فیس تفصیل" : "Fee Status"}</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
               </div>
 
-              <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden">
+              {/* Card 3: Pending Homework -> switches to attendance_hw */}
+              <div
+                onClick={() => setActiveTab("attendance_hw")}
+                className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md transition-all group"
+                title="Click to view daily homework diary"
+              >
                 <div className="flex items-center justify-between text-slate-400">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Pending Homework</span>
-                  <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {isRtl ? "زیر التواء ہوم ورک" : "Pending Homework"}
+                  </span>
+                  <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 transition-colors">
                     <BookOpen className="w-4 h-4" />
                   </div>
                 </div>
@@ -440,7 +465,13 @@ export default function StudentDashboard() {
                   <div className="text-2xl font-extrabold text-slate-900">{homeworkList.length} Tasks</div>
                   <MiniBarChart className="w-16 h-7" />
                 </div>
-                <div className="text-xs text-slate-500 font-medium">Syncing with Teacher Diary</div>
+                <div className="text-xs text-slate-500 font-medium flex items-center justify-between pt-0.5">
+                  <span>{isRtl ? "ٹیچر ڈائری سے مطابقت" : "Teacher Diary"}</span>
+                  <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                    <span>{isRtl ? "ڈائری دیکھیں" : "View Diary"}</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
               </div>
             </div>
 

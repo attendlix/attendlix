@@ -735,10 +735,17 @@ export default function TeacherDashboard() {
           <div className="space-y-4">
             {/* Elevated Stats Row for Active Class with Mini Sparklines */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-1 relative overflow-hidden">
+              <div
+                onClick={() => {
+                  const el = document.getElementById("class-rollcall-table");
+                  if (el) el.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-1 relative overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md transition-all group"
+                title="Click to view student list"
+              >
                 <div className="flex items-center justify-between text-slate-400">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Class Enrolled</span>
-                  <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+                  <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
                     <Users className="w-3.5 h-3.5" />
                   </div>
                 </div>
@@ -746,13 +753,26 @@ export default function TeacherDashboard() {
                   <div className="text-2xl font-extrabold text-slate-900">{classStudents.length}</div>
                   <SparklineGreenWave className="w-20 h-7" />
                 </div>
-                <div className="text-[11px] text-slate-500 font-medium">All students registered</div>
+                <div className="text-[11px] text-slate-500 font-medium flex items-center justify-between pt-0.5">
+                  <span>All students registered</span>
+                  <span className="text-[10px] font-bold text-emerald-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                    <span>Roll-Call</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </span>
+                </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-1 relative overflow-hidden">
+              <div
+                onClick={() => {
+                  const el = document.getElementById("class-rollcall-table");
+                  if (el) el.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-1 relative overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md transition-all group"
+                title="Click to view present attendance roll"
+              >
                 <div className="flex items-center justify-between text-slate-400">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Present Today</span>
-                  <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600">
+                  <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                   </div>
                 </div>
@@ -760,15 +780,28 @@ export default function TeacherDashboard() {
                   <div className="text-2xl font-extrabold text-emerald-700">{presentCount}</div>
                   <SparklineBluePulse className="w-20 h-7" />
                 </div>
-                <div className="text-[11px] text-slate-500 font-medium">
-                  {classStudents.length ? Math.round((presentCount / classStudents.length) * 100) : 0}% Attendance Rate
+                <div className="text-[11px] text-slate-500 font-medium flex items-center justify-between pt-0.5">
+                  <span>
+                    {classStudents.length ? Math.round((presentCount / classStudents.length) * 100) : 0}% Attendance Rate
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                    <span>Present</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </span>
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-1 relative overflow-hidden">
+              <div
+                onClick={() => {
+                  const el = document.getElementById("class-rollcall-table");
+                  if (el) el.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-1 relative overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:border-rose-300 hover:shadow-md transition-all group"
+                title="Click to view absent students"
+              >
                 <div className="flex items-center justify-between text-slate-400">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Absences & Leaves</span>
-                  <div className="p-1.5 rounded-lg bg-rose-50 text-rose-600">
+                  <div className="p-1.5 rounded-lg bg-rose-50 text-rose-600 group-hover:bg-rose-100 transition-colors">
                     <AlertCircle className="w-3.5 h-3.5" />
                   </div>
                 </div>
@@ -776,8 +809,14 @@ export default function TeacherDashboard() {
                   <div className="text-2xl font-extrabold text-rose-600">{absentCount + leaveCount}</div>
                   <MiniBarChart className="w-16 h-7" />
                 </div>
-                <div className="text-[11px] text-slate-500 font-medium">
-                  {absentCount} Absent • {leaveCount} Leave
+                <div className="text-[11px] text-slate-500 font-medium flex items-center justify-between pt-0.5">
+                  <span>
+                    {absentCount} Absent • {leaveCount} Leave
+                  </span>
+                  <span className="text-[10px] font-bold text-rose-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                    <span>Absences</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </span>
                 </div>
               </div>
             </div>
@@ -851,7 +890,7 @@ export default function TeacherDashboard() {
             )}
 
             {/* Student Attendance List (Large Tap Targets for 2GB RAM phones) */}
-            <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-2xs">
+            <div id="class-rollcall-table" className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-2xs scroll-mt-6">
               {classStudents.length === 0 ? (
                 <div className="p-8 text-center text-xs text-slate-500">
                   No students admitted to this class yet. Switch to Principal view to admit students.
@@ -977,13 +1016,17 @@ export default function TeacherDashboard() {
 
             {/* 4 Compact Metric Cards (Matching Dashboard UI) */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              {/* Card 1: Attendance % */}
-              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md transition-shadow relative overflow-hidden group">
+              {/* Card 1: Attendance % -> resets status filter to ALL */}
+              <div
+                onClick={() => setTeacherAttStatusFilter("ALL")}
+                className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md hover:-translate-y-0.5 hover:border-emerald-300 transition-all cursor-pointer relative overflow-hidden group"
+                title="Click to view all attendance records"
+              >
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     {isRtl ? "حاضری کی شرح" : "Attendance Rate"}
                   </span>
-                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
                     <CheckCircle2 className="w-4 h-4" />
                   </div>
                 </div>
@@ -1001,15 +1044,23 @@ export default function TeacherDashboard() {
                   </span>
                   <SparklineGreenWave />
                 </div>
+                <div className="pt-1 flex items-center justify-end text-[10px] font-bold text-emerald-700 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                  <span>Show All</span>
+                  <ChevronRight className="w-3 h-3" />
+                </div>
               </div>
 
-              {/* Card 2: Total Days Present */}
-              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md transition-shadow relative overflow-hidden group">
+              {/* Card 2: Total Days Present -> filters to PRESENT */}
+              <div
+                onClick={() => setTeacherAttStatusFilter("PRESENT")}
+                className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md hover:-translate-y-0.5 hover:border-blue-300 transition-all cursor-pointer relative overflow-hidden group"
+                title="Click to filter present days"
+              >
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     {isRtl ? "کل حاضر دن" : "Total Present"}
                   </span>
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
                     <Check className="w-4 h-4" />
                   </div>
                 </div>
@@ -1025,15 +1076,23 @@ export default function TeacherDashboard() {
                   </span>
                   <SparklineBluePulse />
                 </div>
+                <div className="pt-1 flex items-center justify-end text-[10px] font-bold text-blue-700 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                  <span>Filter Present</span>
+                  <ChevronRight className="w-3 h-3" />
+                </div>
               </div>
 
-              {/* Card 3: Late Arrivals */}
-              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md transition-shadow relative overflow-hidden group">
+              {/* Card 3: Late Arrivals -> filters to LATE */}
+              <div
+                onClick={() => setTeacherAttStatusFilter("LATE")}
+                className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md hover:-translate-y-0.5 hover:border-amber-300 transition-all cursor-pointer relative overflow-hidden group"
+                title="Click to filter late arrival days"
+              >
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     {isRtl ? "تاخیر سے آمد" : "Late Arrivals"}
                   </span>
-                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
                     <Clock className="w-4 h-4" />
                   </div>
                 </div>
@@ -1049,15 +1108,23 @@ export default function TeacherDashboard() {
                   </span>
                   <SparklineAmberWave />
                 </div>
+                <div className="pt-1 flex items-center justify-end text-[10px] font-bold text-amber-700 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                  <span>Filter Late</span>
+                  <ChevronRight className="w-3 h-3" />
+                </div>
               </div>
 
-              {/* Card 4: Absent Days */}
-              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md transition-shadow relative overflow-hidden group">
+              {/* Card 4: Absent Days -> filters to ABSENT */}
+              <div
+                onClick={() => setTeacherAttStatusFilter("ABSENT")}
+                className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md hover:-translate-y-0.5 hover:border-rose-300 transition-all cursor-pointer relative overflow-hidden group"
+                title="Click to filter absent days"
+              >
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     {isRtl ? "غیر حاضر دن" : "Absent Days"}
                   </span>
-                  <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
                     <AlertCircle className="w-4 h-4" />
                   </div>
                 </div>
@@ -1074,6 +1141,10 @@ export default function TeacherDashboard() {
                     {totalTeacherAbsent === 0 ? "Zero unexcused absence" : "Emergency absence"}
                   </span>
                   <MiniBarChart />
+                </div>
+                <div className="pt-1 flex items-center justify-end text-[10px] font-bold text-rose-700 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                  <span>Filter Absent</span>
+                  <ChevronRight className="w-3 h-3" />
                 </div>
               </div>
             </div>

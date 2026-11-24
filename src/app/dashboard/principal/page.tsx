@@ -727,11 +727,15 @@ export default function PrincipalDashboard() {
 
             {/* Elevated Stats Cards with Inline Mini Sparklines & Bar Graphs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Card 1: Total Students with Green Wave Sparkline */}
-              <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden">
+              {/* Card 1: Total Students -> switches to Student Admissions */}
+              <div
+                onClick={() => setActiveTab("students")}
+                className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md transition-all group"
+                title="Click to view Student Admissions roster"
+              >
                 <div className="flex items-center justify-between text-slate-400">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Students</span>
-                  <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+                  <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
                     <GraduationCap className="w-4 h-4" />
                   </div>
                 </div>
@@ -739,16 +743,23 @@ export default function PrincipalDashboard() {
                   <div className="text-3xl font-extrabold text-slate-900">{stats?.totalStudents || 0}</div>
                   <SparklineGreenWave />
                 </div>
-                <div className="text-xs text-slate-500 flex items-center gap-1 font-medium">
-                  <span className="text-emerald-600 font-semibold">{stats?.attendanceTodayPercent}%</span>
-                  <span>attendance average</span>
+                <div className="text-xs text-slate-500 flex items-center justify-between font-medium pt-0.5">
+                  <div className="flex items-center gap-1">
+                    <span className="text-emerald-600 font-semibold">{stats?.attendanceTodayPercent}%</span>
+                    <span>attendance</span>
+                  </div>
+                  <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                    <span>Admissions</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
                 </div>
               </div>
 
-              {/* Card 2: Teachers & Staff with Blue Pulse Sparkline */}
+              {/* Card 2: Teachers & Staff -> switches to Staff Management */}
               <div
-                onClick={() => setActiveTab("staff-attendance")}
-                className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 cursor-pointer hover:border-emerald-300 transition-all group relative overflow-hidden"
+                onClick={() => setActiveTab("staff")}
+                className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 cursor-pointer hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md transition-all group relative overflow-hidden"
+                title="Click to view Staff Management & profiles"
               >
                 <div className="flex items-center justify-between text-slate-400">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Teachers & Staff</span>
@@ -760,17 +771,24 @@ export default function PrincipalDashboard() {
                   <div className="text-3xl font-extrabold text-slate-900">{stats?.totalStaff || 0}</div>
                   <SparklineBluePulse />
                 </div>
-                <div className="text-xs text-slate-500 flex items-center justify-between font-medium">
+                <div className="text-xs text-slate-500 flex items-center justify-between font-medium pt-0.5">
                   <span>{staffAttendanceStats.present + staffAttendanceStats.late} present today</span>
-                  <span className="text-emerald-700 font-semibold group-hover:underline">Staff Attendance →</span>
+                  <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                    <span>Staff Roster</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
                 </div>
               </div>
 
-              {/* Card 3: Classes & Sections with Vertical Mini Bar Chart */}
-              <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden">
+              {/* Card 3: Classes & Sections -> switches to Classes & Sections */}
+              <div
+                onClick={() => setActiveTab("classes")}
+                className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md transition-all group"
+                title="Click to manage classes, sections & subjects"
+              >
                 <div className="flex items-center justify-between text-slate-400">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Classes & Sections</span>
-                  <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600">
+                  <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600 group-hover:bg-amber-100 transition-colors">
                     <BookOpen className="w-4 h-4" />
                   </div>
                 </div>
@@ -778,23 +796,38 @@ export default function PrincipalDashboard() {
                   <div className="text-3xl font-extrabold text-slate-900">{classesList.length || 0}</div>
                   <MiniBarChart />
                 </div>
-                <div className="text-xs text-slate-500 font-medium">All grades active</div>
+                <div className="text-xs text-slate-500 flex items-center justify-between font-medium pt-0.5">
+                  <span>All grades active</span>
+                  <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                    <span>Manage</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
               </div>
 
-              {/* Card 4: November Fee Collection */}
-              <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden">
+              {/* Card 4: November Fee Collection -> switches to Fee Management */}
+              <div
+                onClick={() => setActiveTab("fees")}
+                className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md transition-all group"
+                title="Click to open Fee Management & payment register"
+              >
                 <div className="flex items-center justify-between text-slate-400">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">November Fee Collection</span>
-                  <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+                  <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
                     <CreditCard className="w-4 h-4" />
                   </div>
                 </div>
                 <div className="text-2xl sm:text-3xl font-extrabold text-emerald-700">
                   PKR {(feeSummary?.totalCollectedPKR || 0).toLocaleString()}
                 </div>
-                <div className="text-xs text-slate-500 font-medium">
-                  {feeSummary?.paidCount || 0} Paid • {feeSummary?.unpaidCount || 0} Unpaid (PKR{" "}
-                  {(feeSummary?.totalPendingPKR || 0).toLocaleString()} pending)
+                <div className="text-xs text-slate-500 flex items-center justify-between font-medium pt-0.5">
+                  <span className="truncate">
+                    {feeSummary?.paidCount || 0} Paid • {feeSummary?.unpaidCount || 0} Unpaid
+                  </span>
+                  <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 flex-shrink-0 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                    <span>Fee Register</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
                 </div>
               </div>
             </div>
