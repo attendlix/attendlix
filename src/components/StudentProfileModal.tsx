@@ -135,9 +135,17 @@ export default function StudentProfileModal({
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             {/* Avatar & Presence Dot */}
             <div className="relative flex-shrink-0">
-              <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl font-extrabold text-emerald-300 shadow-md">
-                {initials}
-              </div>
+              {student.avatar_url ? (
+                <img
+                  src={student.avatar_url}
+                  alt={student.name}
+                  className="w-16 h-16 rounded-2xl object-cover border-2 border-white/20 shadow-md"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl font-extrabold text-emerald-300 shadow-md">
+                  {initials}
+                </div>
+              )}
               <span
                 className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-[#0B3B2E] bg-emerald-400"
                 title="Active Student"

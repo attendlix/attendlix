@@ -905,9 +905,17 @@ export default function TeacherDashboard() {
                     >
                       {/* Student info */}
                       <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-xs text-slate-700 flex-shrink-0">
-                          {st.roll_no}
-                        </div>
+                        {st.avatar_url ? (
+                          <img
+                            src={st.avatar_url}
+                            alt={st.name}
+                            className="w-8 h-8 rounded-full object-cover border border-slate-200 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-xs text-slate-700 flex-shrink-0">
+                            {st.roll_no}
+                          </div>
+                        )}
                         <div className="min-w-0 flex-1">
                           <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">{st.name}</div>
                           <div className="text-[10px] sm:text-[11px] text-slate-400 truncate">ID: {st.student_id}</div>
@@ -1597,9 +1605,17 @@ export default function TeacherDashboard() {
                 return (
                   <div key={st.id} className="p-3 sm:p-4 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                      <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-600 flex-shrink-0">
-                        {st.roll_no}
-                      </div>
+                      {st.avatar_url ? (
+                        <img
+                          src={st.avatar_url}
+                          alt={st.name}
+                          className="w-7 h-7 rounded-full object-cover border border-slate-200 flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-600 flex-shrink-0">
+                          {st.roll_no}
+                        </div>
+                      )}
                       <div className="min-w-0 flex-1">
                         <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">{st.name}</div>
                         <div className="text-[10px] text-slate-400 truncate">ID: {st.student_id}</div>

@@ -1012,6 +1012,35 @@ export async function updateUserProfile(
     setStorage(KEY_CURRENT_USER, updatedUser);
   }
 
+  // If avatar_url was updated, also update any matching student record in KEY_STUDENTS
+  if (updates.avatar_url !== undefined) {
+    try {
+      const students = getStorage<Student[]>(KEY_STUDENTS, SEED_STUDENTS);
+      let studentModified = false;
+      const targetIdentifier = updatedUser?.identifier || currentUser?.identifier;
+      const updatedStudents = students.map((s) => {
+        if (
+          s.id === userId ||
+          (targetIdentifier && (s.student_id === targetIdentifier || s.id === targetIdentifier))
+        ) {
+          studentModified = true;
+          return { ...s, avatar_url: updates.avatar_url };
+        }
+        return s;
+      });
+      if (studentModified) {
+        setStorage(KEY_STUDENTS, updatedStudents);
+        // Sync to Supabase students table
+        await supabase
+          .from("students")
+          .update({ avatar_url: updates.avatar_url })
+          .or(`id.eq.${userId},student_id.eq.${targetIdentifier || userId}`);
+      }
+    } catch {
+      // non-blocking
+    }
+  }
+
   // Non-blocking sync to Supabase users table if schema is available
   try {
     const payload: Record<string, any> = {};
@@ -1478,6 +1507,55 @@ export function addStudent(
   setStorage(KEY_USERS, [newParentUser, ...users]);
 
   return { student: newStudent, rawPassword: generatedPassword };
+}
+
+export function updateStudent(
+  studentId: string,
+  updates: Partial<Student>
+): { success: boolean; student: Student | null } {
+  initializeStore();
+  const students = getStorage<Student[]>(KEY_STUDENTS, SEED_STUDENTS);
+  const index = students.findIndex((s) => s.id === studentId || s.student_id === studentId);
+  if (index === -1) return { success: false, student: null };
+
+  students[index] = { ...students[index], ...updates };
+  setStorage(KEY_STUDENTS, students);
+
+  // If avatar_url is updated, sync to user record as well
+  if (updates.avatar_url) {
+    const users = getStorage<User[]>(KEY_USERS, SEED_USERS);
+    const uIndex = users.findIndex(
+      (u) => u.id === studentId || u.identifier === students[index].student_id || u.identifier === studentId
+    );
+    if (uIndex !== -1) {
+      users[uIndex] = { ...users[uIndex], avatar_url: updates.avatar_url };
+      setStorage(KEY_USERS, users);
+    }
+    const currentUser = getStorage<User | null>(KEY_CURRENT_USER, null);
+    if (
+      currentUser &&
+      (currentUser.id === studentId || currentUser.identifier === students[index].student_id)
+    ) {
+      setStorage(KEY_CURRENT_USER, { ...currentUser, avatar_url: updates.avatar_url });
+    }
+    // Non-blocking sync to Supabase students table
+    try {
+      (async () => {
+        try {
+          await supabase
+            .from("students")
+            .update({ avatar_url: updates.avatar_url })
+            .or(`id.eq.${studentId},student_id.eq.${students[index].student_id}`);
+        } catch {
+          // non-blocking
+        }
+      })();
+    } catch {
+      // non-blocking
+    }
+  }
+
+  return { success: true, student: students[index] };
 }
 
 // ----------------------------------------------------

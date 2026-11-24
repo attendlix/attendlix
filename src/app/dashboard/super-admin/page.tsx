@@ -1593,9 +1593,17 @@ You can log in and begin managing classes, admissions, attendance, and fee colle
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white font-extrabold text-base flex items-center justify-center shadow-xs">
-                    {(selectedPrincipal.name || "P").substring(0, 2).toUpperCase()}
-                  </div>
+                  {selectedPrincipal.avatar_url ? (
+                    <img
+                      src={selectedPrincipal.avatar_url}
+                      alt={selectedPrincipal.name}
+                      className="w-12 h-12 rounded-xl object-cover border border-emerald-300 shadow-xs flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white font-extrabold text-base flex items-center justify-center shadow-xs flex-shrink-0">
+                      {(selectedPrincipal.name || "P").substring(0, 2).toUpperCase()}
+                    </div>
+                  )}
                   <div>
                     <div className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
                       <span>{selectedPrincipal.name || selectedProfileSchool.principal_name || "School Principal"}</span>

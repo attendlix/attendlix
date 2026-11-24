@@ -408,14 +408,26 @@ export default function DashboardShell({
               />
             </div>
 
-            {/* Profile Shortcut Icon */}
+            {/* Profile Shortcut Icon / Avatar */}
             <button
               type="button"
               onClick={() => onTabChange("settings")}
-              className="p-2 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-50 border border-slate-200/80 bg-white shadow-2xs transition-colors"
-              title="Profile Settings"
+              className="relative rounded-full hover:ring-2 hover:ring-emerald-500/50 transition-all flex items-center justify-center overflow-hidden border border-slate-200/80 bg-white shadow-2xs w-8 h-8 flex-shrink-0"
+              title={currentUser?.name || "Profile Settings"}
             >
-              <UserIcon className="w-4 h-4" />
+              {currentUser?.avatar_url ? (
+                <img
+                  src={currentUser.avatar_url}
+                  alt={currentUser.name}
+                  className="w-full h-full object-cover rounded-full"
+                />
+              ) : currentUser?.name ? (
+                <span className="text-[11px] font-bold text-slate-700">
+                  {currentUser.name.substring(0, 2).toUpperCase()}
+                </span>
+              ) : (
+                <UserIcon className="w-4 h-4 text-slate-500" />
+              )}
             </button>
 
             {headerExtra}

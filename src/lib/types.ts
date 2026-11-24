@@ -70,6 +70,7 @@ export interface Student {
   student_id: string; // Login ID, e.g. STD-2026-001
   temp_password?: string;
   monthly_fee?: number; // Per-student custom fee (scholarships/discounts)
+  avatar_url?: string;
   status: "ACTIVE" | "INACTIVE";
   created_at: string;
 }

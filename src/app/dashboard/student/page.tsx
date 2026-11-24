@@ -347,11 +347,19 @@ export default function StudentDashboard() {
         <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-extrabold text-base border border-emerald-200">
-                {currentStudent?.name.charAt(0) || "S"}
-              </div>
+              {(currentStudent?.avatar_url || currentUser?.avatar_url) ? (
+                <img
+                  src={currentStudent?.avatar_url || currentUser?.avatar_url}
+                  alt={currentStudent?.name || "Student"}
+                  className="w-12 h-12 rounded-xl object-cover border border-emerald-300 shadow-2xs flex-shrink-0"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-extrabold text-base border border-emerald-200 flex-shrink-0">
+                  {currentStudent?.name?.charAt(0) || currentUser?.name?.charAt(0) || "S"}
+                </div>
+              )}
               <div>
-                <h1 className="text-xl font-extrabold text-slate-900">{currentStudent?.name}</h1>
+                <h1 className="text-xl font-extrabold text-slate-900">{currentStudent?.name || currentUser?.name}</h1>
                 <p className="text-xs text-slate-500">
                   {currentStudent?.class_name} - Section {currentStudent?.section} • Roll #{currentStudent?.roll_no}
                 </p>
@@ -1543,7 +1551,12 @@ export default function StudentDashboard() {
         {activeTab === "settings" && (
           <UserSettingsTab
             currentUser={currentUser}
-            onUserUpdate={(updated) => setCurrentUser(updated)}
+            onUserUpdate={(updated) => {
+              setCurrentUser(updated);
+              if (updated.avatar_url) {
+                setCurrentStudent((prev) => (prev ? { ...prev, avatar_url: updated.avatar_url } : prev));
+              }
+            }}
           />
         )}
       </div>

@@ -42,6 +42,12 @@ export default function UserSettingsTab({ currentUser, onUserUpdate }: UserSetti
   const [avatarPreview, setAvatarPreview] = useState<string>(
     currentUser?.avatar_url || ""
   );
+
+  React.useEffect(() => {
+    if (currentUser?.avatar_url) {
+      setAvatarPreview(currentUser.avatar_url);
+    }
+  }, [currentUser?.avatar_url]);
   const [avatarNotice, setAvatarNotice] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
 

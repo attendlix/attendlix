@@ -1590,9 +1590,22 @@ export default function PrincipalDashboard() {
                   className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="font-extrabold text-slate-900 text-sm">{st.name}</div>
-                      <div className="text-xs text-slate-500 font-mono mt-0.5">ID: {st.identifier}</div>
+                    <div className="flex items-center gap-2.5">
+                      {st.avatar_url ? (
+                        <img
+                          src={st.avatar_url}
+                          alt={st.name}
+                          className="w-9 h-9 rounded-full object-cover border border-slate-200 flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-700 font-bold text-xs flex items-center justify-center border border-emerald-200 flex-shrink-0">
+                          {st.name.substring(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-extrabold text-slate-900 text-sm">{st.name}</div>
+                        <div className="text-xs text-slate-500 font-mono mt-0.5">ID: {st.identifier}</div>
+                      </div>
                     </div>
                     <span
                       className={`px-2.5 py-0.5 rounded-full font-bold text-xs ${
@@ -1652,7 +1665,22 @@ export default function PrincipalDashboard() {
                 <tbody className="divide-y divide-slate-100">
                   {staffList.map((st) => (
                     <tr key={st.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3.5 px-4 sm:px-6 font-bold text-slate-900">{st.name}</td>
+                      <td className="py-3.5 px-4 sm:px-6 font-bold text-slate-900">
+                        <div className="flex items-center gap-2.5">
+                          {st.avatar_url ? (
+                            <img
+                              src={st.avatar_url}
+                              alt={st.name}
+                              className="w-8 h-8 rounded-full object-cover border border-slate-200 flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-700 font-bold text-xs flex items-center justify-center border border-emerald-200 flex-shrink-0">
+                              {st.name.substring(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <span>{st.name}</span>
+                        </div>
+                      </td>
                       <td className="py-3.5 px-4">
                         <span
                           className={`px-2 py-0.5 rounded font-bold text-[11px] ${
@@ -1813,9 +1841,17 @@ export default function PrincipalDashboard() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 font-bold text-xs flex items-center justify-center">
-                        {std.roll_no}
-                      </div>
+                      {std.avatar_url ? (
+                        <img
+                          src={std.avatar_url}
+                          alt={std.name}
+                          className="w-9 h-9 rounded-full object-cover border border-slate-200 flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 font-bold text-xs flex items-center justify-center flex-shrink-0">
+                          {std.roll_no}
+                        </div>
+                      )}
                       <div>
                         <div className="font-extrabold text-slate-900 text-sm">{std.name}</div>
                         <div className="text-xs text-slate-500 font-mono">ID: {std.student_id}</div>
@@ -1878,7 +1914,22 @@ export default function PrincipalDashboard() {
                   {studentsList.map((std) => (
                     <tr key={std.id} className="hover:bg-slate-50/60 transition-colors">
                       <td className="py-3.5 px-4 sm:px-6 font-bold text-slate-500">{std.roll_no}</td>
-                      <td className="py-3.5 px-4 font-bold text-slate-900">{std.name}</td>
+                      <td className="py-3.5 px-4 font-bold text-slate-900">
+                        <div className="flex items-center gap-2.5">
+                          {std.avatar_url ? (
+                            <img
+                              src={std.avatar_url}
+                              alt={std.name}
+                              className="w-7 h-7 rounded-full object-cover border border-slate-200 flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px] flex items-center justify-center border border-emerald-200 flex-shrink-0">
+                              {std.name.substring(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <span>{std.name}</span>
+                        </div>
+                      </td>
                       <td className="py-3.5 px-4">
                         <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-medium text-xs">
                           {std.class_name} - {std.section}
