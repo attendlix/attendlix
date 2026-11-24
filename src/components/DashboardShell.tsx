@@ -87,13 +87,13 @@ export default function DashboardShell({
   const roleInfo = getRoleBadge(currentUser?.role);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col md:flex-row font-sans selection:bg-emerald-100 selection:text-emerald-900 w-full overflow-x-hidden">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col md:flex-row font-sans selection:bg-emerald-100 selection:text-emerald-900 w-full relative">
       {/* ========================================================================= */}
       {/* 1. DESKTOP FIXED DEEP FOREST-EMERALD SIDEBAR (w-64) */}
       {/* ========================================================================= */}
-      <aside className="hidden md:flex w-64 bg-[#0B3B2E] border-r border-[#082C22] text-white flex-col justify-between flex-shrink-0 sticky top-0 h-screen z-30 shadow-xl">
+      <aside className="hidden md:flex fixed inset-y-0 left-0 rtl:left-auto rtl:right-0 w-64 bg-[#0B3B2E] border-r rtl:border-r-0 rtl:border-l border-[#082C22] text-white flex-col justify-between h-screen z-30 shadow-xl flex-shrink-0">
         {/* Top of Sidebar: Brand & School Tenant Selector Card */}
-        <div className="p-4 border-b border-white/10">
+        <div className="p-4 border-b border-white/10 flex-shrink-0">
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
               <GraduationCap className="w-5 h-5 text-emerald-300" />
@@ -128,7 +128,7 @@ export default function DashboardShell({
         </div>
 
         {/* Middle of Sidebar: Vertical Navigation Links */}
-        <div className="flex-1 py-3 px-3 space-y-1 overflow-y-auto scrollbar-none">
+        <div className="flex-1 py-3 px-3 space-y-1 overflow-y-auto sidebar-scroll">
           <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-200/50 px-3 pb-1 block">
             Navigation
           </span>
@@ -173,7 +173,7 @@ export default function DashboardShell({
         </div>
 
         {/* Bottom of Sidebar: User Profile Card & Sign Out */}
-        <div className="p-3 border-t border-white/10 bg-black/20">
+        <div className="p-3 border-t border-white/10 bg-black/20 flex-shrink-0">
           <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/5 border border-white/10">
             <div className="flex items-center gap-2.5 min-w-0">
               {currentUser?.avatar_url ? (
@@ -254,7 +254,7 @@ export default function DashboardShell({
           />
 
           {/* Slide-over Drawer Panel */}
-          <div className="relative w-72 max-w-[85vw] bg-[#0B3B2E] text-white h-full shadow-2xl z-50 flex flex-col justify-between p-4 space-y-4 overflow-y-auto border-r border-[#082C22]">
+          <div className="relative w-72 max-w-[85vw] bg-[#0B3B2E] text-white h-full shadow-2xl z-50 flex flex-col justify-between p-4 space-y-4 overflow-y-auto sidebar-scroll border-r rtl:border-r-0 rtl:border-l border-[#082C22]">
             <div className="space-y-4">
               {/* Drawer Header */}
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
@@ -376,9 +376,9 @@ export default function DashboardShell({
       {/* ========================================================================= */}
       {/* 4. MAIN CONTENT AREA WITH TOP UTILITY BAR (flex-1) */}
       {/* ========================================================================= */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen bg-[#F8FAFC]">
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen bg-[#F8FAFC] md:pl-64 rtl:md:pl-0 rtl:md:pr-64 transition-all">
         {/* Desktop Top Utility Bar (Breadcrumb, Search, Notification Bell, Profile, Language) */}
-        <header className="hidden md:flex sticky top-0 z-20 bg-white border-b border-slate-100 px-6 lg:px-8 py-3 min-h-[58px] items-center justify-between gap-4 shadow-2xs">
+        <header className="hidden md:flex sticky top-0 z-20 bg-white/95 backdrop-blur-xs border-b border-slate-100 px-6 lg:px-8 py-3 min-h-[58px] items-center justify-between gap-4 shadow-2xs">
           {/* Left: School Breadcrumb */}
           <div className="flex items-center gap-1.5 text-xs min-w-0">
             <span className="font-medium text-slate-400">{schoolName}</span>

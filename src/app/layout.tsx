@@ -28,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="scroll-smooth overflow-x-hidden">
+    <html lang="en" className="scroll-smooth overflow-x-clip">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -37,7 +37,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="antialiased min-h-screen flex flex-col bg-[#FAFAFA] text-[#111827] overflow-x-hidden w-full selection:bg-emerald-100 selection:text-emerald-900">
+      <body className="antialiased min-h-screen flex flex-col bg-[#FAFAFA] text-[#111827] overflow-x-clip w-full selection:bg-emerald-100 selection:text-emerald-900">
         <LanguageProvider>{children}</LanguageProvider>
       </body>
     </html>
