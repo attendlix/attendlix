@@ -89,7 +89,7 @@ export interface Announcement {
   created_at: string;
 }
 
-export type AttendanceStatus = "PRESENT" | "ABSENT" | "LEAVE";
+export type AttendanceStatus = "PRESENT" | "ABSENT" | "LEAVE" | "LATE";
 
 export interface AttendanceRecord {
   id: string;
@@ -100,6 +100,8 @@ export interface AttendanceRecord {
   roll_no?: string;
   date: string;
   status: AttendanceStatus;
+  remarks?: string;
+  marked_by?: string;
   synced_at: string;
   is_offline_pending?: boolean;
 }

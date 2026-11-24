@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -31,6 +31,9 @@ import {
   FileText,
   AlertCircle,
   Settings,
+  Filter,
+  Calendar,
+  ChevronDown,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -48,21 +51,35 @@ import {
   sendTeacherMessage,
   isQuietHoursActive,
   getClassTimetable,
+  getStudentAttendanceRecords,
   DAYS_ORDER,
   logout,
 } from "@/lib/store";
-import { User, Student, Announcement, Homework, ExamMark, FeeRecord, ChatMessage, PaymentMethod, TimetableSlot, DayOfWeek } from "@/lib/types";
+import {
+  User,
+  Student,
+  Announcement,
+  Homework,
+  ExamMark,
+  FeeRecord,
+  ChatMessage,
+  PaymentMethod,
+  TimetableSlot,
+  DayOfWeek,
+  AttendanceRecord,
+  AttendanceStatus,
+} from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 import DashboardShell from "@/components/DashboardShell";
 import UserSettingsTab from "@/components/UserSettingsTab";
-import { SparklineGreenWave, SparklineAmberWave, MiniBarChart } from "@/components/MiniCharts";
+import { SparklineGreenWave, SparklineAmberWave, MiniBarChart, SparklineBluePulse } from "@/components/MiniCharts";
 
 export default function StudentDashboard() {
   const router = useRouter();
   const { t, isRtl } = useLanguage();
 
   // Navigation tab
-  const [activeTab, setActiveTab] = useState<"overview" | "attendance_hw" | "timetable" | "exams" | "fees" | "chat" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "attendance" | "attendance_hw" | "timetable" | "exams" | "fees" | "chat" | "settings">("overview");
 
   // State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -75,6 +92,11 @@ export default function StudentDashboard() {
   const [feeRecords, setFeeRecords] = useState<FeeRecord[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [newMessageText, setNewMessageText] = useState("");
+
+  // Attendance State & Filters
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [attendanceMonthFilter, setAttendanceMonthFilter] = useState<string>("ALL");
+  const [attendanceStatusFilter, setAttendanceStatusFilter] = useState<"ALL" | "PRESENT" | "ABSENT" | "LATE" | "LEAVE">("ALL");
 
   // Timetable State
   const [classTimetable, setClassTimetable] = useState<TimetableSlot[]>([]);
@@ -95,6 +117,126 @@ export default function StudentDashboard() {
   };
 
   const quietHours = isQuietHoursActive();
+
+  // ---------------------------------------------------------------------------
+  // ATTENDANCE HELPERS & MEMOIZED CALCULATIONS
+  // ---------------------------------------------------------------------------
+  const formatAttendanceDate = (dateStr: string) => {
+    try {
+      const parts = dateStr.split("-").map(Number);
+      if (parts.length === 3) {
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleDateString(isRtl ? "ur-PK" : "en-PK", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          });
+        }
+      }
+      return dateStr;
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    attendanceRecords.forEach((r) => {
+      if (r.date && r.date.length >= 7) {
+        set.add(r.date.slice(0, 7));
+      }
+    });
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [attendanceRecords]);
+
+  const formatMonthName = (yearMonth: string) => {
+    if (yearMonth === "ALL") return isRtl ? "تمام مہینے (All Months)" : "All Recorded Months";
+    try {
+      const [y, m] = yearMonth.split("-").map(Number);
+      const d = new Date(y, m - 1, 1);
+      return d.toLocaleDateString(isRtl ? "ur-PK" : "en-PK", { month: "long", year: "numeric" });
+    } catch {
+      return yearMonth;
+    }
+  };
+
+  const filteredAttendance = useMemo(() => {
+    return attendanceRecords.filter((r) => {
+      if (attendanceMonthFilter !== "ALL" && !r.date.startsWith(attendanceMonthFilter)) {
+        return false;
+      }
+      if (attendanceStatusFilter !== "ALL" && r.status !== attendanceStatusFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [attendanceRecords, attendanceMonthFilter, attendanceStatusFilter]);
+
+  const recordsInMonth = useMemo(() => {
+    return attendanceRecords.filter((r) =>
+      attendanceMonthFilter === "ALL" ? true : r.date.startsWith(attendanceMonthFilter)
+    );
+  }, [attendanceRecords, attendanceMonthFilter]);
+
+  const countPresentInMonth = recordsInMonth.filter((r) => r.status === "PRESENT").length;
+  const countAbsentInMonth = recordsInMonth.filter((r) => r.status === "ABSENT").length;
+  const countLateInMonth = recordsInMonth.filter((r) => r.status === "LATE").length;
+  const countLeaveInMonth = recordsInMonth.filter((r) => r.status === "LEAVE").length;
+
+  const totalRecordedDays = attendanceRecords.length;
+  const totalPresentDays = attendanceRecords.filter((r) => r.status === "PRESENT").length;
+  const totalAbsentDays = attendanceRecords.filter((r) => r.status === "ABSENT").length;
+  const totalLateDays = attendanceRecords.filter((r) => r.status === "LATE").length;
+  const totalLeaveDays = attendanceRecords.filter((r) => r.status === "LEAVE").length;
+  const overallAttendancePercent =
+    totalRecordedDays > 0
+      ? Math.round(((totalPresentDays + totalLateDays) / totalRecordedDays) * 100)
+      : 96;
+
+  const getArrivalTiming = (record: AttendanceRecord) => {
+    if (record.status === "PRESENT") return "08:05 AM (On time)";
+    if (record.status === "LATE") return "08:24 AM (Late)";
+    if (record.status === "LEAVE") return isRtl ? "منظور شدہ رخصت" : "Approved Leave";
+    if (record.status === "ABSENT") return isRtl ? "غیر حاضر (گیٹ بند)" : "No check-in";
+    return "—";
+  };
+
+  const renderStatusBadge = (status: AttendanceStatus) => {
+    switch (status) {
+      case "PRESENT":
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span>{isRtl ? "حاضر" : "PRESENT"}</span>
+          </span>
+        );
+      case "ABSENT":
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+            <span>{isRtl ? "غیر حاضر" : "ABSENT"}</span>
+          </span>
+        );
+      case "LATE":
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            <span>{isRtl ? "تاخیر" : "LATE"}</span>
+          </span>
+        );
+      case "LEAVE":
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+            <span>{isRtl ? "رخصت" : "LEAVE"}</span>
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
 
   const refreshData = () => {
     const user = getCurrentUser();
@@ -121,6 +263,7 @@ export default function StudentDashboard() {
       setExamMarksList(getStudentExamMarks(user.school_id, student.id));
       setFeeRecords(getStudentFeeRecords(user.school_id, student.id));
       setChatMessages(getStudentMessages(user.school_id, student.id));
+      setAttendanceRecords(getStudentAttendanceRecords(user.school_id, student.id));
     }
   };
 
@@ -171,7 +314,8 @@ export default function StudentDashboard() {
 
   const studentNavItems = [
     { id: "overview", label: t.tabOverview || "Overview & Profile", icon: School },
-    { id: "attendance_hw", label: t.tabHomework || "Diary & Work", icon: BookOpen },
+    { id: "attendance", label: isRtl ? "حاضری کا ریکارڈ" : "Attendance Record", icon: CalendarCheck },
+    { id: "attendance_hw", label: isRtl ? "ہوم ورک ڈائری" : "Homework Diary", icon: BookOpen },
     { id: "timetable", label: t.tabTimetable || "Timetable", icon: Clock },
     { id: "exams", label: t.tabExams || "Exam Marks", icon: Award },
     { id: "fees", label: t.tabFees || "Fee Status", icon: CreditCard },
@@ -215,14 +359,21 @@ export default function StudentDashboard() {
               </div>
             </div>
 
-            {/* Attendance Badge */}
+            {/* Attendance Badge - Clickable to Attendance Tab */}
             <div className="flex items-center gap-2 self-start sm:self-auto">
-              <div className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-right">
+              <button
+                type="button"
+                onClick={() => setActiveTab("attendance")}
+                className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-right transition-colors"
+                title="View Full Attendance History"
+              >
                 <span className="block text-[10px] font-bold uppercase tracking-wider text-emerald-600">
-                  Attendance
+                  {isRtl ? "حاضری کی شرح" : "Attendance Rate"}
                 </span>
-                <span className="text-lg font-extrabold">96% Present</span>
-              </div>
+                <span className="text-lg font-extrabold">
+                  {overallAttendancePercent}% {isRtl ? "حاضر" : "Present"}
+                </span>
+              </button>
             </div>
           </div>
         </div>
@@ -234,18 +385,28 @@ export default function StudentDashboard() {
           <div className="space-y-6">
             {/* Elevated Quick Status Cards with Inline Mini Sparklines */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden">
+              <div
+                onClick={() => setActiveTab("attendance")}
+                className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden cursor-pointer hover:border-emerald-300 transition-all"
+                title="Click to view full attendance history"
+              >
                 <div className="flex items-center justify-between text-slate-400">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Today's Attendance</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {isRtl ? "آج کی حاضری" : "Today's Attendance"}
+                  </span>
                   <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
                     <CheckCircle2 className="w-4 h-4" />
                   </div>
                 </div>
                 <div className="flex items-end justify-between">
-                  <div className="text-2xl font-extrabold text-emerald-700">Present</div>
+                  <div className="text-2xl font-extrabold text-emerald-700">
+                    {isRtl ? "حاضر" : "Present"}
+                  </div>
                   <SparklineGreenWave className="w-20 h-7" />
                 </div>
-                <div className="text-xs text-slate-500 font-medium">Marked at 08:15 AM • 96% Overall Rate</div>
+                <div className="text-xs text-slate-500 font-medium">
+                  {isRtl ? `آمد: 08:05 AM • ${overallAttendancePercent}% شرح حاضری` : `Marked at 08:05 AM • ${overallAttendancePercent}% Overall Rate`}
+                </div>
               </div>
 
               <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden">
@@ -350,66 +511,405 @@ export default function StudentDashboard() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 2: ATTENDANCE & HOMEWORK DIARY */}
+        {/* TAB 2A: COMPLETE DATE-WISE ATTENDANCE LOG */}
+        {/* ========================================================================= */}
+        {activeTab === "attendance" && (
+          <div className="space-y-6">
+            {/* Header with Title & Quick Switch */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                  <CalendarCheck className="w-5 h-5 text-emerald-600" />
+                  <span>{isRtl ? "حاضری کا مکمل ریکارڈ اور گیٹ لاگ" : "Attendance Record & Gate Log"}</span>
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {isRtl
+                    ? "مکمل تاریخ وار اسکول حاضری، وقت کی پابندی اور چھٹیوں کی تفاصیل"
+                    : "Complete date-by-date check-in history, arrival timings, and leave records."}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("attendance_hw")}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-2xs self-start sm:self-auto"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
+                <span>{isRtl ? "ہوم ورک ڈائری دیکھیں" : "View Homework Diary"}</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Top 4 Attendance Metric Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* Card 1: Overall % */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {isRtl ? "مجموعی حاضری" : "Attendance Rate"}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    {overallAttendancePercent}%
+                  </span>
+                  <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                    {overallAttendancePercent >= 90 ? "Excellent" : "Standard"}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500">
+                    {totalRecordedDays} {isRtl ? "ریکارڈ شدہ دن" : "total days"}
+                  </span>
+                  <SparklineGreenWave />
+                </div>
+              </div>
+
+              {/* Card 2: Present Days */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {isRtl ? "کل حاضر دن" : "Present Days"}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+                    <Check className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    {totalPresentDays}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">days</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500">
+                    {isRtl ? "آن ٹائم آمد" : "On-time arrival"}
+                  </span>
+                  <SparklineBluePulse />
+                </div>
+              </div>
+
+              {/* Card 3: Absent Days */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {isRtl ? "کل غیر حاضر" : "Absent Days"}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center">
+                    <AlertCircle className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    {totalAbsentDays}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">days</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[11px] text-rose-600 font-medium">
+                    {totalAbsentDays === 0 ? "Perfect attendance!" : "Unexcused"}
+                  </span>
+                  <MiniBarChart />
+                </div>
+              </div>
+
+              {/* Card 4: Late & Leaves */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {isRtl ? "تاخیر و رخصت" : "Late & Leaves"}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    {totalLateDays + totalLeaveDays}
+                  </span>
+                  <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                    {totalLateDays} Late • {totalLeaveDays} Leave
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500">
+                    {isRtl ? "گیٹ پر تاخیر یا منظور شدہ" : "Gate delays / Leaves"}
+                  </span>
+                  <SparklineAmberWave />
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Controls: Month Selector & Status Pills */}
+            <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col md:flex-row md:items-center justify-between gap-4">
+              {/* Month Selector */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-bold text-slate-600 flex items-center gap-1.5 flex-shrink-0">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{isRtl ? "مہینہ منتخب کریں:" : "Month:"}</span>
+                </label>
+                <div className="relative">
+                  <select
+                    value={attendanceMonthFilter}
+                    onChange={(e) => setAttendanceMonthFilter(e.target.value)}
+                    className="appearance-none pl-3 pr-8 py-1.5 text-xs font-semibold bg-slate-50 hover:bg-slate-100 text-slate-800 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-[#0B3B2E]/20 transition-all cursor-pointer"
+                  >
+                    <option value="ALL">{formatMonthName("ALL")}</option>
+                    {availableMonths.map((ym) => (
+                      <option key={ym} value={ym}>
+                        {formatMonthName(ym)}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Status Filter Pills */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { id: "ALL", label: isRtl ? "تمام" : "All", count: recordsInMonth.length, activeClass: "bg-[#0B3B2E] text-white border-[#0B3B2E]" },
+                  { id: "PRESENT", label: isRtl ? "حاضر" : "Present", count: countPresentInMonth, activeClass: "bg-emerald-600 text-white border-emerald-600" },
+                  { id: "ABSENT", label: isRtl ? "غیر حاضر" : "Absent", count: countAbsentInMonth, activeClass: "bg-rose-600 text-white border-rose-600" },
+                  { id: "LATE", label: isRtl ? "تاخیر" : "Late", count: countLateInMonth, activeClass: "bg-amber-600 text-white border-amber-600" },
+                  { id: "LEAVE", label: isRtl ? "رخصت" : "Leave", count: countLeaveInMonth, activeClass: "bg-blue-600 text-white border-blue-600" },
+                ].map((pill) => {
+                  const isActive = attendanceStatusFilter === pill.id;
+                  return (
+                    <button
+                      key={pill.id}
+                      type="button"
+                      onClick={() => setAttendanceStatusFilter(pill.id as any)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+                        isActive
+                          ? pill.activeClass + " shadow-2xs"
+                          : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                      }`}
+                    >
+                      <span>{pill.label}</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                          isActive ? "bg-white/25 text-white" : "bg-slate-200/80 text-slate-600"
+                        }`}
+                      >
+                        {pill.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Attendance Records List / Table */}
+            <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-slate-900 text-sm">
+                    {attendanceMonthFilter === "ALL"
+                      ? isRtl
+                        ? "تمام ریکارڈ شدہ حاضری"
+                        : "All Recorded School Days"
+                      : `${formatMonthName(attendanceMonthFilter)} Log`}
+                  </h3>
+                  <span className="text-xs text-slate-400 font-medium">
+                    ({filteredAttendance.length} {filteredAttendance.length === 1 ? "entry" : "entries"})
+                  </span>
+                </div>
+
+                {(attendanceStatusFilter !== "ALL" || attendanceMonthFilter !== "ALL") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAttendanceStatusFilter("ALL");
+                      setAttendanceMonthFilter("ALL");
+                    }}
+                    className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline"
+                  >
+                    {isRtl ? "فلٹرز ختم کریں" : "Reset Filters"}
+                  </button>
+                )}
+              </div>
+
+              {filteredAttendance.length === 0 ? (
+                <div className="p-12 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                    <Filter className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-sm">
+                      {isRtl ? "کوئی ریکارڈ نہیں ملا" : "No Attendance Records Found"}
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                      {isRtl
+                        ? "اس فلٹر کے لیے کوئی حاضری اندراج دستیاب نہیں ہے۔ دیگر فلٹرز یا مہینہ منتخب کریں۔"
+                        : "There are no attendance records matching your chosen month and status filter."}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAttendanceStatusFilter("ALL");
+                      setAttendanceMonthFilter("ALL");
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-2xs transition-colors"
+                  >
+                    <span>{isRtl ? "تمام ریکارڈز دکھائیں" : "Show All Records"}</span>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50/75 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        <tr>
+                          <th className="py-3.5 px-4">Date & Day</th>
+                          <th className="py-3.5 px-4">Status</th>
+                          <th className="py-3.5 px-4">Timing / Gate Check</th>
+                          <th className="py-3.5 px-4">Remarks / Reason</th>
+                          <th className="py-3.5 px-4 text-right">Recorded By</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-sans">
+                        {filteredAttendance.map((rec) => (
+                          <tr key={rec.id} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="py-3.5 px-4 font-semibold text-slate-900 flex items-center gap-2">
+                              <Calendar className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                              <span>{formatAttendanceDate(rec.date)}</span>
+                            </td>
+                            <td className="py-3.5 px-4">{renderStatusBadge(rec.status)}</td>
+                            <td className="py-3.5 px-4 font-mono text-slate-600">
+                              <span
+                                className={
+                                  rec.status === "LATE"
+                                    ? "text-amber-700 font-bold"
+                                    : rec.status === "ABSENT"
+                                    ? "text-rose-500 font-normal"
+                                    : "text-slate-700"
+                                }
+                              >
+                                {getArrivalTiming(rec)}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-slate-600">
+                              {rec.remarks ? (
+                                <span className="italic text-slate-700">“{rec.remarks}”</span>
+                              ) : (
+                                <span className="text-slate-400">—</span>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4 text-right text-slate-500">
+                              {rec.marked_by || "Ms. Sadia Tariq (Class Teacher)"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Cards View */}
+                  <div className="block md:hidden divide-y divide-slate-100">
+                    {filteredAttendance.map((rec) => (
+                      <div key={rec.id} className="p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{formatAttendanceDate(rec.date)}</span>
+                          </span>
+                          {renderStatusBadge(rec.status)}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                          <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                            <span className="text-[10px] font-bold uppercase text-slate-400 block">Arrival / Gate</span>
+                            <span
+                              className={`font-mono font-medium ${
+                                rec.status === "LATE"
+                                  ? "text-amber-700 font-bold"
+                                  : rec.status === "ABSENT"
+                                  ? "text-rose-500"
+                                  : "text-slate-700"
+                              }`}
+                            >
+                              {getArrivalTiming(rec)}
+                            </span>
+                          </div>
+                          <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                            <span className="text-[10px] font-bold uppercase text-slate-400 block">Recorded By</span>
+                            <span className="text-slate-700 truncate block">
+                              {rec.marked_by ? rec.marked_by.split(" ")[0] + "..." : "Class Teacher"}
+                            </span>
+                          </div>
+                        </div>
+                        {rec.remarks && (
+                          <div className="text-[11px] text-slate-600 italic bg-amber-50/60 p-2 rounded-xl border border-amber-200/60">
+                            Remarks: “{rec.remarks}”
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 2B: HOMEWORK DIARY */}
         {/* ========================================================================= */}
         {activeTab === "attendance_hw" && (
           <div className="space-y-6">
-            {/* Daily Homework */}
-            <div className="space-y-3">
-              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-emerald-600" />
-                <span>Daily Homework Diary</span>
-              </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-emerald-600" />
+                  <span>{isRtl ? "روزانہ ہوم ورک ڈائری" : "Daily Homework Diary"}</span>
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {isRtl
+                    ? "اساتذہ کی طرف سے روزانہ تفویض کردہ ہوم ورک اور اسائنمنٹس"
+                    : "Subject assignments, due dates, and learning tasks given by teachers."}
+                </p>
+              </div>
 
-              <div className="space-y-3">
-                {homeworkList.map((hw) => (
-                  <div key={hw.id} className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab("attendance")}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-2xs self-start sm:self-auto"
+              >
+                <CalendarCheck className="w-3.5 h-3.5 text-emerald-700" />
+                <span>{isRtl ? "مکمل حاضری ریکارڈ دیکھیں" : "View Attendance Log"}</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Daily Homework Cards */}
+            <div className="space-y-3">
+              {homeworkList.length === 0 ? (
+                <div className="p-8 rounded-2xl bg-white border border-slate-100 text-center text-xs text-slate-500">
+                  No pending homework tasks assigned today.
+                </div>
+              ) : (
+                homeworkList.map((hw) => (
+                  <div key={hw.id} className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="px-2.5 py-0.5 rounded-md font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
                           {hw.subject}
                         </span>
                         <h4 className="font-bold text-slate-900 text-xs sm:text-sm">{hw.title}</h4>
                       </div>
-                      <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
+                      <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg">
                         Due: {hw.due_date}
                       </span>
                     </div>
                     <p className="text-xs text-slate-600 leading-relaxed">{hw.description}</p>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Attendance History Preview */}
-            <div className="space-y-3">
-              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <CalendarCheck className="w-4 h-4 text-emerald-600" />
-                <span>Recent Attendance Record</span>
-              </h3>
-
-              <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs divide-y divide-slate-100 text-xs">
-                {[
-                  { date: "Today, 15 Nov", status: "PRESENT" },
-                  { date: "Yesterday, 14 Nov", status: "PRESENT" },
-                  { date: "Thursday, 13 Nov", status: "PRESENT" },
-                  { date: "Wednesday, 12 Nov", status: "LEAVE" },
-                  { date: "Tuesday, 11 Nov", status: "PRESENT" },
-                ].map((item, i) => (
-                  <div key={i} className="py-2.5 flex items-center justify-between">
-                    <span className="font-medium text-slate-700">{item.date}</span>
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
-                        item.status === "PRESENT"
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          : "bg-amber-50 text-amber-700 border border-amber-200"
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                ))
+              )}
             </div>
           </div>
         )}

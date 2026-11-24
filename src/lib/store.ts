@@ -491,6 +491,9 @@ export function initializeStore() {
   if (!window.localStorage.getItem(KEY_EXAM_MARKS)) {
     setStorage(KEY_EXAM_MARKS, SEED_EXAM_MARKS);
   }
+  if (!window.localStorage.getItem(KEY_ATTENDANCE)) {
+    setStorage(KEY_ATTENDANCE, SEED_ATTENDANCE);
+  }
 }
 
 // ----------------------------------------------------
@@ -982,6 +985,46 @@ const KEY_HOMEWORK = "attendlix_homework_list";
 const KEY_EXAM_MARKS = "attendlix_exam_marks_list";
 const KEY_MESSAGES = "attendlix_chat_messages";
 
+// Seed Student Attendance Records (Historical & Daily)
+export const SEED_ATTENDANCE: AttendanceRecord[] = [
+  { id: "att-seed-01", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-24", status: "PRESENT", remarks: "On time (08:05 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-02", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-23", status: "PRESENT", remarks: "On time (08:08 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-03", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-21", status: "PRESENT", remarks: "Saturday Activity Session", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-04", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-20", status: "PRESENT", remarks: "On time (08:02 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-05", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-19", status: "LATE", remarks: "Arrived at 08:24 AM (Traffic delay on Ring Road)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-06", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-18", status: "PRESENT", remarks: "On time (08:10 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-07", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-17", status: "PRESENT", remarks: "On time (08:04 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-08", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-16", status: "ABSENT", remarks: "Unexcused absence - WhatsApp alert sent to parent", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-09", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-14", status: "PRESENT", remarks: "On time (08:06 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-10", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-13", status: "PRESENT", remarks: "On time (08:09 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-11", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-12", status: "LEAVE", remarks: "Medical Leave - Doctor slip submitted", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-12", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-11", status: "PRESENT", remarks: "On time (08:05 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-13", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-10", status: "PRESENT", remarks: "On time (08:01 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-14", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-09", status: "PRESENT", remarks: "On time (08:07 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-15", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-07", status: "PRESENT", remarks: "On time (08:12 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-16", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-06", status: "PRESENT", remarks: "On time (08:03 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-17", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-05", status: "PRESENT", remarks: "On time (08:06 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-18", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-04", status: "LATE", remarks: "Arrived at 08:20 AM (Gate cutoff 08:15 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-19", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-03", status: "PRESENT", remarks: "On time (08:08 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-20", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-02", status: "PRESENT", remarks: "On time (08:00 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-21", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-10-31", status: "PRESENT", remarks: "On time (08:05 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-22", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-10-30", status: "PRESENT", remarks: "On time (08:09 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-23", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-10-29", status: "PRESENT", remarks: "On time (08:02 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-24", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-10-28", status: "PRESENT", remarks: "On time (08:04 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-25", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-10-27", status: "PRESENT", remarks: "On time (08:11 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-26", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-10-26", status: "ABSENT", remarks: "Fever reported by parent on WhatsApp", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-27", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-10-24", status: "PRESENT", remarks: "On time (08:07 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-28", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-10-23", status: "PRESENT", remarks: "On time (08:03 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-29", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-10-22", status: "PRESENT", remarks: "On time (08:05 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-30", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-10-21", status: "LATE", remarks: "Arrived at 08:22 AM (Punctuality notice)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-31", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-10-20", status: "PRESENT", remarks: "On time (08:04 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-32", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-10-19", status: "PRESENT", remarks: "On time (08:06 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-33", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-10-17", status: "PRESENT", remarks: "On time (08:00 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-34", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-10-16", status: "PRESENT", remarks: "On time (08:08 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-35", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-10-15", status: "LEAVE", remarks: "Family wedding leave approved", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+  { id: "att-seed-36", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-10-14", status: "PRESENT", remarks: "On time (08:02 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
+];
+
 // Seed Homework
 const SEED_HOMEWORK: Homework[] = [
   {
@@ -1303,8 +1346,18 @@ export function getDailyAttendance(school_id: string, class_id: string, date: st
 
 export function getStudentAttendanceRecords(school_id: string, student_id: string): AttendanceRecord[] {
   initializeStore();
-  const all = getStorage<AttendanceRecord[]>(KEY_ATTENDANCE, []);
-  return all.filter((r) => (r.school_id === school_id || school_id === SEED_SCHOOL_ID) && r.student_id === student_id);
+  const all = getStorage<AttendanceRecord[]>(KEY_ATTENDANCE, SEED_ATTENDANCE);
+  const filtered = all.filter(
+    (r) => (r.school_id === school_id || school_id === SEED_SCHOOL_ID) && r.student_id === student_id
+  );
+  if (filtered.length > 0) {
+    return filtered.sort((a, b) => b.date.localeCompare(a.date));
+  }
+  return SEED_ATTENDANCE.map((r, i) => ({
+    ...r,
+    id: `att-synth-${student_id}-${i}`,
+    student_id,
+  })).sort((a, b) => b.date.localeCompare(a.date));
 }
 
 export function saveClassAttendance(
