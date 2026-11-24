@@ -2277,6 +2277,17 @@ export function getStaffTodayRecord(
   return found || null;
 }
 
+export function getStaffAttendanceHistory(
+  school_id: string,
+  user_id: string
+): StaffAttendanceRecord[] {
+  initializeStore();
+  const allSaved = getStorage<StaffAttendanceRecord[]>(KEY_STAFF_ATTENDANCE, SEED_STAFF_ATTENDANCE);
+  return allSaved.filter(
+    (r) => (r.school_id === school_id || school_id === SEED_SCHOOL_ID) && r.user_id === user_id
+  );
+}
+
 export function teacherCheckIn(
   school_id: string,
   user_id: string

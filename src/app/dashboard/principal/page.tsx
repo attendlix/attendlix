@@ -53,6 +53,7 @@ import {
   ShieldCheck,
   Mail,
   FileText,
+  Eye,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -73,12 +74,15 @@ import {
   updateFeeRecordAmount,
   getFeeSummary,
   getClassTimetable,
+  getTimetables,
   checkTeacherClash,
   saveTimetableSlot,
   deleteTimetableSlot,
   getStaffAttendance,
   getStaffAttendanceStats,
   saveStaffAttendanceRecord,
+  getStaffTodayRecord,
+  getStaffAttendanceHistory,
   getTodayDateStr,
   formatCurrentTime,
   DAYS_ORDER,
@@ -142,6 +146,7 @@ export default function PrincipalDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [classesList, setClassesList] = useState<SchoolClass[]>([]);
   const [staffList, setStaffList] = useState<User[]>([]);
+  const [selectedStaffForProfile, setSelectedStaffForProfile] = useState<User | null>(null);
   const [studentsList, setStudentsList] = useState<Student[]>([]);
   const [announcementsList, setAnnouncementsList] = useState<Announcement[]>([]);
 
@@ -1561,17 +1566,29 @@ export default function PrincipalDashboard() {
                     <span className="font-semibold text-slate-800">{st.phone || "—"}</span>
                   </div>
 
-                  {st.phone && (
-                    <a
-                      href={formatWhatsAppUrl(st.phone, `Assalam-o-Alaikum ${st.name}, from ${schoolData?.name}.`)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="w-full py-2.5 px-3 rounded-xl bg-green-50 hover:bg-green-100 text-green-800 border border-green-200 font-bold text-xs flex items-center justify-center gap-1.5 min-h-[44px] transition-all"
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStaffForProfile(st)}
+                      className="w-full py-2 px-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold text-xs flex items-center justify-center gap-1.5 min-h-[40px] transition-all shadow-2xs"
                     >
-                      <MessageSquare className="w-4 h-4 text-green-600" />
-                      <span>Chat on WhatsApp</span>
-                    </a>
-                  )}
+                      <Eye className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Show Profile</span>
+                    </button>
+                    {st.phone ? (
+                      <a
+                        href={formatWhatsAppUrl(st.phone, `Assalam-o-Alaikum ${st.name}, from ${schoolData?.name}.`)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full py-2 px-3 rounded-xl bg-green-50 hover:bg-green-100 text-green-800 border border-green-200 font-bold text-xs flex items-center justify-center gap-1.5 min-h-[40px] transition-all"
+                      >
+                        <MessageSquare className="w-4 h-4 text-green-600" />
+                        <span>WhatsApp</span>
+                      </a>
+                    ) : (
+                      <div className="flex items-center justify-center text-xs text-slate-400">No Phone</div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -1585,7 +1602,7 @@ export default function PrincipalDashboard() {
                     <th className="py-3 px-4">Role</th>
                     <th className="py-3 px-4">Login Identifier</th>
                     <th className="py-3 px-4">WhatsApp / Phone</th>
-                    <th className="py-3 px-4 text-right">Quick Contact</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1606,17 +1623,27 @@ export default function PrincipalDashboard() {
                       <td className="py-3.5 px-4 font-mono font-medium text-slate-700">{st.identifier}</td>
                       <td className="py-3.5 px-4 text-slate-600">{st.phone || "—"}</td>
                       <td className="py-3.5 px-4 text-right">
-                        {st.phone && (
-                          <a
-                            href={formatWhatsAppUrl(st.phone, `Assalam-o-Alaikum ${st.name}, from ${schoolData?.name}.`)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-semibold"
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedStaffForProfile(st)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-xs font-semibold transition-all shadow-2xs"
                           >
-                            <MessageSquare className="w-3.5 h-3.5" />
-                            <span>WhatsApp</span>
-                          </a>
-                        )}
+                            <Eye className="w-3.5 h-3.5 text-slate-500" />
+                            <span>Show Profile</span>
+                          </button>
+                          {st.phone && (
+                            <a
+                              href={formatWhatsAppUrl(st.phone, `Assalam-o-Alaikum ${st.name}, from ${schoolData?.name}.`)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 font-semibold text-xs transition-colors"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5 text-green-600" />
+                              <span>WhatsApp</span>
+                            </a>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -4303,6 +4330,398 @@ export default function PrincipalDashboard() {
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: STAFF PROFILE (TEACHER / ACCOUNTANT) */}
+      {/* ========================================================================= */}
+      {selectedStaffForProfile && (() => {
+        const staff = selectedStaffForProfile;
+        const assignedClasses = classesList.filter(
+          (c) =>
+            c.class_teacher_name?.trim().toLowerCase() === staff.name.trim().toLowerCase()
+        );
+        const allTimetables = getTimetables(currentUser?.school_id);
+        const teacherSlots = allTimetables.filter(
+          (s) =>
+            s.teacher_id === staff.id ||
+            s.teacher_name?.trim().toLowerCase() === staff.name.trim().toLowerCase()
+        );
+        const todayAtt =
+          getStaffTodayRecord(currentUser?.school_id || "", staff.id) ||
+          staffAttendanceList.find((r) => r.user_id === staff.id);
+        const attHistory = getStaffAttendanceHistory(currentUser?.school_id || "", staff.id);
+        const presentDays = attHistory.filter((r) => r.status === "PRESENT").length;
+        const lateDays = attHistory.filter((r) => r.status === "LATE").length;
+        const absentDays = attHistory.filter((r) => r.status === "ABSENT").length;
+        const onLeaveDays = attHistory.filter((r) => r.status === "ON_LEAVE").length;
+
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+            <div className="w-full max-w-2xl max-h-[90vh] overflow-hidden bg-white rounded-2xl border border-slate-200 shadow-2xl flex flex-col animate-scaleUp">
+              {/* Modal Top Header with Emerald Gradient Banner */}
+              <div className="relative bg-gradient-to-r from-[#0B3B2E] via-[#0D4838] to-[#082C22] p-5 sm:p-6 text-white flex-shrink-0">
+                <button
+                  onClick={() => setSelectedStaffForProfile(null)}
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  {/* Avatar / Photo */}
+                  <div className="relative flex-shrink-0">
+                    {staff.avatar_url ? (
+                      <img
+                        src={staff.avatar_url}
+                        alt={staff.name}
+                        className="w-16 h-16 rounded-2xl object-cover border-2 border-white/20 shadow-md"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl font-extrabold text-emerald-300 shadow-md">
+                        {staff.name.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <span
+                      className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-[#0B3B2E] ${
+                        staff.status === "ACTIVE" ? "bg-emerald-400" : "bg-slate-400"
+                      }`}
+                      title={staff.status || "ACTIVE"}
+                    />
+                  </div>
+
+                  {/* Header Details */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <h3 className="text-lg sm:text-xl font-extrabold text-white truncate">{staff.name}</h3>
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase ${
+                          staff.role === "TEACHER"
+                            ? "bg-blue-400/20 text-blue-200 border border-blue-400/30"
+                            : "bg-amber-400/20 text-amber-200 border border-amber-400/30"
+                        }`}
+                      >
+                        {staff.role}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-200 border border-emerald-500/30">
+                        {staff.status || "ACTIVE"}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-emerald-100/80">
+                      <div className="flex items-center gap-1.5 font-mono bg-black/20 px-2.5 py-1 rounded-lg border border-white/10">
+                        <span className="text-emerald-300/70 text-[10px] uppercase font-bold">ID:</span>
+                        <span className="font-bold text-white">{staff.identifier}</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(staff.identifier, `id-${staff.id}`)}
+                          className="ml-1 text-emerald-300 hover:text-white transition-colors"
+                          title="Copy Login Identifier"
+                        >
+                          {copiedKey === `id-${staff.id}` ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-300" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <Building2 className="w-3.5 h-3.5 text-emerald-300/80" />
+                        <span>{schoolData?.name || "School Campus"}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Body - Scrollable */}
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 text-slate-800">
+                {/* 1. Contact & Quick Connect Banner */}
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Direct Contact & WhatsApp</span>
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-emerald-600" />
+                      <span className="font-bold text-slate-900 text-sm">{staff.phone || "No phone registered"}</span>
+                    </div>
+                    {staff.email && (
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                        <Mail className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{staff.email}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {staff.phone && (
+                      <a
+                        href={formatWhatsAppUrl(staff.phone, `Assalam-o-Alaikum ${staff.name}, from ${schoolData?.name}.`)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-2xs transition-all"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>Chat WhatsApp</span>
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        copyToClipboard(
+                          `Staff Member: ${staff.name}\nRole: ${staff.role}\nLogin ID: ${staff.identifier}\nPhone: ${staff.phone || "N/A"}\nPortal: https://attendlix.vercel.app/login`,
+                          `card-${staff.id}`
+                        )
+                      }
+                      className="px-3 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-medium text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
+                    >
+                      {copiedKey === `card-${staff.id}` ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Copied Info</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Copy Info</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Role Specific: Assigned Classes & Schedule (TEACHER) OR Finance Responsibilities (ACCOUNTANT) */}
+                {staff.role === "TEACHER" ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-emerald-600" />
+                        <h4 className="font-extrabold text-sm text-slate-900 tracking-tight">Assigned Classes & Schedule</h4>
+                      </div>
+                      <span className="text-xs font-semibold text-slate-500">
+                        {assignedClasses.length} In Charge • {teacherSlots.length} Periods
+                      </span>
+                    </div>
+
+                    {/* Class Teacher Badge(s) */}
+                    {assignedClasses.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {assignedClasses.map((cls) => (
+                          <div
+                            key={cls.id}
+                            className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80 flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div className="p-2 rounded-lg bg-emerald-600 text-white">
+                                <GraduationCap className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <div className="font-bold text-slate-900 text-xs">
+                                  {cls.name} - Section {cls.section}
+                                </div>
+                                <div className="text-[10px] text-emerald-700 font-semibold">
+                                  Class Teacher in Charge
+                                </div>
+                              </div>
+                            </div>
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white border border-emerald-200 text-emerald-800">
+                              {cls.student_count || 0} Students
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Timetable Slots Table / List */}
+                    {teacherSlots.length > 0 ? (
+                      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+                        <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                          <span>Weekly Timetable Periods</span>
+                          <span>{teacherSlots.length} Total</span>
+                        </div>
+                        <div className="divide-y divide-slate-100 max-h-48 overflow-y-auto">
+                          {teacherSlots.map((slot) => (
+                            <div key={slot.id} className="p-2.5 px-3.5 flex items-center justify-between hover:bg-slate-50/80 transition-colors text-xs">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px]">
+                                  {slot.day_of_week}
+                                </span>
+                                <div>
+                                  <span className="font-bold text-slate-900">{slot.subject}</span>
+                                  <span className="text-slate-400 mx-1.5">•</span>
+                                  <span className="text-slate-600">{slot.class_name} - {slot.section}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 font-mono text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                <Clock className="w-3 h-3 text-emerald-600" />
+                                <span>{slot.start_time} - {slot.end_time}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      assignedClasses.length === 0 && (
+                        <div className="p-6 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-center space-y-1.5">
+                          <BookOpen className="w-8 h-8 text-slate-400 mx-auto" />
+                          <div className="font-bold text-slate-700 text-xs">No Classes or Timetable Slots Assigned Yet</div>
+                          <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                            Assign this teacher as a Class In-Charge in Classes & Sections or add teaching periods in the Timetable tab.
+                          </p>
+                        </div>
+                      )
+                    )}
+                  </div>
+                ) : (
+                  /* ACCOUNTANT VIEW */
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-4 h-4 text-emerald-600" />
+                      <h4 className="font-extrabold text-sm text-slate-900 tracking-tight">Financial & Administrative Scope</h4>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-2.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div className="font-bold text-slate-900">Student Fee Registers</div>
+                          <div className="text-[11px] text-slate-500">Record cash, bank, JazzCash & Easypaisa dues</div>
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-2.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div className="font-bold text-slate-900">WhatsApp Fee Reminders</div>
+                          <div className="text-[11px] text-slate-500">1-click parent notifications with school account details</div>
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-2.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div className="font-bold text-slate-900">Fee Receipts & Reconciliation</div>
+                          <div className="text-[11px] text-slate-500">Print digital receipts and reconcile monthly recovery</div>
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-2.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div className="font-bold text-slate-900">Scholarship & Fee Concessions</div>
+                          <div className="text-[11px] text-slate-500">Apply sibling discounts or custom monthly fee waivers</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Attendance Snapshot */}
+                <div className="space-y-3 pt-2 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CalendarCheck className="w-4 h-4 text-emerald-600" />
+                      <h4 className="font-extrabold text-sm text-slate-900 tracking-tight">Attendance Snapshot</h4>
+                    </div>
+                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                      {todayAtt?.status === "PRESENT"
+                        ? "Present Today"
+                        : todayAtt?.status === "LATE"
+                        ? "Late Arrival Today"
+                        : todayAtt?.status === "ON_LEAVE"
+                        ? "On Leave Today"
+                        : "Absent / Pending"}
+                    </span>
+                  </div>
+
+                  {/* Today's Check-in / Check-out Card */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
+                      <span className="text-[10px] font-bold uppercase text-slate-400">Today Check-In</span>
+                      <div className="text-sm font-extrabold text-slate-900 font-mono">
+                        {todayAtt?.check_in_time || "—"}
+                      </div>
+                      <div className="text-[10px] text-slate-500">Gate cutoff: {schoolData?.late_cutoff || "08:15 AM"}</div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
+                      <span className="text-[10px] font-bold uppercase text-slate-400">Today Check-Out</span>
+                      <div className="text-sm font-extrabold text-slate-900 font-mono">
+                        {todayAtt?.check_out_time || "—"}
+                      </div>
+                      <div className="text-[10px] text-slate-500">Shift ends: {schoolData?.end_time || "02:00 PM"}</div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
+                      <span className="text-[10px] font-bold uppercase text-slate-400">Recorded Status</span>
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            todayAtt?.status === "PRESENT"
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : todayAtt?.status === "LATE"
+                              ? "bg-amber-50 text-amber-700 border border-amber-200"
+                              : todayAtt?.status === "ON_LEAVE"
+                              ? "bg-blue-50 text-blue-700 border border-blue-200"
+                              : "bg-rose-50 text-rose-700 border border-rose-200"
+                          }`}
+                        >
+                          {todayAtt?.status || "ABSENT"}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-500 truncate">{todayAtt?.notes || "No remarks"}</div>
+                    </div>
+                  </div>
+
+                  {/* Monthly Quick Stats */}
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs text-slate-600">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Present</span>
+                        <span className="font-extrabold text-emerald-700">
+                          {presentDays + (todayAtt?.status === "PRESENT" && !attHistory.some((r) => r.date === getTodayDateStr()) ? 1 : 0)} Days
+                        </span>
+                      </div>
+                      <div className="border-l border-slate-200 pl-4">
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Late</span>
+                        <span className="font-extrabold text-amber-600">
+                          {lateDays + (todayAtt?.status === "LATE" && !attHistory.some((r) => r.date === getTodayDateStr()) ? 1 : 0)} Days
+                        </span>
+                      </div>
+                      <div className="border-l border-slate-200 pl-4">
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Leave / Absent</span>
+                        <span className="font-extrabold text-rose-600">{onLeaveDays + absentDays} Days</span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedStaffForProfile(null);
+                        setActiveTab("staff-attendance");
+                      }}
+                      className="text-xs font-bold text-[#0B3B2E] hover:underline flex items-center gap-1"
+                    >
+                      <span>Full Register</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between flex-shrink-0">
+                <div className="text-[11px] text-slate-500">
+                  Role: <strong className="text-slate-700">{staff.role}</strong> • Campus: <strong className="text-slate-700">{schoolData?.name}</strong>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStaffForProfile(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-2xs transition-colors"
+                >
+                  Close Profile
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </DashboardShell>
   );
 }
