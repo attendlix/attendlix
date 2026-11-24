@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { User, UserRole } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
+import { useNotifications } from "@/context/NotificationContext";
+import NotificationDropdown from "@/components/NotificationDropdown";
 
 export interface DashboardNavItem {
   id: string;
@@ -52,6 +54,7 @@ export default function DashboardShell({
   children,
 }: DashboardShellProps) {
   const { t, isRtl } = useLanguage();
+  const { unreadCount, isBellOpen, toggleBell, setIsBellOpen } = useNotifications();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   // Close drawer on escape key
@@ -234,9 +237,30 @@ export default function DashboardShell({
             <span className="font-extrabold tracking-tight text-white text-base">Attendlix</span>
           </Link>
 
-          {/* Right: Extra header items (Wi-Fi, etc.) & Language Toggle */}
+          {/* Right: Extra header items (Wi-Fi, etc.) + Notification Bell + Language Toggle */}
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {headerExtra}
+
+            {/* Mobile Notification Bell */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={toggleBell}
+                className="p-2 rounded-xl text-white hover:bg-white/10 border border-white/15 min-h-[40px] min-w-[40px] flex items-center justify-center relative transition-colors"
+                title="Notifications"
+                aria-label="View notifications"
+              >
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[16px] h-[16px] px-0.5 rounded-full bg-emerald-500 text-white font-extrabold text-[9px] flex items-center justify-center ring-2 ring-[#0B3B2E]">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {isBellOpen && <NotificationDropdown onClose={() => setIsBellOpen(false)} />}
+            </div>
+
             <LanguageToggle />
           </div>
         </div>
@@ -388,15 +412,25 @@ export default function DashboardShell({
 
           {/* Right: Notification Bell + Search Pill + Profile Shortcut + Extra + Language Toggle */}
           <div className="flex items-center gap-2.5 flex-shrink-0">
-            {/* Notification Bell */}
-            <button
-              type="button"
-              className="p-2 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-50 border border-slate-200/80 bg-white shadow-2xs relative transition-colors"
-              title="Notifications"
-            >
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 ring-2 ring-white" />
-            </button>
+            {/* Notification Bell with Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={toggleBell}
+                className="p-2 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-50 border border-slate-200/80 bg-white shadow-2xs relative transition-colors"
+                title="Notifications"
+                aria-label="View notifications"
+              >
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-600 text-white font-extrabold text-[10px] flex items-center justify-center ring-2 ring-white animate-pulse">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {isBellOpen && <NotificationDropdown onClose={() => setIsBellOpen(false)} />}
+            </div>
 
             {/* Clean Pill Search Bar */}
             <div className="hidden sm:flex items-center gap-2 bg-white border border-slate-200/80 rounded-full px-3.5 py-1.5 text-xs text-slate-400 shadow-2xs hover:border-slate-300 transition-colors">

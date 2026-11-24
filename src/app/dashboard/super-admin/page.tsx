@@ -56,6 +56,7 @@ import {
 } from "@/lib/store";
 import { User, School } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
+import { useNotifications } from "@/context/NotificationContext";
 import DashboardShell, { DashboardNavItem } from "@/components/DashboardShell";
 import UserSettingsTab from "@/components/UserSettingsTab";
 import { SparklineGreenWave, SparklineBluePulse, MiniBarChart, SparklineAmberWave } from "@/components/MiniCharts";
@@ -64,6 +65,7 @@ import { normalizePakistaniPhone } from "@/lib/whatsapp";
 export default function SuperAdminDashboard() {
   const router = useRouter();
   const { t, isRtl } = useLanguage();
+  const { notify } = useNotifications();
 
   const [activeTab, setActiveTab] = useState<"schools" | "stats" | "settings">("schools");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -218,6 +220,15 @@ export default function SuperAdminDashboard() {
       plan: res.school.plan || "STANDARD",
     });
     setShowCredentialsModal(true);
+    notify({
+      title: "School Tenant Onboarded",
+      title_ur: "نیا اسکول آن بورڈ کیا گیا",
+      message: `Tenant "${res.school.name}" onboarded with Principal ID ${res.principal.identifier}.`,
+      message_ur: `نیا اسکول کامیابی سے سسٹم میں شامل کر دیا گیا۔`,
+      type: "SUCCESS",
+      category: "TENANT",
+      target_role: "SUPER_ADMIN",
+    });
     setActionNotice(`✓ Tenant "${res.school.name}" onboarded & Principal credentials generated!`);
     refreshAll();
     setTimeout(() => setActionNotice(null), 4000);
@@ -238,6 +249,15 @@ export default function SuperAdminDashboard() {
     e.preventDefault();
     if (!selectedBillingSchool) return;
     updateSchoolBilling(selectedBillingSchool.id, billingForm);
+    notify({
+      title: "Plan & Billing Updated",
+      title_ur: "اسکول پلان و بلنگ اپ ڈیٹ",
+      message: `${selectedBillingSchool.name}: Custom MRR set to PKR ${billingForm.mrr_pkr}/mo (${billingForm.plan}).`,
+      message_ur: `${selectedBillingSchool.name} کی بلنگ تفصیلات محفوظ ہو گئیں۔`,
+      type: "SUCCESS",
+      category: "TENANT",
+      target_role: "SUPER_ADMIN",
+    });
     setShowBillingModal(false);
     setActionNotice(`✓ Plan & billing customized for ${selectedBillingSchool.name}. MRR updated!`);
     refreshAll();
@@ -300,6 +320,15 @@ You can log in and begin managing classes, admissions, attendance, and fee colle
     e.preventDefault();
     if (!selectedPaymentSchool) return;
     updateSchoolPaymentDetails(selectedPaymentSchool.id, paymentForm);
+    notify({
+      title: "Payment Accounts Configured",
+      title_ur: "ادائیگی اکاؤنٹس ترتیب دیے گئے",
+      message: `Receiving bank and mobile wallet accounts updated for ${selectedPaymentSchool.name}.`,
+      message_ur: `اسکول کے بینک اور والٹ اکاؤنٹس اپ ڈیٹ ہو گئے۔`,
+      type: "SUCCESS",
+      category: "TENANT",
+      target_role: "SUPER_ADMIN",
+    });
     setShowPaymentModal(false);
     setActionNotice(`✓ Payment accounts updated for ${selectedPaymentSchool.name}`);
     refreshAll();
@@ -337,6 +366,15 @@ You can log in and begin managing classes, admissions, attendance, and fee colle
 
     if (res.success && res.principal) {
       setSelectedPrincipal(res.principal);
+      notify({
+        title: "Principal Credentials Updated",
+        title_ur: "پرنسپل پاس ورڈ اپ ڈیٹ",
+        message: `Login password for ${selectedProfileSchool.name} principal was updated and synced in real-time.`,
+        message_ur: `پرنسپل کا لاگ ان پاس ورڈ کامیابی سے تبدیل ہو گیا۔`,
+        type: "SUCCESS",
+        category: "ACCOUNT",
+        target_role: "SUPER_ADMIN",
+      });
       setProfileNotice({
         type: "success",
         text: `✓ Active password updated to "${profilePasswordInput.trim()}". Synced in real-time across portal!`,

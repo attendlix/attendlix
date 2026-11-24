@@ -19,6 +19,7 @@ import {
 import { User } from "@/lib/types";
 import { updateUserProfile, updateUserPassword } from "@/lib/store";
 import { useLanguage } from "@/context/LanguageContext";
+import { useNotifications } from "@/context/NotificationContext";
 
 interface UserSettingsTabProps {
   currentUser: User | null;
@@ -36,6 +37,7 @@ const PRESET_AVATARS = [
 
 export default function UserSettingsTab({ currentUser, onUserUpdate }: UserSettingsTabProps) {
   const { t } = useLanguage();
+  const { notify } = useNotifications();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Avatar state
@@ -120,6 +122,16 @@ export default function UserSettingsTab({ currentUser, onUserUpdate }: UserSetti
       const result = await updateUserProfile(currentUser.id, { avatar_url: avatarUrl });
       if (result.success && result.user) {
         if (onUserUpdate) onUserUpdate(result.user);
+        notify({
+          title: "Profile Photo Updated",
+          title_ur: "پروفائل تصویر اپ ڈیٹ ہو گئی",
+          message: "Your profile picture has been updated and synchronized.",
+          message_ur: "آپ کی پروفائل تصویر کامیابی سے اپ ڈیٹ ہو چکی ہے۔",
+          type: "SUCCESS",
+          category: "ACCOUNT",
+          target_role: currentUser.role,
+          target_user_id: currentUser.id,
+        });
         setAvatarNotice({
           type: "success",
           text: t.profilePhotoUpdated || "Profile photo updated successfully!",
@@ -159,6 +171,18 @@ export default function UserSettingsTab({ currentUser, onUserUpdate }: UserSetti
     try {
       const res = await updateUserPassword(newPassword);
       if (res.success) {
+        if (currentUser) {
+          notify({
+            title: "Password Updated",
+            title_ur: "پاس ورڈ تبدیل ہو گیا",
+            message: "Account authentication credentials updated successfully.",
+            message_ur: "اکاؤنٹ کا نیا پاس ورڈ محفوظ ہو گیا ہے۔",
+            type: "SUCCESS",
+            category: "ACCOUNT",
+            target_role: currentUser.role,
+            target_user_id: currentUser.id,
+          });
+        }
         setPasswordNotice({
           type: "success",
           text: t.passwordUpdatedSuccess || "Password updated successfully!",

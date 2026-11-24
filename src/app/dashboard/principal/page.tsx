@@ -105,6 +105,7 @@ import {
   StaffAttendanceStatus,
 } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
+import { useNotifications } from "@/context/NotificationContext";
 import DashboardShell from "@/components/DashboardShell";
 import UserSettingsTab from "@/components/UserSettingsTab";
 import StudentProfileModal from "@/components/StudentProfileModal";
@@ -118,6 +119,7 @@ import {
 export default function PrincipalDashboard() {
   const router = useRouter();
   const { t, isRtl } = useLanguage();
+  const { notify } = useNotifications();
 
   // Active Tab state
   const [activeTab, setActiveTab] = useState<
@@ -397,6 +399,16 @@ export default function PrincipalDashboard() {
       notes: editingStaffRecord.notes,
     });
 
+    notify({
+      title: "Staff Attendance Recorded",
+      title_ur: "اسٹاف حاضری اپ ڈیٹ",
+      message: `Attendance updated for ${editingStaffRecord.user_name || "Staff Member"}: ${editingStaffRecord.status}.`,
+      message_ur: `اسٹاف کی حاضری کامیابی سے درج کر دی گئی۔`,
+      type: "SUCCESS",
+      category: "ATTENDANCE",
+      target_role: "PRINCIPAL",
+    });
+
     setShowStaffAttendanceModal(false);
     setEditingStaffRecord(null);
 
@@ -496,6 +508,15 @@ export default function PrincipalDashboard() {
     setShowPeriodModal(false);
     setEditingPeriod(null);
     setClashWarning(null);
+    notify({
+      title: "Timetable Slot Saved",
+      title_ur: "ٹائم ٹیبل پیریڈ محفوظ",
+      message: `${periodFormData.subject} for ${periodFormData.day_of_week} (${periodFormData.start_time} - ${periodFormData.end_time}) saved.`,
+      message_ur: `ٹائم ٹیبل کا پیریڈ کامیابی سے محفوظ ہو گیا۔`,
+      type: "SUCCESS",
+      category: "TIMETABLE",
+      target_role: "PRINCIPAL",
+    });
     setFeeActionNotice("✓ Period scheduled successfully in weekly timetable.");
     setTimeout(() => setFeeActionNotice(null), 4000);
     refreshTimetable(selectedTimetableClass);
@@ -560,6 +581,15 @@ export default function PrincipalDashboard() {
   const handleConfirmPayment = () => {
     if (!markPaidModal) return;
     updateFeeStatus(markPaidModal.record.id, "PAID", markPaidModal.method, markPaidModal.txnId);
+    notify({
+      title: "Fee Payment Recorded",
+      title_ur: "فیس ادائیگی درج",
+      message: `PKR ${markPaidModal.record.amount} marked as PAID for ${markPaidModal.record.student_name} via ${markPaidModal.method}.`,
+      message_ur: `${markPaidModal.record.student_name} کی فیس وصولی ریکارڈ ہو گئی۔`,
+      type: "SUCCESS",
+      category: "FEE",
+      target_role: "PRINCIPAL",
+    });
     setFeeActionNotice(`✓ Fee marked as PAID via ${markPaidModal.method} for ${markPaidModal.record.student_name}!`);
     setMarkPaidModal(null);
     if (currentUser) {
@@ -582,6 +612,15 @@ export default function PrincipalDashboard() {
     e.preventDefault();
     if (!currentUser) return;
     addClass(currentUser.school_id, newClassName, newClassSection, newClassTeacher);
+    notify({
+      title: "Class Created",
+      title_ur: "نئی کلاس شامل کی گئی",
+      message: `${newClassName} (${newClassSection}) added to school classes.`,
+      message_ur: `${newClassName} کلاس کامیابی سے شامل کر دی گئی۔`,
+      type: "SUCCESS",
+      category: "SYSTEM",
+      target_role: "PRINCIPAL",
+    });
     setNewClassName("");
     setNewClassSection("A");
     setNewClassTeacher("");
@@ -593,6 +632,15 @@ export default function PrincipalDashboard() {
     e.preventDefault();
     if (!currentUser) return;
     const creds = addStaff(currentUser.school_id, staffFormData);
+    notify({
+      title: "Staff Member Added",
+      title_ur: "نیا اسٹاف ممبر شامل کیا گیا",
+      message: `${staffFormData.name} (${staffFormData.role}) onboarded with ID ${creds.staff.identifier}.`,
+      message_ur: `${staffFormData.name} کا اکاؤنٹ بن گیا۔`,
+      type: "SUCCESS",
+      category: "STAFF",
+      target_role: "PRINCIPAL",
+    });
     setCreatedStaffCreds(creds);
     setStaffFormData({ name: "", phone: "", role: "TEACHER", email: "" });
     refreshAll();
@@ -604,6 +652,15 @@ export default function PrincipalDashboard() {
     const creds = addStudent(currentUser.school_id, {
       ...studentFormData,
       monthly_fee: Number(studentFormData.monthly_fee) || 4500,
+    });
+    notify({
+      title: "Student Admitted",
+      title_ur: "نیا طالب علم داخل ہو گیا",
+      message: `${studentFormData.name} enrolled in ${classesList.find((c) => c.id === studentFormData.class_id)?.name || "Class"} (Roll #${studentFormData.roll_no}, ID: ${creds.student.student_id}).`,
+      message_ur: `${studentFormData.name} کا داخلہ کامیابی سے مکمل ہو گیا۔`,
+      type: "SUCCESS",
+      category: "ADMISSION",
+      target_role: "PRINCIPAL",
     });
     setCreatedStudentCreds(creds);
     setStudentFormData((prev) => ({
@@ -633,6 +690,15 @@ export default function PrincipalDashboard() {
     e.preventDefault();
     if (!currentUser || !announcementForm.title || !announcementForm.content) return;
     const newAnn = addAnnouncement(currentUser.school_id, announcementForm);
+    notify({
+      title: "Announcement Broadcast",
+      title_ur: "نیا اعلان جاری کیا گیا",
+      message: `"${newAnn.title}" broadcasted to ${newAnn.audience} with WhatsApp fallback.`,
+      message_ur: `اعلان کامیابی سے تمام متعلقہ افراد تک پہنچا دیا گیا۔`,
+      type: "INFO",
+      category: "ANNOUNCEMENT",
+      target_role: "PRINCIPAL",
+    });
     setAnnouncementSentNotice(
       `✓ Announcement broadcasted (${newAnn.priority} priority)! Triggered automatic WhatsApp fallback to ${newAnn.recipients_count} recipients.`
     );
@@ -656,6 +722,15 @@ export default function PrincipalDashboard() {
     });
     if (updated) {
       setSchoolData(updated);
+      notify({
+        title: "School Profile Saved",
+        title_ur: "اسکول پروفائل محفوظ",
+        message: "School timings, contact info, and payment settings updated successfully.",
+        message_ur: "اسکول کے اوقات اور معلومات کامیابی سے محفوظ ہو گئیں۔",
+        type: "SUCCESS",
+        category: "SYSTEM",
+        target_role: "PRINCIPAL",
+      });
       setProfileNotice(t.profileUpdatedSuccess || "✓ School profile & settings updated successfully!");
       setTimeout(() => setProfileNotice(null), 4000);
     }

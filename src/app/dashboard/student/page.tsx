@@ -70,6 +70,7 @@ import {
   AttendanceStatus,
 } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
+import { useNotifications } from "@/context/NotificationContext";
 import DashboardShell from "@/components/DashboardShell";
 import UserSettingsTab from "@/components/UserSettingsTab";
 import { SparklineGreenWave, SparklineAmberWave, MiniBarChart, SparklineBluePulse } from "@/components/MiniCharts";
@@ -77,6 +78,7 @@ import { SparklineGreenWave, SparklineAmberWave, MiniBarChart, SparklineBluePuls
 export default function StudentDashboard() {
   const router = useRouter();
   const { t, isRtl } = useLanguage();
+  const { notify } = useNotifications();
 
   // Navigation tab
   const [activeTab, setActiveTab] = useState<"overview" | "attendance" | "attendance_hw" | "timetable" | "exams" | "fees" | "chat" | "settings">("overview");
@@ -292,6 +294,15 @@ export default function StudentDashboard() {
     setPaymentSuccessToast(
       `✓ Payment confirmed! Fee for ${paymentModal.record.month} marked as PAID via ${paymentModal.method}.`
     );
+    notify({
+      title: "Fee Payment Recorded",
+      title_ur: "فیس ادائیگی تصدیق",
+      message: `PKR ${paymentModal.record.amount} confirmed as PAID for ${paymentModal.record.month} via ${paymentModal.method}.`,
+      message_ur: `${paymentModal.record.month} کی فیس کامیابی سے ادا ہو گئی۔`,
+      type: "SUCCESS",
+      category: "FEE",
+      target_role: "STUDENT_PARENT",
+    });
     setPaymentModal(null);
     refreshData();
     setTimeout(() => setPaymentSuccessToast(null), 5000);
@@ -308,6 +319,15 @@ export default function StudentDashboard() {
       newMessageText,
       "PARENT"
     );
+    notify({
+      title: "Message Sent to Teacher",
+      title_ur: "استاد کو پیغام بھیج دیا گیا",
+      message: `Your message has been sent to the class teacher thread.`,
+      message_ur: `آپ کا میسج کلاس ٹیچر کو بھیج دیا گیا۔`,
+      type: "INFO",
+      category: "CHAT",
+      target_role: "STUDENT_PARENT",
+    });
     setNewMessageText("");
     setChatMessages(getStudentMessages(currentUser.school_id, currentStudent.id));
   };

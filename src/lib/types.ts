@@ -205,4 +205,44 @@ export interface StaffAttendanceRecord {
   created_at: string;
 }
 
+export type NotificationType = "INFO" | "SUCCESS" | "WARNING" | "ALERT";
+
+export type NotificationCategory =
+  | "ATTENDANCE"
+  | "FEE"
+  | "HOMEWORK"
+  | "EXAM"
+  | "STAFF"
+  | "ADMISSION"
+  | "ANNOUNCEMENT"
+  | "CHAT"
+  | "TIMETABLE"
+  | "ACCOUNT"
+  | "TENANT"
+  | "SYSTEM";
+
+export interface AppNotification {
+  id: string;
+  school_id?: string; // "GLOBAL" or specific school_id
+  target_role?: UserRole | "ALL";
+  target_user_id?: string;
+  title: string;
+  title_ur?: string;
+  message: string;
+  message_ur?: string;
+  type: NotificationType;
+  category: NotificationCategory;
+  read: boolean;
+  created_at: string;
+  action_url?: string;
+}
+
+export interface ToastMessage {
+  id: string;
+  title: string;
+  message?: string;
+  type: NotificationType;
+  duration?: number;
+}
+
 

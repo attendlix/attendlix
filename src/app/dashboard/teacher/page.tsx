@@ -60,6 +60,7 @@ import {
 } from "@/lib/store";
 import { User, SchoolClass, Student, AttendanceStatus, Homework, ExamMark, ChatMessage, TimetableSlot, DayOfWeek, StaffAttendanceRecord, StaffAttendanceStatus, Announcement } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
+import { useNotifications } from "@/context/NotificationContext";
 import DashboardShell from "@/components/DashboardShell";
 import UserSettingsTab from "@/components/UserSettingsTab";
 import StudentProfileModal from "@/components/StudentProfileModal";
@@ -69,6 +70,7 @@ import { getAbsentAlertWhatsAppUrl, dispatchWhatsAppWebhook } from "@/lib/whatsa
 export default function TeacherDashboard() {
   const router = useRouter();
   const { t, isRtl } = useLanguage();
+  const { notify } = useNotifications();
 
   // Active navigation tab
   const [activeTab, setActiveTab] = useState<"attendance" | "my_attendance" | "homework" | "timetable" | "exams" | "messages" | "settings">("attendance");
@@ -256,6 +258,16 @@ export default function TeacherDashboard() {
     const result = saveClassAttendance(currentUser.school_id, selectedClassId, selectedDate, records, !isOnline);
     updateQueueCount();
 
+    notify({
+      title: "Class Attendance Saved",
+      title_ur: "کلاس کی حاضری محفوظ ہو گئی",
+      message: `Attendance register saved for ${classesList.find((c) => c.id === selectedClassId)?.name || "Class"} (${result.savedCount - result.absentCount} Present, ${result.absentCount} Absent).`,
+      message_ur: `کلاس حاضری رجسٹر کامیابی سے محفوظ ہو گیا۔`,
+      type: "SUCCESS",
+      category: "ATTENDANCE",
+      target_role: "TEACHER",
+    });
+
     if (result.isOffline) {
       setAttendanceSavedNotice(
         `⚡ Saved Offline! ${result.savedCount} records queued locally. Will auto-sync when network returns.`
@@ -276,6 +288,16 @@ export default function TeacherDashboard() {
     addHomework(currentUser.school_id, selectedClassId, {
       ...hwFormData,
       teacher_id: currentUser.id,
+    });
+
+    notify({
+      title: "Homework Diary Assigned",
+      title_ur: "ہوم ورک ڈائری جاری",
+      message: `${hwFormData.subject}: "${hwFormData.title}" posted for ${classesList.find((c) => c.id === selectedClassId)?.name || "Class"}.`,
+      message_ur: `نیا ہوم ورک کامیابی سے طلبہ و والدین کو بھیج دیا گیا۔`,
+      type: "INFO",
+      category: "HOMEWORK",
+      target_role: "TEACHER",
     });
 
     const updated = getHomeworkList(currentUser.school_id, selectedClassId);
@@ -303,6 +325,15 @@ export default function TeacherDashboard() {
     }));
 
     saveExamMarksBatch(currentUser.school_id, selectedClassId, examName, examSubject, examTotalMarks, list);
+    notify({
+      title: "Exam Marks Saved",
+      title_ur: "امتحانی نمبرات محفوظ ہو گئے",
+      message: `Marks recorded for ${classStudents.length} students in ${examName} (${examSubject}).`,
+      message_ur: `امتحانی نمبرات کامیابی سے محفوظ ہو گئے۔`,
+      type: "SUCCESS",
+      category: "EXAM",
+      target_role: "TEACHER",
+    });
     setMarksSavedNotice(`✓ Marks saved for all ${classStudents.length} students in ${examName}!`);
     setTimeout(() => setMarksSavedNotice(null), 5000);
   };
@@ -313,6 +344,15 @@ export default function TeacherDashboard() {
     if (!currentUser || !selectedStudentForChat || !newMessageText.trim()) return;
 
     sendTeacherMessage(currentUser.school_id, selectedStudentForChat.id, selectedStudentForChat.name, newMessageText, "TEACHER");
+    notify({
+      title: "Message Sent",
+      title_ur: "پیغام بھیج دیا گیا",
+      message: `Message sent to parent of ${selectedStudentForChat.name}.`,
+      message_ur: `طالب علم کے والدین کو میسج بھیج دیا گیا۔`,
+      type: "INFO",
+      category: "CHAT",
+      target_role: "TEACHER",
+    });
     setNewMessageText("");
     const updated = getStudentMessages(currentUser.school_id, selectedStudentForChat.id);
     setChatMessages(updated);
@@ -325,6 +365,15 @@ export default function TeacherDashboard() {
     if (res.success) {
       setTodayStaffRecord(res.record);
       setTeacherStaffHistory(getStaffAttendanceHistory(currentUser.school_id, currentUser.id));
+      notify({
+        title: "Staff Check-In Recorded",
+        title_ur: "اسٹاف آمد درج ہو گئی",
+        message: `Your check-in logged at ${res.record.check_in_time} (Status: ${res.record.status}).`,
+        message_ur: `آپ کی آمد کی حاضری درج ہو چکی ہے۔`,
+        type: "SUCCESS",
+        category: "ATTENDANCE",
+        target_role: "TEACHER",
+      });
       setCheckInNotice(`✓ ${t.selfCheckInSuccess || "Checked in successfully!"} (${res.record.check_in_time})`);
       setTimeout(() => setCheckInNotice(null), 5000);
     }
@@ -336,6 +385,15 @@ export default function TeacherDashboard() {
     if (res.success) {
       setTodayStaffRecord(res.record);
       setTeacherStaffHistory(getStaffAttendanceHistory(currentUser.school_id, currentUser.id));
+      notify({
+        title: "Staff Check-Out Recorded",
+        title_ur: "اسٹاف روانگی درج ہو گئی",
+        message: `Your check-out logged at ${res.record.check_out_time}.`,
+        message_ur: `آپ کی روانگی کی حاضری درج ہو چکی ہے۔`,
+        type: "SUCCESS",
+        category: "ATTENDANCE",
+        target_role: "TEACHER",
+      });
       setCheckInNotice(`✓ ${t.selfCheckOutSuccess || "Checked out successfully!"} (${res.record.check_out_time})`);
       setTimeout(() => setCheckInNotice(null), 5000);
     }

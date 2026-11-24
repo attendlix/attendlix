@@ -1,6 +1,7 @@
 import {
   School,
   User,
+  UserRole,
   SchoolClass,
   Student,
   Announcement,
@@ -16,6 +17,9 @@ import {
   DayOfWeek,
   StaffAttendanceRecord,
   StaffAttendanceStatus,
+  AppNotification,
+  NotificationType,
+  NotificationCategory,
 } from "./types";
 import { supabase } from "./supabase";
 
@@ -28,6 +32,7 @@ const KEY_STUDENTS = "attendlix_students";
 const KEY_ANNOUNCEMENTS = "attendlix_announcements";
 const KEY_TIMETABLES = "attendlix_timetables";
 const KEY_STAFF_ATTENDANCE = "attendlix_staff_attendance";
+const KEY_NOTIFICATIONS = "attendlix_notifications";
 
 // Default Seed Schools
 const SEED_SCHOOL_ID = "school-beacon-001";
@@ -921,6 +926,170 @@ function setStorage<T>(key: string, val: T): void {
   }
 }
 
+// Default Seed Notifications
+const SEED_NOTIFICATIONS: AppNotification[] = [
+  // Principal Notifications
+  {
+    id: "notif-prn-1",
+    school_id: SEED_SCHOOL_ID,
+    target_role: "PRINCIPAL",
+    title: "Daily Attendance Completed",
+    title_ur: "روزانہ حاضری مکمل ہو گئی",
+    message: "Ms. Sadia marked Grade 8-A attendance (28 Present, 1 Late, 1 Absent).",
+    message_ur: "مس سعدیہ نے گریڈ 8-A کی حاضری درج کر دی ہے۔",
+    type: "SUCCESS",
+    category: "ATTENDANCE",
+    read: false,
+    created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+  },
+  {
+    id: "notif-prn-2",
+    school_id: SEED_SCHOOL_ID,
+    target_role: "PRINCIPAL",
+    title: "Tuition Fee Received",
+    title_ur: "ٹیوشن فیس موصول ہوئی",
+    message: "PKR 4,500 received for Muhammad Ahmed (Roll #01) via JazzCash.",
+    message_ur: "محمد احمد (رول #01) کی 4,500 روپے فیس جاز کیش کے ذریعے وصول ہوئی۔",
+    type: "SUCCESS",
+    category: "FEE",
+    read: false,
+    created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+  },
+  {
+    id: "notif-prn-3",
+    school_id: SEED_SCHOOL_ID,
+    target_role: "PRINCIPAL",
+    title: "Winter Timings Broadcast Sent",
+    title_ur: "موسم سرما کے اوقات کا نوٹیفکیشن جاری",
+    message: "Automated WhatsApp notifications delivered to 148 parents successfully.",
+    message_ur: "148 والدین کو واٹس ایپ الرٹ کامیابی سے بھیج دیا گیا ہے۔",
+    type: "INFO",
+    category: "ANNOUNCEMENT",
+    read: true,
+    created_at: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
+  },
+  // Teacher Notifications
+  {
+    id: "notif-tch-1",
+    school_id: SEED_SCHOOL_ID,
+    target_role: "TEACHER",
+    title: "Morning Check-In Recorded",
+    title_ur: "صبح کی حاضری درج ہو گئی",
+    message: "Your attendance check-in logged at 07:55 AM (Status: PRESENT).",
+    message_ur: "آپ کی حاضری صبح 07:55 بجے درج ہو گئی۔",
+    type: "SUCCESS",
+    category: "ATTENDANCE",
+    read: false,
+    created_at: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
+  },
+  {
+    id: "notif-tch-2",
+    school_id: SEED_SCHOOL_ID,
+    target_role: "TEACHER",
+    title: "Homework Diary Acknowledged",
+    title_ur: "ہوم ورک ڈائری دیکھی گئی",
+    message: "26 parents viewed today's Mathematics Homework for Grade 8-A.",
+    message_ur: "26 والدین نے گریڈ 8-A کا ریاضی کا ہوم ورک چیک کیا۔",
+    type: "INFO",
+    category: "HOMEWORK",
+    read: false,
+    created_at: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+  },
+  {
+    id: "notif-tch-3",
+    school_id: SEED_SCHOOL_ID,
+    target_role: "TEACHER",
+    title: "Parent Inquiry in Teacher Chat",
+    title_ur: "والدین کا نیا میسج",
+    message: "Parent of Fatima Noor sent an inquiry regarding upcoming Midterm Exams.",
+    message_ur: "فاطمہ نور کے والد نے امتحانات کے متعلق استفسار بھیجا ہے۔",
+    type: "INFO",
+    category: "CHAT",
+    read: true,
+    created_at: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
+  },
+  // Student / Parent Notifications
+  {
+    id: "notif-std-1",
+    school_id: SEED_SCHOOL_ID,
+    target_role: "STUDENT_PARENT",
+    title: "Today's Attendance Marked",
+    title_ur: "آج کی حاضری درج",
+    message: "Muhammad Ahmed was marked PRESENT at 07:50 AM with on-time arrival.",
+    message_ur: "محمد احمد کی آج کی حاضری حاضر درج کر دی گئی ہے۔",
+    type: "SUCCESS",
+    category: "ATTENDANCE",
+    read: false,
+    created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+  },
+  {
+    id: "notif-std-2",
+    school_id: SEED_SCHOOL_ID,
+    target_role: "STUDENT_PARENT",
+    title: "New Homework Assigned",
+    title_ur: "نیا ہوم ورک دیا گیا",
+    message: "Mathematics: Complete Exercise 4.2 Questions 1-5 by tomorrow.",
+    message_ur: "ریاضی: مشق 4.2 کے سوالات 1 تا 5 کل تک مکمل کریں۔",
+    type: "INFO",
+    category: "HOMEWORK",
+    read: false,
+    created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+  },
+  {
+    id: "notif-std-3",
+    school_id: SEED_SCHOOL_ID,
+    target_role: "STUDENT_PARENT",
+    title: "November Fee Receipt Generated",
+    title_ur: "نومبر فیس رسید تیار ہے",
+    message: "Tuition Fee of PKR 4,500 has been verified as PAID. Download receipt anytime.",
+    message_ur: "4,500 روپے فیس ادا شدہ تصدیق ہو چکی ہے۔ رسید ڈاؤنلوڈ کریں۔",
+    type: "SUCCESS",
+    category: "FEE",
+    read: true,
+    created_at: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
+  },
+  // Super Admin Notifications
+  {
+    id: "notif-adm-1",
+    school_id: "GLOBAL",
+    target_role: "SUPER_ADMIN",
+    title: "MRR Milestone Achieved",
+    title_ur: "ماہانہ ریونیو سنگ میل",
+    message: "Platform MRR reached PKR 55,000 across 2 active school tenants in Punjab.",
+    message_ur: "پلیٹ فارم کا ماہانہ ریونیو 55,000 روپے تک پہنچ گیا۔",
+    type: "SUCCESS",
+    category: "TENANT",
+    read: false,
+    created_at: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
+  },
+  {
+    id: "notif-adm-2",
+    school_id: "GLOBAL",
+    target_role: "SUPER_ADMIN",
+    title: "Cloud Infrastructure Healthy",
+    title_ur: "کلاؤڈ سرورز مکمل فعال",
+    message: "Supabase database connections and WhatsApp API webhooks operating at 100% uptime.",
+    message_ur: "ڈیٹابیس اور واٹس ایپ ویب ہکس 100 فیصد فعال ہیں۔",
+    type: "INFO",
+    category: "SYSTEM",
+    read: false,
+    created_at: new Date(Date.now() - 1000 * 60 * 75).toISOString(),
+  },
+  {
+    id: "notif-adm-3",
+    school_id: "GLOBAL",
+    target_role: "SUPER_ADMIN",
+    title: "Principal Credentials Synced",
+    title_ur: "پرنسپل لاگ ان اپ ڈیٹ",
+    message: "Beacon Grammar School principal credentials updated and verified.",
+    message_ur: "بیکن گرامر اسکول کے پرنسپل لاگ ان تفصیلات اپ ڈیٹ ہو گئیں۔",
+    type: "INFO",
+    category: "ACCOUNT",
+    read: true,
+    created_at: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
+  },
+];
+
 // Ensure initial seed data exists
 export function initializeStore() {
   if (typeof window === "undefined") return;
@@ -962,6 +1131,9 @@ export function initializeStore() {
   }
   if (!window.localStorage.getItem(KEY_ATTENDANCE)) {
     setStorage(KEY_ATTENDANCE, SEED_ATTENDANCE);
+  }
+  if (!window.localStorage.getItem(KEY_NOTIFICATIONS)) {
+    setStorage(KEY_NOTIFICATIONS, SEED_NOTIFICATIONS);
   }
 }
 
@@ -3306,6 +3478,147 @@ export function teacherCheckOut(
   });
 
   return { success: true, record: saved };
+}
+
+// ----------------------------------------------------
+// NOTIFICATIONS SYSTEM
+// ----------------------------------------------------
+export function getNotifications(
+  school_id?: string,
+  role?: UserRole,
+  user_id?: string
+): AppNotification[] {
+  initializeStore();
+  const allNotifs = getStorage<AppNotification[]>(KEY_NOTIFICATIONS, SEED_NOTIFICATIONS);
+
+  return allNotifs
+    .filter((n) => {
+      // Super admin sees all GLOBAL or SUPER_ADMIN or ALL notifications
+      if (role === "SUPER_ADMIN") {
+        return n.target_role === "SUPER_ADMIN" || n.school_id === "GLOBAL" || n.target_role === "ALL";
+      }
+
+      // Role-based matching
+      const roleMatch = !n.target_role || n.target_role === "ALL" || n.target_role === role;
+
+      // User ID matching (if specifically directed)
+      if (n.target_user_id && user_id && n.target_user_id !== user_id) {
+        return false;
+      }
+
+      // School matching
+      const schoolMatch =
+        !n.school_id ||
+        n.school_id === "GLOBAL" ||
+        n.school_id === school_id ||
+        school_id === SEED_SCHOOL_ID;
+
+      return roleMatch && schoolMatch;
+    })
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
+export function addNotification(
+  data: Omit<AppNotification, "id" | "created_at" | "read">
+): AppNotification {
+  initializeStore();
+  const notif: AppNotification = {
+    id: "notif-" + Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 6),
+    school_id: data.school_id || SEED_SCHOOL_ID,
+    target_role: data.target_role || "ALL",
+    target_user_id: data.target_user_id,
+    title: data.title,
+    title_ur: data.title_ur,
+    message: data.message,
+    message_ur: data.message_ur,
+    type: data.type || "INFO",
+    category: data.category || "SYSTEM",
+    read: false,
+    created_at: new Date().toISOString(),
+    action_url: data.action_url,
+  };
+
+  const notifications = getStorage<AppNotification[]>(KEY_NOTIFICATIONS, SEED_NOTIFICATIONS);
+  setStorage(KEY_NOTIFICATIONS, [notif, ...notifications]);
+
+  // Dispatch custom event for real-time notification sync
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("attendlix:notification", { detail: notif }));
+  }
+
+  // Non-blocking sync to Supabase notifications table if available
+  try {
+    (async () => {
+      try {
+        await supabase.from("notifications").insert([
+          {
+            id: notif.id,
+            school_id: notif.school_id,
+            target_role: notif.target_role,
+            target_user_id: notif.target_user_id,
+            title: notif.title,
+            title_ur: notif.title_ur,
+            message: notif.message,
+            message_ur: notif.message_ur,
+            type: notif.type,
+            category: notif.category,
+            read: false,
+            created_at: notif.created_at,
+          },
+        ]);
+      } catch {
+        // non-blocking
+      }
+    })();
+  } catch {
+    // non-blocking
+  }
+
+  return notif;
+}
+
+export function markNotificationAsRead(id: string): void {
+  initializeStore();
+  const allNotifs = getStorage<AppNotification[]>(KEY_NOTIFICATIONS, SEED_NOTIFICATIONS);
+  const updated = allNotifs.map((n) => (n.id === id ? { ...n, read: true } : n));
+  setStorage(KEY_NOTIFICATIONS, updated);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("attendlix:notification-updated"));
+  }
+}
+
+export function markAllNotificationsAsRead(school_id?: string, role?: UserRole): void {
+  initializeStore();
+  const allNotifs = getStorage<AppNotification[]>(KEY_NOTIFICATIONS, SEED_NOTIFICATIONS);
+  const updated = allNotifs.map((n) => {
+    if (role === "SUPER_ADMIN") {
+      if (n.target_role === "SUPER_ADMIN" || n.school_id === "GLOBAL" || n.target_role === "ALL") {
+        return { ...n, read: true };
+      }
+    } else if (!n.target_role || n.target_role === "ALL" || n.target_role === role) {
+      return { ...n, read: true };
+    }
+    return n;
+  });
+  setStorage(KEY_NOTIFICATIONS, updated);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("attendlix:notification-updated"));
+  }
+}
+
+export function clearAllNotifications(school_id?: string, role?: UserRole): void {
+  initializeStore();
+  const allNotifs = getStorage<AppNotification[]>(KEY_NOTIFICATIONS, SEED_NOTIFICATIONS);
+  const filtered = allNotifs.filter((n) => {
+    if (role === "SUPER_ADMIN") {
+      return !(n.target_role === "SUPER_ADMIN" || n.school_id === "GLOBAL" || n.target_role === "ALL");
+    }
+    return n.target_role && n.target_role !== "ALL" && n.target_role !== role;
+  });
+  setStorage(KEY_NOTIFICATIONS, filtered);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("attendlix:notification-updated"));
+  }
 }
 
 

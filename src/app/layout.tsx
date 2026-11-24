@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -38,7 +39,9 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased min-h-screen flex flex-col bg-[#FAFAFA] text-[#111827] overflow-x-clip w-full selection:bg-emerald-100 selection:text-emerald-900">
-        <LanguageProvider>{children}</LanguageProvider>
+        <LanguageProvider>
+          <NotificationProvider>{children}</NotificationProvider>
+        </LanguageProvider>
       </body>
     </html>
   );
