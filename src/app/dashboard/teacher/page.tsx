@@ -28,6 +28,7 @@ import {
   LogIn,
   UserCheck,
   Settings,
+  Eye,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -57,6 +58,7 @@ import { User, SchoolClass, Student, AttendanceStatus, Homework, ExamMark, ChatM
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 import DashboardShell from "@/components/DashboardShell";
 import UserSettingsTab from "@/components/UserSettingsTab";
+import StudentProfileModal from "@/components/StudentProfileModal";
 import { SparklineGreenWave, SparklineBluePulse, MiniBarChart } from "@/components/MiniCharts";
 import { getAbsentAlertWhatsAppUrl, dispatchWhatsAppWebhook } from "@/lib/whatsapp";
 
@@ -73,6 +75,7 @@ export default function TeacherDashboard() {
   const [classesList, setClassesList] = useState<SchoolClass[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [classStudents, setClassStudents] = useState<Student[]>([]);
+  const [selectedStudentForProfile, setSelectedStudentForProfile] = useState<Student | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
   // Timetable State
@@ -727,6 +730,15 @@ export default function TeacherDashboard() {
                           <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">{st.name}</div>
                           <div className="text-[10px] sm:text-[11px] text-slate-400 truncate">ID: {st.student_id}</div>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedStudentForProfile(st)}
+                          className="px-2 py-1 rounded-lg border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 text-[11px] font-semibold flex items-center gap-1 transition-all flex-shrink-0 shadow-2xs"
+                          title="View Student Profile"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Profile</span>
+                        </button>
                       </div>
 
                       {/* 1-Tap Toggle Group (P, A, L) with Large Hit Targets (Min 44px) */}
@@ -1011,6 +1023,15 @@ export default function TeacherDashboard() {
                         <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">{st.name}</div>
                         <div className="text-[10px] text-slate-400 truncate">ID: {st.student_id}</div>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStudentForProfile(st)}
+                        className="px-2 py-1 rounded-lg border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 text-[11px] font-semibold flex items-center gap-1 transition-all flex-shrink-0 shadow-2xs"
+                        title="View Student Profile"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Profile</span>
+                      </button>
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -1395,6 +1416,16 @@ export default function TeacherDashboard() {
           />
         )}
       </div>
+
+      {/* ========================================================================= */}
+      {/* REUSABLE STUDENT PROFILE MODAL */}
+      {/* ========================================================================= */}
+      <StudentProfileModal
+        student={selectedStudentForProfile}
+        onClose={() => setSelectedStudentForProfile(null)}
+        schoolName={schoolData?.name || "Beacon Grammar School"}
+        showFeeInfo={false}
+      />
     </DashboardShell>
   );
 }

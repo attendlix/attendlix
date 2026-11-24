@@ -107,6 +107,7 @@ import {
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 import DashboardShell from "@/components/DashboardShell";
 import UserSettingsTab from "@/components/UserSettingsTab";
+import StudentProfileModal from "@/components/StudentProfileModal";
 import { SparklineGreenWave, SparklineBluePulse, MiniBarChart, SparklineAmberWave } from "@/components/MiniCharts";
 import {
   getFeeReminderWhatsAppUrl,
@@ -148,6 +149,7 @@ export default function PrincipalDashboard() {
   const [staffList, setStaffList] = useState<User[]>([]);
   const [selectedStaffForProfile, setSelectedStaffForProfile] = useState<User | null>(null);
   const [studentsList, setStudentsList] = useState<Student[]>([]);
+  const [selectedStudentForProfile, setSelectedStudentForProfile] = useState<Student | null>(null);
   const [announcementsList, setAnnouncementsList] = useState<Announcement[]>([]);
 
   // Timetable State
@@ -1787,20 +1789,32 @@ export default function PrincipalDashboard() {
                     <span className="font-semibold text-slate-800">{std.parent_whatsapp}</span>
                   </div>
 
-                  {std.parent_whatsapp && (
-                    <a
-                      href={formatWhatsAppUrl(
-                        std.parent_whatsapp,
-                        `Mohtaram Parent of ${std.name}, update from ${schoolData?.name}:`
-                      )}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="w-full py-2.5 px-3 rounded-xl bg-green-50 hover:bg-green-100 text-green-800 border border-green-200 font-bold text-xs flex items-center justify-center gap-1.5 min-h-[44px] transition-all"
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStudentForProfile(std)}
+                      className="w-full py-2 px-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold text-xs flex items-center justify-center gap-1.5 min-h-[40px] transition-all shadow-2xs"
                     >
-                      <MessageSquare className="w-4 h-4 text-green-600" />
-                      <span>Message Parent on WhatsApp</span>
-                    </a>
-                  )}
+                      <Eye className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Show Profile</span>
+                    </button>
+                    {std.parent_whatsapp ? (
+                      <a
+                        href={formatWhatsAppUrl(
+                          std.parent_whatsapp,
+                          `Mohtaram Parent of ${std.name}, update from ${schoolData?.name}:`
+                        )}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full py-2 px-3 rounded-xl bg-green-50 hover:bg-green-100 text-green-800 border border-green-200 font-bold text-xs flex items-center justify-center gap-1.5 min-h-[40px] transition-all"
+                      >
+                        <MessageSquare className="w-4 h-4 text-green-600" />
+                        <span>WhatsApp</span>
+                      </a>
+                    ) : (
+                      <div className="flex items-center justify-center text-xs text-slate-400">No Phone</div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -1831,18 +1845,30 @@ export default function PrincipalDashboard() {
                       <td className="py-3.5 px-4 font-mono font-medium text-slate-700">{std.student_id}</td>
                       <td className="py-3.5 px-4 text-slate-600">{std.parent_whatsapp}</td>
                       <td className="py-3.5 px-4 text-right">
-                        <a
-                          href={formatWhatsAppUrl(
-                            std.parent_whatsapp,
-                            `Mohtaram Parent of ${std.name}, update from ${schoolData?.name}:`
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedStudentForProfile(std)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-xs font-semibold transition-all shadow-2xs"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-slate-500" />
+                            <span>Show Profile</span>
+                          </button>
+                          {std.parent_whatsapp && (
+                            <a
+                              href={formatWhatsAppUrl(
+                                std.parent_whatsapp,
+                                `Mohtaram Parent of ${std.name}, update from ${schoolData?.name}:`
+                              )}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 font-semibold text-xs transition-colors"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5 text-green-600" />
+                              <span>WhatsApp</span>
+                            </a>
                           )}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-semibold"
-                        >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span>WhatsApp</span>
-                        </a>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -4722,6 +4748,16 @@ export default function PrincipalDashboard() {
           </div>
         );
       })()}
+
+      {/* ========================================================================= */}
+      {/* REUSABLE STUDENT PROFILE MODAL */}
+      {/* ========================================================================= */}
+      <StudentProfileModal
+        student={selectedStudentForProfile}
+        onClose={() => setSelectedStudentForProfile(null)}
+        schoolName={schoolData?.name || "Beacon Grammar School"}
+        showFeeInfo={true}
+      />
     </DashboardShell>
   );
 }

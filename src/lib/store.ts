@@ -1301,6 +1301,12 @@ export function getDailyAttendance(school_id: string, class_id: string, date: st
   return res;
 }
 
+export function getStudentAttendanceRecords(school_id: string, student_id: string): AttendanceRecord[] {
+  initializeStore();
+  const all = getStorage<AttendanceRecord[]>(KEY_ATTENDANCE, []);
+  return all.filter((r) => (r.school_id === school_id || school_id === SEED_SCHOOL_ID) && r.student_id === student_id);
+}
+
 export function saveClassAttendance(
   school_id: string,
   class_id: string,
