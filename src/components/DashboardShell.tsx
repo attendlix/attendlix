@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   GraduationCap,
@@ -40,6 +40,65 @@ interface DashboardShellProps {
   children: React.ReactNode;
 }
 
+function NotificationBellContainer({
+  variant = "desktop",
+}: {
+  variant?: "desktop" | "mobile";
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const { unreadCount } = useNotifications();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen((prev) => !prev);
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        className={
+          variant === "mobile"
+            ? "p-2 rounded-xl text-white hover:bg-white/10 border border-white/15 min-h-[40px] min-w-[40px] flex items-center justify-center relative transition-colors focus:outline-none"
+            : "p-2 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-50 border border-slate-200/80 bg-white shadow-2xs relative transition-colors focus:outline-none"
+        }
+        title="Notifications"
+        aria-label="View notifications"
+        aria-expanded={isOpen}
+      >
+        <Bell className="w-4 h-4" />
+        {unreadCount > 0 && (
+          <span
+            className={
+              variant === "mobile"
+                ? "absolute top-1 right-1 min-w-[16px] h-[16px] px-0.5 rounded-full bg-emerald-500 text-white font-extrabold text-[9px] flex items-center justify-center ring-2 ring-[#0B3B2E]"
+                : "absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-600 text-white font-extrabold text-[10px] flex items-center justify-center ring-2 ring-white animate-pulse"
+            }
+          >
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {isOpen && <NotificationDropdown onClose={() => setIsOpen(false)} />}
+    </div>
+  );
+}
+
 export default function DashboardShell({
   currentUser,
   schoolName = "Beacon Grammar School",
@@ -54,8 +113,15 @@ export default function DashboardShell({
   children,
 }: DashboardShellProps) {
   const { t, isRtl } = useLanguage();
-  const { unreadCount, isBellOpen, toggleBell, setIsBellOpen } = useNotifications();
+  const { setUserContext } = useNotifications();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+  // Sync active user with NotificationContext
+  useEffect(() => {
+    if (currentUser) {
+      setUserContext(currentUser);
+    }
+  }, [currentUser, setUserContext]);
 
   // Close drawer on escape key
   useEffect(() => {
@@ -242,24 +308,7 @@ export default function DashboardShell({
             {headerExtra}
 
             {/* Mobile Notification Bell */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={toggleBell}
-                className="p-2 rounded-xl text-white hover:bg-white/10 border border-white/15 min-h-[40px] min-w-[40px] flex items-center justify-center relative transition-colors"
-                title="Notifications"
-                aria-label="View notifications"
-              >
-                <Bell className="w-4 h-4" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[16px] h-[16px] px-0.5 rounded-full bg-emerald-500 text-white font-extrabold text-[9px] flex items-center justify-center ring-2 ring-[#0B3B2E]">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {isBellOpen && <NotificationDropdown onClose={() => setIsBellOpen(false)} />}
-            </div>
+            <NotificationBellContainer variant="mobile" />
 
             <LanguageToggle />
           </div>
@@ -413,24 +462,7 @@ export default function DashboardShell({
           {/* Right: Notification Bell + Search Pill + Profile Shortcut + Extra + Language Toggle */}
           <div className="flex items-center gap-2.5 flex-shrink-0">
             {/* Notification Bell with Dropdown */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={toggleBell}
-                className="p-2 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-50 border border-slate-200/80 bg-white shadow-2xs relative transition-colors"
-                title="Notifications"
-                aria-label="View notifications"
-              >
-                <Bell className="w-4 h-4" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-600 text-white font-extrabold text-[10px] flex items-center justify-center ring-2 ring-white animate-pulse">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {isBellOpen && <NotificationDropdown onClose={() => setIsBellOpen(false)} />}
-            </div>
+            <NotificationBellContainer variant="desktop" />
 
             {/* Clean Pill Search Bar */}
             <div className="hidden sm:flex items-center gap-2 bg-white border border-slate-200/80 rounded-full px-3.5 py-1.5 text-xs text-slate-400 shadow-2xs hover:border-slate-300 transition-colors">

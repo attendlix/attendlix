@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { AppNotification, ToastMessage, UserRole } from "@/lib/types";
+import { AppNotification, ToastMessage, UserRole, User } from "@/lib/types";
 import {
   getNotifications,
   addNotification,
@@ -38,6 +38,8 @@ interface NotificationContextType {
   isBellOpen: boolean;
   setIsBellOpen: (open: boolean) => void;
   toggleBell: () => void;
+  activeUser: User | null;
+  setUserContext: (user: User | null) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType>({
@@ -54,6 +56,8 @@ const NotificationContext = createContext<NotificationContextType>({
   isBellOpen: false,
   setIsBellOpen: () => {},
   toggleBell: () => {},
+  activeUser: null,
+  setUserContext: () => {},
 });
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
@@ -61,13 +65,18 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [isBellOpen, setIsBellOpen] = useState(false);
+  const [activeUser, setActiveUser] = useState<User | null>(null);
+
+  const setUserContext = useCallback((user: User | null) => {
+    setActiveUser(user);
+  }, []);
 
   const refreshNotifications = useCallback(() => {
     if (typeof window === "undefined") return;
-    const user = getCurrentUser();
+    const user = activeUser || getCurrentUser();
     const list = getNotifications(user?.school_id, user?.role, user?.id);
     setNotifications(list);
-  }, []);
+  }, [activeUser]);
 
   useEffect(() => {
     refreshNotifications();
@@ -136,17 +145,19 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         showToast?: boolean;
       }
     ) => {
-      const user = getCurrentUser();
+      const user = activeUser || getCurrentUser();
       const notif = addNotification({
-        school_id: data.school_id || user?.school_id || "school-beacon-001",
-        target_role: data.target_role || "ALL",
+        school_id:
+          data.school_id ||
+          (user?.role === "SUPER_ADMIN" ? "GLOBAL" : user?.school_id || "school-beacon-001"),
+        target_role: data.target_role || (user?.role === "SUPER_ADMIN" ? "SUPER_ADMIN" : "ALL"),
         target_user_id: data.target_user_id,
         title: data.title,
         title_ur: data.title_ur,
         message: data.message,
         message_ur: data.message_ur,
         type: data.type || "INFO",
-        category: data.category || "SYSTEM",
+        category: data.category || (user?.role === "SUPER_ADMIN" ? "TENANT" : "SYSTEM"),
         action_url: data.action_url,
       });
 
@@ -163,28 +174,36 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
       return notif;
     },
-    [refreshNotifications, showToast, isRtl]
+    [activeUser, refreshNotifications, showToast, isRtl]
   );
 
   const markRead = useCallback(
     (id: string) => {
+      // 1. Instant optimistic update so badge count & visual dot update immediately
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
+      // 2. Persist to storage & Supabase
       markNotificationAsRead(id);
-      refreshNotifications();
     },
-    [refreshNotifications]
+    []
   );
 
   const markAllRead = useCallback(() => {
-    const user = getCurrentUser();
-    markAllNotificationsAsRead(user?.school_id, user?.role);
-    refreshNotifications();
-  }, [refreshNotifications]);
+    // 1. Instant optimistic update
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    // 2. Persist
+    const user = activeUser || getCurrentUser();
+    markAllNotificationsAsRead(user?.school_id, user?.role, user?.id);
+  }, [activeUser]);
 
   const clearAll = useCallback(() => {
-    const user = getCurrentUser();
-    clearAllNotifications(user?.school_id, user?.role);
-    refreshNotifications();
-  }, [refreshNotifications]);
+    // 1. Instant optimistic update
+    setNotifications([]);
+    // 2. Persist
+    const user = activeUser || getCurrentUser();
+    clearAllNotifications(user?.school_id, user?.role, user?.id);
+  }, [activeUser]);
 
   const toggleBell = useCallback(() => {
     setIsBellOpen((prev) => !prev);
@@ -206,6 +225,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         isBellOpen,
         setIsBellOpen,
         toggleBell,
+        activeUser,
+        setUserContext,
       }}
     >
       {children}

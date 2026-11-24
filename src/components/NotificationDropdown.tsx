@@ -87,7 +87,7 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
   const [activeFilter, setActiveFilter] = useState<"ALL" | "UNREAD">("ALL");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close when clicking outside
+  // Close when clicking outside dropdown
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -109,13 +109,13 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
   return (
     <div
       ref={dropdownRef}
-      className="absolute top-full mt-2 right-0 rtl:right-auto rtl:left-0 w-80 sm:w-96 max-h-[500px] bg-white rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col z-50 animate-scaleUp text-slate-900"
-      style={{ minWidth: "280px" }}
+      onMouseDown={(e) => e.stopPropagation()}
+      className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:top-full sm:mt-2 sm:right-0 rtl:sm:right-auto rtl:sm:left-0 w-auto sm:w-96 max-w-[calc(100vw-1.5rem)] sm:max-w-md max-h-[75vh] sm:max-h-[520px] bg-white rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col z-50 animate-scaleUp text-slate-900"
     >
       {/* Header */}
-      <div className="p-3.5 sm:p-4 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between gap-2">
+      <div className="p-3.5 sm:p-4 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between gap-2 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+          <div className="p-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex-shrink-0">
             <Bell className="w-4 h-4" />
           </div>
           <div>
@@ -128,30 +128,37 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
               )}
             </h3>
             <p className="text-[10px] text-slate-400">
-              {isRtl ? "تمام حالیہ کارروائیاں اور الرٹس" : "Real-time updates & activity"}
+              {isRtl ? "تمام حالیہ کارروائیاں اور لائیو الرٹس" : "Real-time updates & activity"}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-shrink-0">
           {unreadCount > 0 && (
             <button
               type="button"
-              onClick={markAllRead}
-              className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                markAllRead();
+              }}
+              className="px-2 py-1 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg text-xs font-semibold flex items-center gap-1 min-h-[36px] transition-colors"
               title={isRtl ? "تمام پڑھے ہوئے نشان زد کریں" : "Mark all read"}
             >
               <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="text-[11px] hidden sm:inline">{isRtl ? "پڑھے ہوئے" : "Mark read"}</span>
+              <span className="text-[11px] font-bold">{isRtl ? "سب پڑھ لیں" : "Mark read"}</span>
             </button>
           )}
 
           {notifications.length > 0 && (
             <button
               type="button"
-              onClick={clearAll}
-              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                clearAll();
+              }}
+              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg min-h-[36px] min-w-[36px] flex items-center justify-center transition-colors"
               title={isRtl ? "تمام صاف کریں" : "Clear all"}
+              aria-label="Clear all notifications"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -159,11 +166,12 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
 
           <button
             type="button"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               setIsBellOpen(false);
               if (onClose) onClose();
             }}
-            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg min-h-[36px] min-w-[36px] flex items-center justify-center transition-colors"
             aria-label="Close"
           >
             <X className="w-3.5 h-3.5" />
@@ -172,11 +180,11 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
       </div>
 
       {/* Filter Tabs */}
-      <div className="px-3 py-2 border-b border-slate-100 bg-white flex items-center gap-2">
+      <div className="px-3 py-2 border-b border-slate-100 bg-white flex items-center gap-2 flex-shrink-0">
         <button
           type="button"
           onClick={() => setActiveFilter("ALL")}
-          className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+          className={`px-3 py-1 rounded-full text-xs font-bold min-h-[32px] transition-all ${
             activeFilter === "ALL"
               ? "bg-slate-900 text-white shadow-2xs"
               : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -187,7 +195,7 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
         <button
           type="button"
           onClick={() => setActiveFilter("UNREAD")}
-          className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+          className={`px-3 py-1 rounded-full text-xs font-bold min-h-[32px] transition-all ${
             activeFilter === "UNREAD"
               ? "bg-emerald-600 text-white shadow-2xs"
               : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -198,7 +206,7 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
       </div>
 
       {/* Feed List */}
-      <div className="flex-1 overflow-y-auto divide-y divide-slate-100 max-h-[340px]">
+      <div className="flex-1 overflow-y-auto divide-y divide-slate-100 max-h-[360px] sm:max-h-[380px] sidebar-scroll overscroll-contain">
         {filteredNotifications.length === 0 ? (
           <div className="p-8 text-center space-y-2">
             <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-100 shadow-2xs">
@@ -226,11 +234,20 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
             return (
               <div
                 key={notif.id}
-                onClick={() => {
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
                   if (!notif.read) markRead(notif.id);
                 }}
-                className={`p-3 sm:p-3.5 flex items-start gap-3 cursor-pointer transition-colors relative hover:bg-slate-50/80 ${
-                  !notif.read ? "bg-emerald-50/30" : "bg-white"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    if (!notif.read) markRead(notif.id);
+                  }
+                }}
+                className={`p-3 sm:p-3.5 flex items-start gap-3 cursor-pointer transition-colors relative hover:bg-slate-50/80 min-h-[48px] touch-manipulation active:bg-slate-100 focus:outline-none focus:bg-slate-50 ${
+                  !notif.read ? "bg-emerald-50/40" : "bg-white"
                 }`}
               >
                 {/* Icon Badge */}
@@ -260,10 +277,10 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
                   </p>
                 </div>
 
-                {/* Unread dot */}
+                {/* Unread indicator dot */}
                 {!notif.read && (
                   <span
-                    className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200 flex-shrink-0 mt-2"
+                    className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 flex-shrink-0 mt-2"
                     title="Unread"
                   />
                 )}
@@ -274,7 +291,7 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
       </div>
 
       {/* Footer */}
-      <div className="p-2 border-t border-slate-100 bg-slate-50/50 text-center">
+      <div className="p-2 border-t border-slate-100 bg-slate-50/50 text-center flex-shrink-0">
         <span className="text-[10px] font-semibold text-slate-400">
           ⚡ {isRtl ? "اٹینڈلکس لائیو نوٹیفیکیشن سروس" : "Attendlix Live Notification Feed"}
         </span>

@@ -3493,27 +3493,83 @@ export function getNotifications(
 
   return allNotifs
     .filter((n) => {
-      // Super admin sees all GLOBAL or SUPER_ADMIN or ALL notifications
+      // 1. SUPER_ADMIN: Platform-level notifications ONLY
       if (role === "SUPER_ADMIN") {
-        return n.target_role === "SUPER_ADMIN" || n.school_id === "GLOBAL" || n.target_role === "ALL";
+        return (
+          n.target_role === "SUPER_ADMIN" ||
+          n.school_id === "GLOBAL" ||
+          n.category === "TENANT" ||
+          n.category === "ACCOUNT"
+        );
       }
 
-      // Role-based matching
-      const roleMatch = !n.target_role || n.target_role === "ALL" || n.target_role === role;
-
-      // User ID matching (if specifically directed)
-      if (n.target_user_id && user_id && n.target_user_id !== user_id) {
+      // If not SUPER_ADMIN, strictly HIDE platform-level Super Admin notifications
+      if (
+        n.target_role === "SUPER_ADMIN" ||
+        (n.school_id === "GLOBAL" && (n.category === "TENANT" || n.category === "ACCOUNT"))
+      ) {
         return false;
       }
 
-      // School matching
-      const schoolMatch =
-        !n.school_id ||
-        n.school_id === "GLOBAL" ||
-        n.school_id === school_id ||
-        school_id === SEED_SCHOOL_ID;
+      // 2. Strict Tenant Separation:
+      const effectiveSchoolId = school_id || SEED_SCHOOL_ID;
+      const notifSchoolId = n.school_id || SEED_SCHOOL_ID;
+      if (notifSchoolId !== "GLOBAL" && notifSchoolId !== effectiveSchoolId) {
+        return false;
+      }
 
-      return roleMatch && schoolMatch;
+      // 3. STUDENT_PARENT: Strict privacy!
+      if (role === "STUDENT_PARENT") {
+        // Can only see notifications targeted to STUDENT_PARENT or ALL
+        if (n.target_role && n.target_role !== "STUDENT_PARENT" && n.target_role !== "ALL") {
+          return false;
+        }
+        // Exclude staff or platform categories
+        if (n.category === "STAFF" || n.category === "TENANT" || n.category === "ACCOUNT") {
+          return false;
+        }
+        // If targeted to a specific user or student, MUST match user_id
+        if (n.target_user_id) {
+          if (!user_id || n.target_user_id !== user_id) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      // 4. TEACHER:
+      if (role === "TEACHER") {
+        if (n.target_role && n.target_role !== "TEACHER" && n.target_role !== "ALL") {
+          return false;
+        }
+        // Exclude platform tenant/MRR
+        if (n.category === "TENANT" || n.category === "ACCOUNT") {
+          return false;
+        }
+        // If targeted to a specific teacher user, MUST match user_id
+        if (n.target_user_id) {
+          if (user_id && n.target_user_id !== user_id) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      // 5. PRINCIPAL & ACCOUNTANT:
+      if (role === "PRINCIPAL" || role === "ACCOUNTANT") {
+        if (
+          n.target_role &&
+          n.target_role !== "PRINCIPAL" &&
+          n.target_role !== "ACCOUNTANT" &&
+          n.target_role !== "ALL"
+        ) {
+          return false;
+        }
+        return true;
+      }
+
+      // Fallback
+      return !n.target_role || n.target_role === "ALL" || n.target_role === role;
     })
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
@@ -3585,36 +3641,52 @@ export function markNotificationAsRead(id: string): void {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("attendlix:notification-updated"));
   }
+
+  // Non-blocking sync to Supabase
+  try {
+    supabase.from("notifications").update({ read: true, is_read: true }).eq("id", id).then();
+  } catch {
+    // non-blocking
+  }
 }
 
-export function markAllNotificationsAsRead(school_id?: string, role?: UserRole): void {
+export function markAllNotificationsAsRead(
+  school_id?: string,
+  role?: UserRole,
+  user_id?: string
+): void {
   initializeStore();
   const allNotifs = getStorage<AppNotification[]>(KEY_NOTIFICATIONS, SEED_NOTIFICATIONS);
-  const updated = allNotifs.map((n) => {
-    if (role === "SUPER_ADMIN") {
-      if (n.target_role === "SUPER_ADMIN" || n.school_id === "GLOBAL" || n.target_role === "ALL") {
-        return { ...n, read: true };
-      }
-    } else if (!n.target_role || n.target_role === "ALL" || n.target_role === role) {
-      return { ...n, read: true };
-    }
-    return n;
-  });
+  const visible = getNotifications(school_id, role, user_id);
+  const visibleIds = new Set(visible.map((v) => v.id));
+
+  const updated = allNotifs.map((n) => (visibleIds.has(n.id) ? { ...n, read: true } : n));
   setStorage(KEY_NOTIFICATIONS, updated);
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("attendlix:notification-updated"));
   }
+
+  // Non-blocking sync to Supabase
+  try {
+    visible.forEach((v) => {
+      supabase.from("notifications").update({ read: true, is_read: true }).eq("id", v.id).then();
+    });
+  } catch {
+    // non-blocking
+  }
 }
 
-export function clearAllNotifications(school_id?: string, role?: UserRole): void {
+export function clearAllNotifications(
+  school_id?: string,
+  role?: UserRole,
+  user_id?: string
+): void {
   initializeStore();
   const allNotifs = getStorage<AppNotification[]>(KEY_NOTIFICATIONS, SEED_NOTIFICATIONS);
-  const filtered = allNotifs.filter((n) => {
-    if (role === "SUPER_ADMIN") {
-      return !(n.target_role === "SUPER_ADMIN" || n.school_id === "GLOBAL" || n.target_role === "ALL");
-    }
-    return n.target_role && n.target_role !== "ALL" && n.target_role !== role;
-  });
+  const visible = getNotifications(school_id, role, user_id);
+  const visibleIds = new Set(visible.map((v) => v.id));
+
+  const filtered = allNotifs.filter((n) => !visibleIds.has(n.id));
   setStorage(KEY_NOTIFICATIONS, filtered);
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("attendlix:notification-updated"));
