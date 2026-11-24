@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -29,6 +29,8 @@ import {
   UserCheck,
   Settings,
   Eye,
+  Calendar,
+  Filter,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -48,18 +50,20 @@ import {
   isQuietHoursActive,
   getTeacherTimetable,
   getStaffTodayRecord,
+  getStaffAttendanceHistory,
+  calculateStaffDuration,
   teacherCheckIn,
   teacherCheckOut,
   getAnnouncementsForAudience,
   DAYS_ORDER,
   logout,
 } from "@/lib/store";
-import { User, SchoolClass, Student, AttendanceStatus, Homework, ExamMark, ChatMessage, TimetableSlot, DayOfWeek, StaffAttendanceRecord, Announcement } from "@/lib/types";
+import { User, SchoolClass, Student, AttendanceStatus, Homework, ExamMark, ChatMessage, TimetableSlot, DayOfWeek, StaffAttendanceRecord, StaffAttendanceStatus, Announcement } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 import DashboardShell from "@/components/DashboardShell";
 import UserSettingsTab from "@/components/UserSettingsTab";
 import StudentProfileModal from "@/components/StudentProfileModal";
-import { SparklineGreenWave, SparklineBluePulse, MiniBarChart } from "@/components/MiniCharts";
+import { SparklineGreenWave, SparklineBluePulse, MiniBarChart, SparklineAmberWave } from "@/components/MiniCharts";
 import { getAbsentAlertWhatsAppUrl, dispatchWhatsAppWebhook } from "@/lib/whatsapp";
 
 export default function TeacherDashboard() {
@@ -67,7 +71,7 @@ export default function TeacherDashboard() {
   const { t, isRtl } = useLanguage();
 
   // Active navigation tab
-  const [activeTab, setActiveTab] = useState<"attendance" | "homework" | "timetable" | "exams" | "messages" | "settings">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "my_attendance" | "homework" | "timetable" | "exams" | "messages" | "settings">("attendance");
 
   // User and Class context
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -87,10 +91,15 @@ export default function TeacherDashboard() {
   const [offlineQueueCount, setOfflineQueueCount] = useState<number>(0);
   const [syncStatusMessage, setSyncStatusMessage] = useState<string | null>(null);
 
-  // Tab 1: Attendance State
+  // Tab 1: Attendance State (Students Roll-Call)
   const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
   const [attendanceMap, setAttendanceMap] = useState<Record<string, AttendanceStatus>>({});
   const [attendanceSavedNotice, setAttendanceSavedNotice] = useState<string | null>(null);
+
+  // Teacher's Own Staff Attendance History State
+  const [teacherStaffHistory, setTeacherStaffHistory] = useState<StaffAttendanceRecord[]>([]);
+  const [teacherAttMonthFilter, setTeacherAttMonthFilter] = useState<string>("ALL");
+  const [teacherAttStatusFilter, setTeacherAttStatusFilter] = useState<"ALL" | "PRESENT" | "LATE" | "ABSENT" | "ON_LEAVE">("ALL");
 
   // Tab 2: Homework State
   const [homeworkList, setHomeworkList] = useState<Homework[]>([]);
@@ -137,9 +146,10 @@ export default function TeacherDashboard() {
     // Load teacher's timetable schedule
     setTeacherSchedule(getTeacherTimetable(user.school_id, user.id));
 
-    // Load staff daily check-in / check-out record
+    // Load staff daily check-in / check-out record and history
     const staffRec = getStaffTodayRecord(user.school_id, user.id);
     setTodayStaffRecord(staffRec);
+    setTeacherStaffHistory(getStaffAttendanceHistory(user.school_id, user.id));
 
     const classes = getClasses(user.school_id);
     setClassesList(classes);
@@ -314,6 +324,7 @@ export default function TeacherDashboard() {
     const res = teacherCheckIn(currentUser.school_id, currentUser.id);
     if (res.success) {
       setTodayStaffRecord(res.record);
+      setTeacherStaffHistory(getStaffAttendanceHistory(currentUser.school_id, currentUser.id));
       setCheckInNotice(`✓ ${t.selfCheckInSuccess || "Checked in successfully!"} (${res.record.check_in_time})`);
       setTimeout(() => setCheckInNotice(null), 5000);
     }
@@ -324,6 +335,7 @@ export default function TeacherDashboard() {
     const res = teacherCheckOut(currentUser.school_id, currentUser.id);
     if (res.success) {
       setTodayStaffRecord(res.record);
+      setTeacherStaffHistory(getStaffAttendanceHistory(currentUser.school_id, currentUser.id));
       setCheckInNotice(`✓ ${t.selfCheckOutSuccess || "Checked out successfully!"} (${res.record.check_out_time})`);
       setTimeout(() => setCheckInNotice(null), 5000);
     }
@@ -334,13 +346,126 @@ export default function TeacherDashboard() {
     router.push("/login");
   };
 
-  // Calculate quick attendance counts
+  // ---------------------------------------------------------------------------
+  // TEACHER ATTENDANCE HISTORY HELPERS & CALCULATIONS
+  // ---------------------------------------------------------------------------
+  const formatTeacherAttDate = (dateStr: string) => {
+    try {
+      const parts = dateStr.split("-").map(Number);
+      if (parts.length === 3) {
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleDateString(isRtl ? "ur-PK" : "en-PK", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          });
+        }
+      }
+      return dateStr;
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const availableTeacherMonths = useMemo(() => {
+    const set = new Set<string>();
+    teacherStaffHistory.forEach((r) => {
+      if (r.date && r.date.length >= 7) {
+        set.add(r.date.slice(0, 7));
+      }
+    });
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [teacherStaffHistory]);
+
+  const formatTeacherMonthName = (yearMonth: string) => {
+    if (yearMonth === "ALL") return isRtl ? "تمام مہینے (All Months)" : "All Recorded Months";
+    try {
+      const [y, m] = yearMonth.split("-").map(Number);
+      const d = new Date(y, m - 1, 1);
+      return d.toLocaleDateString(isRtl ? "ur-PK" : "en-PK", { month: "long", year: "numeric" });
+    } catch {
+      return yearMonth;
+    }
+  };
+
+  const filteredTeacherStaffHistory = useMemo(() => {
+    return teacherStaffHistory.filter((r) => {
+      if (teacherAttMonthFilter !== "ALL" && !r.date.startsWith(teacherAttMonthFilter)) {
+        return false;
+      }
+      if (teacherAttStatusFilter !== "ALL" && r.status !== teacherAttStatusFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [teacherStaffHistory, teacherAttMonthFilter, teacherAttStatusFilter]);
+
+  const recordsInMonthForTeacher = useMemo(() => {
+    return teacherStaffHistory.filter((r) =>
+      teacherAttMonthFilter === "ALL" ? true : r.date.startsWith(teacherAttMonthFilter)
+    );
+  }, [teacherStaffHistory, teacherAttMonthFilter]);
+
+  const presentCountInMonth = recordsInMonthForTeacher.filter((r) => r.status === "PRESENT").length;
+  const lateCountInMonth = recordsInMonthForTeacher.filter((r) => r.status === "LATE").length;
+  const absentCountInMonth = recordsInMonthForTeacher.filter((r) => r.status === "ABSENT").length;
+  const leaveCountInMonth = recordsInMonthForTeacher.filter((r) => r.status === "ON_LEAVE").length;
+
+  const totalTeacherDays = teacherStaffHistory.length;
+  const totalTeacherPresent = teacherStaffHistory.filter((r) => r.status === "PRESENT").length;
+  const totalTeacherLate = teacherStaffHistory.filter((r) => r.status === "LATE").length;
+  const totalTeacherAbsent = teacherStaffHistory.filter((r) => r.status === "ABSENT").length;
+  const totalTeacherLeave = teacherStaffHistory.filter((r) => r.status === "ON_LEAVE").length;
+  const teacherAttPercent =
+    totalTeacherDays > 0
+      ? Math.round(((totalTeacherPresent + totalTeacherLate) / totalTeacherDays) * 100)
+      : 96;
+
+  const renderTeacherStatusBadge = (status: StaffAttendanceStatus) => {
+    switch (status) {
+      case "PRESENT":
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span>{isRtl ? "حاضر" : "PRESENT"}</span>
+          </span>
+        );
+      case "LATE":
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            <span>{isRtl ? "تاخیر" : "LATE"}</span>
+          </span>
+        );
+      case "ABSENT":
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+            <span>{isRtl ? "غیر حاضر" : "ABSENT"}</span>
+          </span>
+        );
+      case "ON_LEAVE":
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+            <span>{isRtl ? "رخصت" : "ON LEAVE"}</span>
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // Calculate quick attendance counts for Class Roll-Call
   const presentCount = Object.values(attendanceMap).filter((s) => s === "PRESENT").length;
   const absentCount = Object.values(attendanceMap).filter((s) => s === "ABSENT").length;
   const leaveCount = Object.values(attendanceMap).filter((s) => s === "LEAVE").length;
 
   const teacherNavItems = [
-    { id: "attendance", label: t.tabAttendance || "Daily Attendance", icon: CalendarCheck },
+    { id: "attendance", label: isRtl ? "کلاس حاضری رول کال" : "Class Attendance", icon: CalendarCheck },
+    { id: "my_attendance", label: isRtl ? "میری ذاتی حاضری و لاگ" : "My Attendance Log", icon: UserCheck },
     { id: "homework", label: t.tabHomework || "Homework Diary", icon: BookOpen },
     { id: "timetable", label: t.mySchedule || "My Schedule", icon: Clock },
     { id: "exams", label: t.tabExams || "Exam Marks", icon: Award },
@@ -558,6 +683,19 @@ export default function TeacherDashboard() {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-center w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setActiveTab("my_attendance")}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 min-h-[44px] shadow-2xs ${
+                activeTab === "my_attendance"
+                  ? "bg-[#0B3B2E] text-white border-[#0B3B2E]"
+                  : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>{isRtl ? "مکمل ہسٹری لاگ" : "View History"}</span>
+            </button>
+
             {!todayStaffRecord?.check_in_time ? (
               <button
                 type="button"
@@ -577,7 +715,7 @@ export default function TeacherDashboard() {
                 <span>{t.checkOutNow || "Check-Out Now"}</span>
               </button>
             ) : (
-              <div className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-2.5 rounded-xl border border-emerald-200">
+              <div className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-2.5 rounded-xl border border-emerald-200 min-h-[44px]">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 <span>Shift Completed</span>
               </div>
@@ -798,6 +936,373 @@ export default function TeacherDashboard() {
                   Save Attendance ({presentCount} Present, {absentCount} Absent)
                 </span>
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 1B: TEACHER'S OWN ATTENDANCE & CHECK-IN/OUT LOG */}
+        {/* ========================================================================= */}
+        {activeTab === "my_attendance" && (
+          <div className="space-y-6">
+            {/* Header with Title and Switch to Class Roll-Call */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                  <UserCheck className="w-5 h-5 text-emerald-600" />
+                  <span>{isRtl ? "میری ذاتی حاضری اور گیٹ لاگ" : "My Attendance & Gate Check-In Log"}</span>
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {isRtl
+                    ? "روزانہ اسکول آمد و روانگی کے اوقات، دورانیہ اور ماہانہ حاضری ریکارڈ"
+                    : "Complete date-by-date check-in/out timestamps, duty duration, and punctuality records."}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("attendance")}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-2xs self-start sm:self-auto"
+              >
+                <CalendarCheck className="w-3.5 h-3.5 text-emerald-700" />
+                <span>{isRtl ? "کلاس حاضری رول کال پر جائیں" : "Open Class Roll-Call"}</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* 4 Compact Metric Cards (Matching Dashboard UI) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* Card 1: Attendance % */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {isRtl ? "حاضری کی شرح" : "Attendance Rate"}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    {teacherAttPercent}%
+                  </span>
+                  <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                    {teacherAttPercent >= 90 ? "Excellent" : "Standard"}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500">
+                    {totalTeacherDays} {isRtl ? "کل کام کے دن" : "working days"}
+                  </span>
+                  <SparklineGreenWave />
+                </div>
+              </div>
+
+              {/* Card 2: Total Days Present */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {isRtl ? "کل حاضر دن" : "Total Present"}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+                    <Check className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    {totalTeacherPresent}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">days</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500">
+                    {isRtl ? "وقت پر اسکول آمد" : "On-time arrival"}
+                  </span>
+                  <SparklineBluePulse />
+                </div>
+              </div>
+
+              {/* Card 3: Late Arrivals */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {isRtl ? "تاخیر سے آمد" : "Late Arrivals"}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    {totalTeacherLate}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">days</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[11px] text-amber-600 font-medium">
+                    {isRtl ? "گیٹ پر 8:15 کے بعد" : "After 08:15 AM"}
+                  </span>
+                  <SparklineAmberWave />
+                </div>
+              </div>
+
+              {/* Card 4: Absent Days */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {isRtl ? "غیر حاضر دن" : "Absent Days"}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center">
+                    <AlertCircle className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    {totalTeacherAbsent}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">
+                    {totalTeacherLeave > 0 ? `+ ${totalTeacherLeave} Leave` : "days"}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[11px] text-rose-600 font-medium">
+                    {totalTeacherAbsent === 0 ? "Zero unexcused absence" : "Emergency absence"}
+                  </span>
+                  <MiniBarChart />
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Controls: Month Selector & Status Pills */}
+            <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col md:flex-row md:items-center justify-between gap-4">
+              {/* Month Selector */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-bold text-slate-600 flex items-center gap-1.5 flex-shrink-0">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{isRtl ? "مہینہ منتخب کریں:" : "Month:"}</span>
+                </label>
+                <div className="relative">
+                  <select
+                    value={teacherAttMonthFilter}
+                    onChange={(e) => setTeacherAttMonthFilter(e.target.value)}
+                    className="appearance-none pl-3 pr-8 py-1.5 text-xs font-semibold bg-slate-50 hover:bg-slate-100 text-slate-800 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-[#0B3B2E]/20 transition-all cursor-pointer"
+                  >
+                    <option value="ALL">{formatTeacherMonthName("ALL")}</option>
+                    {availableTeacherMonths.map((ym) => (
+                      <option key={ym} value={ym}>
+                        {formatTeacherMonthName(ym)}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Status Filter Pills */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { id: "ALL", label: isRtl ? "تمام" : "All", count: recordsInMonthForTeacher.length, activeClass: "bg-[#0B3B2E] text-white border-[#0B3B2E]" },
+                  { id: "PRESENT", label: isRtl ? "حاضر" : "Present", count: presentCountInMonth, activeClass: "bg-emerald-600 text-white border-emerald-600" },
+                  { id: "LATE", label: isRtl ? "تاخیر" : "Late", count: lateCountInMonth, activeClass: "bg-amber-600 text-white border-amber-600" },
+                  { id: "ABSENT", label: isRtl ? "غیر حاضر" : "Absent", count: absentCountInMonth, activeClass: "bg-rose-600 text-white border-rose-600" },
+                  { id: "ON_LEAVE", label: isRtl ? "رخصت" : "On Leave", count: leaveCountInMonth, activeClass: "bg-purple-600 text-white border-purple-600" },
+                ].map((pill) => {
+                  const isActive = teacherAttStatusFilter === pill.id;
+                  return (
+                    <button
+                      key={pill.id}
+                      type="button"
+                      onClick={() => setTeacherAttStatusFilter(pill.id as any)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+                        isActive
+                          ? pill.activeClass + " shadow-2xs"
+                          : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                      }`}
+                    >
+                      <span>{pill.label}</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                          isActive ? "bg-white/25 text-white" : "bg-slate-200/80 text-slate-600"
+                        }`}
+                      >
+                        {pill.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Attendance Records List / Table */}
+            <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-slate-900 text-sm">
+                    {teacherAttMonthFilter === "ALL"
+                      ? isRtl
+                        ? "تمام ریکارڈ شدہ حاضری لاگ"
+                        : "All Recorded Work Days"
+                      : `${formatTeacherMonthName(teacherAttMonthFilter)} Log`}
+                  </h3>
+                  <span className="text-xs text-slate-400 font-medium">
+                    ({filteredTeacherStaffHistory.length} {filteredTeacherStaffHistory.length === 1 ? "entry" : "entries"})
+                  </span>
+                </div>
+
+                {(teacherAttStatusFilter !== "ALL" || teacherAttMonthFilter !== "ALL") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTeacherAttStatusFilter("ALL");
+                      setTeacherAttMonthFilter("ALL");
+                    }}
+                    className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline"
+                  >
+                    {isRtl ? "فلٹرز ختم کریں" : "Reset Filters"}
+                  </button>
+                )}
+              </div>
+
+              {filteredTeacherStaffHistory.length === 0 ? (
+                <div className="p-12 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                    <Filter className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-sm">
+                      {isRtl ? "کوئی ریکارڈ نہیں ملا" : "No Attendance Records Found"}
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                      {isRtl
+                        ? "اس فلٹر کے لیے کوئی حاضری اندراج دستیاب نہیں ہے۔ دیگر فلٹرز یا مہینہ منتخب کریں۔"
+                        : "There are no attendance records matching your chosen month and status filter."}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTeacherAttStatusFilter("ALL");
+                      setTeacherAttMonthFilter("ALL");
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-2xs transition-colors"
+                  >
+                    <span>{isRtl ? "تمام ریکارڈز دکھائیں" : "Show All Records"}</span>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50/75 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        <tr>
+                          <th className="py-3.5 px-4">Date & Day</th>
+                          <th className="py-3.5 px-4">Status</th>
+                          <th className="py-3.5 px-4">Check-In Time</th>
+                          <th className="py-3.5 px-4">Check-Out Time</th>
+                          <th className="py-3.5 px-4">Duration</th>
+                          <th className="py-3.5 px-4 text-right">Gate Notes / Remarks</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-sans">
+                        {filteredTeacherStaffHistory.map((rec) => {
+                          const durationStr = calculateStaffDuration(rec.check_in_time, rec.check_out_time);
+                          return (
+                            <tr key={rec.id} className="hover:bg-slate-50/60 transition-colors">
+                              <td className="py-3.5 px-4 font-semibold text-slate-900 flex items-center gap-2">
+                                <Calendar className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                                <span>{formatTeacherAttDate(rec.date)}</span>
+                              </td>
+                              <td className="py-3.5 px-4">{renderTeacherStatusBadge(rec.status)}</td>
+                              <td className="py-3.5 px-4 font-mono">
+                                {rec.check_in_time ? (
+                                  <span className={rec.status === "LATE" ? "text-amber-700 font-bold" : "text-slate-800 font-semibold"}>
+                                    {rec.check_in_time}
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-400">—</span>
+                                )}
+                              </td>
+                              <td className="py-3.5 px-4 font-mono">
+                                {rec.check_out_time ? (
+                                  <span className="text-slate-800 font-semibold">{rec.check_out_time}</span>
+                                ) : rec.check_in_time ? (
+                                  <span className="text-emerald-700 font-semibold italic text-[11px]">In Progress</span>
+                                ) : (
+                                  <span className="text-slate-400">—</span>
+                                )}
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <span className={`px-2 py-0.5 rounded text-[11px] font-bold font-mono ${
+                                  durationStr === "In Progress"
+                                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                    : durationStr === "—"
+                                    ? "text-slate-400"
+                                    : "bg-slate-100 text-slate-700"
+                                }`}>
+                                  {durationStr}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 text-right text-slate-500">
+                                {rec.notes ? (
+                                  <span className="italic text-slate-600">“{rec.notes}”</span>
+                                ) : (
+                                  <span className="text-slate-400">—</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Cards View */}
+                  <div className="block md:hidden divide-y divide-slate-100">
+                    {filteredTeacherStaffHistory.map((rec) => {
+                      const durationStr = calculateStaffDuration(rec.check_in_time, rec.check_out_time);
+                      return (
+                        <div key={rec.id} className="p-4 space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                              <span>{formatTeacherAttDate(rec.date)}</span>
+                            </span>
+                            {renderTeacherStatusBadge(rec.status)}
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 text-[11px] pt-1">
+                            <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                              <span className="text-[10px] font-bold uppercase text-slate-400 block">Check-In</span>
+                              <span className={`font-mono font-medium ${rec.status === "LATE" ? "text-amber-700 font-bold" : "text-slate-800"}`}>
+                                {rec.check_in_time || "—"}
+                              </span>
+                            </div>
+                            <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                              <span className="text-[10px] font-bold uppercase text-slate-400 block">Check-Out</span>
+                              <span className="font-mono font-medium text-slate-800">
+                                {rec.check_out_time || (rec.check_in_time ? "In Progress" : "—")}
+                              </span>
+                            </div>
+                            <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                              <span className="text-[10px] font-bold uppercase text-slate-400 block">Duration</span>
+                              <span className="font-mono font-bold text-slate-700 truncate block">
+                                {durationStr}
+                              </span>
+                            </div>
+                          </div>
+
+                          {rec.notes && (
+                            <div className="text-[11px] text-slate-600 italic bg-amber-50/60 p-2 rounded-xl border border-amber-200/60">
+                              Note: “{rec.notes}”
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
