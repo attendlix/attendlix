@@ -527,38 +527,41 @@ export default function TeacherDashboard() {
       headerExtra={headerExtra}
     >
       <div className="space-y-4 sm:space-y-6">
-        {/* Active Class Selector Card */}
-      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none py-1 w-full sm:w-auto">
-          <span className="text-[11px] font-bold uppercase text-slate-500 whitespace-nowrap flex-shrink-0 mr-1">
-            Active Class:
-          </span>
-          {classesList.map((cls) => {
-            const active = selectedClassId === cls.id;
-            return (
-              <button
-                key={cls.id}
-                type="button"
-                onClick={() => setSelectedClassId(cls.id)}
-                className={`px-3.5 py-2 min-h-[38px] rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center justify-center flex-shrink-0 ${
-                  active
-                    ? "bg-[#0B3B2E] text-white shadow-xs"
-                    : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
-                }`}
-              >
-                {cls.name} ({cls.section})
-              </button>
-            );
-          })}
-        </div>
+        {/* Active Class Selector Card - Render only on class-based tabs */}
+        {["attendance", "homework", "exams", "messages"].includes(activeTab) && (
+          <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none py-1 w-full sm:w-auto">
+              <span className="text-[11px] font-bold uppercase text-slate-500 whitespace-nowrap flex-shrink-0 mr-1">
+                Active Class:
+              </span>
+              {classesList.map((cls) => {
+                const active = selectedClassId === cls.id;
+                return (
+                  <button
+                    key={cls.id}
+                    type="button"
+                    onClick={() => setSelectedClassId(cls.id)}
+                    className={`px-3.5 py-2 min-h-[38px] rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center justify-center flex-shrink-0 ${
+                      active
+                        ? "bg-[#0B3B2E] text-white shadow-xs"
+                        : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    {cls.name} ({cls.section})
+                  </button>
+                );
+              })}
+            </div>
 
-        <Link
-          href="/dashboard/principal"
-          className="text-[11px] font-semibold text-slate-500 hover:text-emerald-700 underline whitespace-nowrap self-end sm:self-center flex-shrink-0"
-        >
-          Principal View →
-        </Link>
-      </div>
+            <Link
+              href="/dashboard/principal"
+              className="text-[11px] font-semibold text-slate-500 hover:text-emerald-700 underline whitespace-nowrap self-end sm:self-center flex-shrink-0"
+            >
+              Principal View →
+            </Link>
+          </div>
+        )}
+
         {/* Global Sync Notification */}
         {syncStatusMessage && (
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center gap-2">
@@ -567,8 +570,8 @@ export default function TeacherDashboard() {
           </div>
         )}
 
-        {/* Staff & School Official Circulars (Filtered for Teachers / Staff) */}
-        {announcements.length > 0 && (
+        {/* Staff & School Official Circulars - Render ONLY on primary landing tab (Class Attendance) */}
+        {activeTab === "attendance" && announcements.length > 0 && (
           <div className="space-y-2.5">
             {announcements.map((ann) => (
               <div
@@ -618,8 +621,8 @@ export default function TeacherDashboard() {
           </div>
         )}
 
-        {/* Check-in Notice Alert */}
-        {checkInNotice && (
+        {/* Check-in Notice Alert - Render on attendance views */}
+        {checkInNotice && (activeTab === "attendance" || activeTab === "my_attendance") && (
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center justify-between gap-2 shadow-2xs">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -629,99 +632,101 @@ export default function TeacherDashboard() {
           </div>
         )}
 
-        {/* Dedicated Teacher Daily Check-In / Check-Out Self-Service Card */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-start sm:items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-2xs ${
-              todayStaffRecord?.check_out_time
-                ? "bg-emerald-100 text-emerald-700"
-                : todayStaffRecord?.check_in_time
-                ? "bg-blue-100 text-blue-700"
-                : "bg-slate-100 text-slate-700"
-            }`}>
-              <UserCheck className="w-5 h-5" />
+        {/* Dedicated Teacher Daily Check-In / Check-Out Self-Service Card - Render on attendance views */}
+        {(activeTab === "attendance" || activeTab === "my_attendance") && (
+          <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-2xs ${
+                todayStaffRecord?.check_out_time
+                  ? "bg-emerald-100 text-emerald-700"
+                  : todayStaffRecord?.check_in_time
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-slate-100 text-slate-700"
+              }`}>
+                <UserCheck className="w-5 h-5" />
+              </div>
+
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-slate-900 text-sm">{t.staffAttendanceTitle || "Daily Staff Attendance"}</span>
+                  {todayStaffRecord?.status === "PRESENT" && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      {t.present || "Present"}
+                    </span>
+                  )}
+                  {todayStaffRecord?.status === "LATE" && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                      {t.late || "Late"}
+                    </span>
+                  )}
+                  {todayStaffRecord?.status === "ON_LEAVE" && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300">
+                      {t.onLeave || "On Leave"}
+                    </span>
+                  )}
+                  {!todayStaffRecord?.check_in_time && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                      {t.notCheckedInYet || "Not Checked In"}
+                    </span>
+                  )}
+                </div>
+
+                <div className="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
+                  {todayStaffRecord?.check_in_time ? (
+                    <span>
+                      <strong className="text-slate-800">{t.checkIn || "Check-In"}:</strong> {todayStaffRecord.check_in_time}
+                      {todayStaffRecord.check_out_time && (
+                        <> • <strong className="text-slate-800">{t.checkOut || "Check-Out"}:</strong> {todayStaffRecord.check_out_time}</>
+                      )}
+                    </span>
+                  ) : (
+                    <span>{t.schoolHoursNotice || "Morning check-in opens at 7:30 AM (Late after 8:15 AM)"}</span>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-0.5 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-bold text-slate-900 text-sm">{t.staffAttendanceTitle || "Daily Staff Attendance"}</span>
-                {todayStaffRecord?.status === "PRESENT" && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                    {t.present || "Present"}
-                  </span>
-                )}
-                {todayStaffRecord?.status === "LATE" && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                    {t.late || "Late"}
-                  </span>
-                )}
-                {todayStaffRecord?.status === "ON_LEAVE" && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300">
-                    {t.onLeave || "On Leave"}
-                  </span>
-                )}
-                {!todayStaffRecord?.check_in_time && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                    {t.notCheckedInYet || "Not Checked In"}
-                  </span>
-                )}
-              </div>
+            <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-center w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setActiveTab("my_attendance")}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 min-h-[44px] shadow-2xs ${
+                  activeTab === "my_attendance"
+                    ? "bg-[#0B3B2E] text-white border-[#0B3B2E]"
+                    : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>{isRtl ? "مکمل ہسٹری لاگ" : "View History"}</span>
+              </button>
 
-              <div className="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
-                {todayStaffRecord?.check_in_time ? (
-                  <span>
-                    <strong className="text-slate-800">{t.checkIn || "Check-In"}:</strong> {todayStaffRecord.check_in_time}
-                    {todayStaffRecord.check_out_time && (
-                      <> • <strong className="text-slate-800">{t.checkOut || "Check-Out"}:</strong> {todayStaffRecord.check_out_time}</>
-                    )}
-                  </span>
-                ) : (
-                  <span>{t.schoolHoursNotice || "Morning check-in opens at 7:30 AM (Late after 8:15 AM)"}</span>
-                )}
-              </div>
+              {!todayStaffRecord?.check_in_time ? (
+                <button
+                  type="button"
+                  onClick={handleTeacherCheckIn}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#0B3B2E] hover:bg-[#082C22] text-white text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-2 min-h-[44px]"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>{t.checkInNow || "Check-In Now"}</span>
+                </button>
+              ) : !todayStaffRecord?.check_out_time ? (
+                <button
+                  type="button"
+                  onClick={handleTeacherCheckOut}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-2xs hover:shadow-md transition-all flex items-center justify-center gap-2 min-h-[44px]"
+                >
+                  <LogOut className="w-4 h-4 text-emerald-400" />
+                  <span>{t.checkOutNow || "Check-Out Now"}</span>
+                </button>
+              ) : (
+                <div className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-2.5 rounded-xl border border-emerald-200 min-h-[44px]">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>Shift Completed</span>
+                </div>
+              )}
             </div>
           </div>
-
-          <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-center w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={() => setActiveTab("my_attendance")}
-              className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 min-h-[44px] shadow-2xs ${
-                activeTab === "my_attendance"
-                  ? "bg-[#0B3B2E] text-white border-[#0B3B2E]"
-                  : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5" />
-              <span>{isRtl ? "مکمل ہسٹری لاگ" : "View History"}</span>
-            </button>
-
-            {!todayStaffRecord?.check_in_time ? (
-              <button
-                type="button"
-                onClick={handleTeacherCheckIn}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#0B3B2E] hover:bg-[#082C22] text-white text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-2 min-h-[44px]"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>{t.checkInNow || "Check-In Now"}</span>
-              </button>
-            ) : !todayStaffRecord?.check_out_time ? (
-              <button
-                type="button"
-                onClick={handleTeacherCheckOut}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-2xs hover:shadow-md transition-all flex items-center justify-center gap-2 min-h-[44px]"
-              >
-                <LogOut className="w-4 h-4 text-emerald-400" />
-                <span>{t.checkOutNow || "Check-Out Now"}</span>
-              </button>
-            ) : (
-              <div className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-2.5 rounded-xl border border-emerald-200 min-h-[44px]">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>Shift Completed</span>
-              </div>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* ========================================================================= */}
         {/* TAB 1: 1-TAP DAILY ATTENDANCE (WITH OFFLINE FIRST QUEUE) */}
