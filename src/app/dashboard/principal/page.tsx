@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -54,6 +54,10 @@ import {
   Mail,
   FileText,
   Eye,
+  Activity,
+  ArrowUpRight,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -83,6 +87,8 @@ import {
   saveStaffAttendanceRecord,
   getStaffTodayRecord,
   getStaffAttendanceHistory,
+  getDailyAttendance,
+  bulkPromoteStudents,
   getTodayDateStr,
   formatCurrentTime,
   DAYS_ORDER,
@@ -211,6 +217,19 @@ export default function PrincipalDashboard() {
     monthly_fee: 4500,
   });
   const [createdStudentCreds, setCreatedStudentCreds] = useState<{ student: Student; rawPassword: string } | null>(null);
+
+  // Daily School Pulse State
+  const [showUnmarkedStaffDrawer, setShowUnmarkedStaffDrawer] = useState(false);
+
+  // Bulk Student Promotion State
+  const [showPromoteModal, setShowPromoteModal] = useState(false);
+  const [promoteSourceClassId, setPromoteSourceClassId] = useState("");
+  const [promoteTargetClassId, setPromoteTargetClassId] = useState("");
+  const [selectedStudentIdsForPromotion, setSelectedStudentIdsForPromotion] = useState<string[]>([]);
+  const [updateRollNumbers, setUpdateRollNumbers] = useState(false);
+  const [newRollNumbersMap, setNewRollNumbersMap] = useState<Record<string, string>>({});
+  const [isPromoting, setIsPromoting] = useState(false);
+  const [promotionNotice, setPromotionNotice] = useState<string | null>(null);
 
   // Fee Adjustment Modal State
   const [adjustFeeModal, setAdjustFeeModal] = useState<{
@@ -419,6 +438,146 @@ export default function PrincipalDashboard() {
 
     setStaffAttendanceNotice(`✓ Attendance updated for ${editingStaffRecord.user_name}`);
     setTimeout(() => setStaffAttendanceNotice(null), 4000);
+  };
+
+  // Daily School Pulse Analytics
+  const unmarkedStaff = useMemo(() => {
+    return staffList.filter((staff) => {
+      const rec = staffAttendanceList.find((r) => r.user_id === staff.id);
+      return !rec || rec.status === "ABSENT";
+    });
+  }, [staffList, staffAttendanceList]);
+
+  const lateStaff = useMemo(() => {
+    return staffAttendanceList.filter((r) => r.status === "LATE");
+  }, [staffAttendanceList]);
+
+  const pendingRollCallClasses = useMemo(() => {
+    if (!currentUser) return [];
+    const today = getTodayDateStr();
+    return classesList.filter((c) => {
+      const attMap = getDailyAttendance(currentUser.school_id, c.id, today);
+      return Object.keys(attMap).length === 0;
+    });
+  }, [currentUser, classesList]);
+
+  const todayFeePulse = useMemo(() => {
+    const today = getTodayDateStr();
+    const collectedTodayRecords = feeRecordsList.filter(
+      (r) => r.status === "PAID" && (r.paid_at?.startsWith(today) || r.created_at?.startsWith(today))
+    );
+    const todayCollectedPKR = collectedTodayRecords.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+    const pendingBalancePKR = feeSummary?.totalPendingPKR || 0;
+    return {
+      todayCollectedPKR,
+      todayCount: collectedTodayRecords.length,
+      pendingBalancePKR,
+    };
+  }, [feeRecordsList, feeSummary]);
+
+  // Bulk Student Promotion Handlers
+  const handleOpenPromoteModal = () => {
+    if (classesList.length >= 2) {
+      const srcId = classesList[0].id;
+      const tgtId = classesList[1].id;
+      setPromoteSourceClassId(srcId);
+      setPromoteTargetClassId(tgtId);
+      const srcStudents = studentsList.filter((s) => s.class_id === srcId);
+      setSelectedStudentIdsForPromotion(srcStudents.map((s) => s.id));
+      const initialRolls: Record<string, string> = {};
+      srcStudents.forEach((s) => {
+        initialRolls[s.id] = s.roll_no;
+      });
+      setNewRollNumbersMap(initialRolls);
+    } else if (classesList.length === 1) {
+      setPromoteSourceClassId(classesList[0].id);
+      setPromoteTargetClassId("");
+      const srcStudents = studentsList.filter((s) => s.class_id === classesList[0].id);
+      setSelectedStudentIdsForPromotion(srcStudents.map((s) => s.id));
+    }
+    setUpdateRollNumbers(false);
+    setShowPromoteModal(true);
+  };
+
+  const handleSourceClassChange = (newSrcId: string) => {
+    setPromoteSourceClassId(newSrcId);
+    const srcStudents = studentsList.filter((s) => s.class_id === newSrcId);
+    setSelectedStudentIdsForPromotion(srcStudents.map((s) => s.id));
+    const initialRolls: Record<string, string> = {};
+    srcStudents.forEach((s) => {
+      initialRolls[s.id] = s.roll_no;
+    });
+    setNewRollNumbersMap(initialRolls);
+    if (promoteTargetClassId === newSrcId) {
+      const altTarget = classesList.find((c) => c.id !== newSrcId);
+      if (altTarget) setPromoteTargetClassId(altTarget.id);
+    }
+  };
+
+  const handleToggleSelectStudent = (studentId: string) => {
+    setSelectedStudentIdsForPromotion((prev) =>
+      prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId]
+    );
+  };
+
+  const handleSelectAllStudents = (allIds: string[]) => {
+    setSelectedStudentIdsForPromotion(allIds);
+  };
+
+  const handleDeselectAllStudents = () => {
+    setSelectedStudentIdsForPromotion([]);
+  };
+
+  const handleExecutePromotion = () => {
+    if (!currentUser || !promoteSourceClassId || !promoteTargetClassId) return;
+    if (promoteSourceClassId === promoteTargetClassId) {
+      alert(isRtl ? "شروع کی کلاس اور اگلی کلاس ایک جیسی نہیں ہو سکتیں" : "Source and Target class cannot be the same.");
+      return;
+    }
+    if (selectedStudentIdsForPromotion.length === 0) {
+      alert(isRtl ? "براہ کرم پروموٹ کرنے کے لیے کم از کم ایک طالب علم منتخب کریں" : "Please select at least one student to promote.");
+      return;
+    }
+
+    setIsPromoting(true);
+
+    const res = bulkPromoteStudents(
+      currentUser.school_id,
+      selectedStudentIdsForPromotion,
+      promoteTargetClassId,
+      updateRollNumbers ? newRollNumbersMap : undefined
+    );
+
+    if (res.success) {
+      const updatedStudents = getStudents(currentUser.school_id);
+      const updatedClasses = getClasses(currentUser.school_id);
+      setStudentsList(updatedStudents);
+      setClassesList(updatedClasses);
+
+      const sourceClass = classesList.find((c) => c.id === promoteSourceClassId);
+      const targetClass = classesList.find((c) => c.id === promoteTargetClassId);
+
+      const sourceName = sourceClass ? `${sourceClass.name} - Section ${sourceClass.section}` : "Source Class";
+      const targetName = targetClass ? `${targetClass.name} - Section ${targetClass.section}` : res.targetClassName;
+
+      notify({
+        title: "Class Promoted Successfully",
+        title_ur: "کلاس کی اگلی جماعت میں ترقی مکمل",
+        message: `${res.promotedCount} students promoted from ${sourceName} to ${targetName}. Historical records preserved.`,
+        message_ur: `${res.promotedCount} طلبہ کو کامیابی سے ${targetName} میں پروموٹ کر دیا گیا ہے۔ پچھلا ریکارڈ مکمل محفوظ ہے۔`,
+        type: "SUCCESS",
+        category: "ADMISSION",
+        target_role: "PRINCIPAL",
+      });
+
+      setPromotionNotice(
+        `✓ Successfully promoted ${res.promotedCount} students to ${targetName}! Historical attendance, marks, and fees are preserved.`
+      );
+      setTimeout(() => setPromotionNotice(null), 6000);
+
+      setShowPromoteModal(false);
+    }
+    setIsPromoting(false);
   };
 
   const refreshTimetable = (classId?: string) => {
@@ -799,6 +958,258 @@ export default function PrincipalDashboard() {
                   <span>Fee Register</span>
                 </button>
               </div>
+            </div>
+
+            {/* Daily School Pulse Morning Command Strip (Overview Only) */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_4px_25px_rgb(0,0,0,0.03)] p-4 sm:p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-600 to-[#0B3B2E] text-white flex items-center justify-center shadow-2xs flex-shrink-0">
+                    <Activity className="w-4 h-4 animate-pulse" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="font-extrabold text-slate-900 text-sm sm:text-base">
+                        {isRtl ? "روزانہ اسکول پلس — صبح کی کارروائی" : "Daily School Pulse"}
+                      </h2>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px] uppercase tracking-wide border border-emerald-200/70">
+                        {isRtl ? "لائیو آپریشنز" : "Live Operations"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      {isRtl
+                        ? "اسکول کے یومیہ آپریشنز کا جائزہ: اسٹاف کی حاضری، کلاس حاضری اور فیس ریکوری"
+                        : "Real-time morning operations check: staff check-in, class roll-calls, and fee collection."}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-slate-500 self-start sm:self-auto">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="font-medium">
+                    {new Date().toLocaleDateString("en-PK", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+                  </span>
+                </div>
+              </div>
+
+              {/* 3 Actionable Command Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* 1. Unmarked / Late Staff Alert */}
+                <div
+                  className={`rounded-xl border p-3.5 transition-all flex flex-col justify-between space-y-3 ${
+                    unmarkedStaff.length > 0
+                      ? "bg-amber-50/60 border-amber-200/80"
+                      : lateStaff.length > 0
+                      ? "bg-orange-50/60 border-orange-200/80"
+                      : "bg-emerald-50/40 border-emerald-200/70"
+                  }`}
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        {isRtl ? "اسٹاف چیک ان اسٹیٹس" : "Staff Check-In Status"}
+                      </span>
+                      {unmarkedStaff.length > 0 ? (
+                        <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-bold text-[10px]">
+                          {unmarkedStaff.length} {isRtl ? "غیر حاضر/بغیر حاضری" : "Unmarked"}
+                        </span>
+                      ) : lateStaff.length > 0 ? (
+                        <span className="px-2 py-0.5 rounded-md bg-orange-100 text-orange-800 font-bold text-[10px]">
+                          {lateStaff.length} {isRtl ? "تاخیر" : "Late"}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                          {isRtl ? "سب حاضر" : "100% Present"}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+                      {unmarkedStaff.length > 0 ? (
+                        <span className="text-amber-800">
+                          {unmarkedStaff.length} {isRtl ? "اسٹاف ممبرز غیر نشان زد ہیں" : "Staff Unmarked / Absent"}
+                        </span>
+                      ) : (
+                        <span className="text-emerald-800 flex items-center gap-1">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <span>{isRtl ? "تمام اساتذہ وقت پر پہنچ چکے ہیں" : "All Staff On Duty"}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-[11px] text-slate-600">
+                      {staffAttendanceStats.present + staffAttendanceStats.late} of {staffAttendanceStats.totalStaff} staff members checked in today.
+                      {lateStaff.length > 0 && ` (${lateStaff.length} arrived late)`}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-2">
+                    {unmarkedStaff.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowUnmarkedStaffDrawer(!showUnmarkedStaffDrawer)}
+                        className="text-[11px] font-bold text-amber-800 hover:text-amber-900 underline cursor-pointer"
+                      >
+                        {showUnmarkedStaffDrawer
+                          ? (isRtl ? "فہرست چھپائیں" : "Hide List")
+                          : (isRtl ? `فہرست دیکھیں (${unmarkedStaff.length})` : `View Unmarked (${unmarkedStaff.length})`)}
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-emerald-700 font-medium">✓ Clean roster</span>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("staff-attendance")}
+                      className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-800 font-semibold text-xs flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
+                    >
+                      <span>{isRtl ? "اسٹاف حاضری" : "Staff Log"}</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Pending Class Roll-Calls */}
+                <div
+                  className={`rounded-xl border p-3.5 transition-all flex flex-col justify-between space-y-3 ${
+                    pendingRollCallClasses.length > 0
+                      ? "bg-rose-50/60 border-rose-200/80"
+                      : "bg-emerald-50/40 border-emerald-200/70"
+                  }`}
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        {isRtl ? "کلاس حاضری رجسٹر" : "Class Roll-Calls"}
+                      </span>
+                      {pendingRollCallClasses.length > 0 ? (
+                        <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 font-bold text-[10px]">
+                          {pendingRollCallClasses.length} {isRtl ? "زیر التواء" : "Pending"}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                          {isRtl ? "مکمل" : "All Submitted"}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-sm font-extrabold text-slate-900">
+                      {pendingRollCallClasses.length > 0 ? (
+                        <span className="text-rose-800">
+                          {pendingRollCallClasses.length} {isRtl ? "کلاسز کی حاضری ابھی باقی ہے" : "Classes Awaiting Roll-Call"}
+                        </span>
+                      ) : (
+                        <span className="text-emerald-800 flex items-center gap-1">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <span>{isRtl ? "تمام کلاسز کی حاضری جمع ہو گئی" : "All Roll-Calls Recorded"}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-[11px] text-slate-600 truncate">
+                      {pendingRollCallClasses.length > 0
+                        ? `${pendingRollCallClasses.map((c) => c.name).slice(0, 2).join(", ")}${pendingRollCallClasses.length > 2 ? ` +${pendingRollCallClasses.length - 2} more` : ""}`
+                        : "Morning student attendance registered across all active sections."}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-slate-500 font-medium">
+                      {classesList.length - pendingRollCallClasses.length} / {classesList.length} classes done
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("classes")}
+                      className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-800 font-semibold text-xs flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
+                    >
+                      <span>{isRtl ? "کلاسز دیکھیں" : "View Classes"}</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3. Today's Fee Collection Snapshot */}
+                <div className="rounded-xl border border-indigo-200/70 bg-indigo-50/40 p-3.5 transition-all flex flex-col justify-between space-y-3">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        {isRtl ? "آج کی فیس ریکوری" : "Today's Fee Snapshot"}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800 font-bold text-[10px]">
+                        {todayFeePulse.todayCount} {isRtl ? "کلیرڈ" : "Cleared Today"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-baseline gap-2">
+                      <div className="text-base sm:text-lg font-black text-slate-900">
+                        PKR {todayFeePulse.todayCollectedPKR.toLocaleString()}
+                      </div>
+                      <span className="text-[10px] text-slate-500 font-medium">
+                        {isRtl ? "آج موصولہ" : "collected today"}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-600">
+                      Pending balance: <strong className="text-slate-900 font-semibold">PKR {todayFeePulse.pendingBalancePKR.toLocaleString()}</strong> awaiting clearance.
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-indigo-700 font-semibold">
+                      JazzCash & Bank Active
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("fees")}
+                      className="px-2.5 py-1.5 rounded-lg bg-[#0B3B2E] hover:bg-[#082C22] text-white font-semibold text-xs flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
+                    >
+                      <span>{isRtl ? "فیس رجسٹر" : "Fee Register"}</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-emerald-300" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Expandable Unmarked Staff List Drawer */}
+              {showUnmarkedStaffDrawer && unmarkedStaff.length > 0 && (
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-800">
+                      {isRtl ? "غیر نشان زد یا غیر حاضر اسٹاف کی فہرست:" : "Unmarked / Absent Staff Members Today:"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowUnmarkedStaffDrawer(false)}
+                      className="text-slate-400 hover:text-slate-700 text-xs font-bold cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    {unmarkedStaff.map((staff) => (
+                      <div
+                        key={staff.id}
+                        className="bg-white p-2 rounded-lg border border-slate-200 flex items-center justify-between gap-2 shadow-2xs"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-900 text-xs truncate">{staff.name}</div>
+                          <div className="text-[10px] text-slate-400 truncate">{staff.role} • {staff.phone}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleQuickStaffStatus(staff.id, "PRESENT");
+                          }}
+                          className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-[10px] font-bold border border-emerald-200 flex-shrink-0 cursor-pointer"
+                          title="Mark Present"
+                        >
+                          Mark Present
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Elevated Stats Cards with Inline Mini Sparklines & Bar Graphs */}
@@ -1829,17 +2240,43 @@ export default function PrincipalDashboard() {
                   Register new students, assign classes, and link parents via WhatsApp for instant attendance & fee notices.
                 </p>
               </div>
-              <button
-                onClick={() => {
-                  setCreatedStudentCreds(null);
-                  setShowStudentModal(true);
-                }}
-                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-2xs flex items-center gap-1.5 transition-all"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>Admit New Student</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleOpenPromoteModal}
+                  className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="Bulk promote students from one class to next grade"
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  <span>{isRtl ? "کلاس پروموٹ کریں" : "Promote Class"}</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setCreatedStudentCreds(null);
+                    setShowStudentModal(true);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Admit New Student</span>
+                </button>
+              </div>
             </div>
+
+            {promotionNotice && (
+              <div className="p-3.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-semibold flex items-center justify-between gap-2 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                  <span>{promotionNotice}</span>
+                </div>
+                <button
+                  onClick={() => setPromotionNotice(null)}
+                  className="text-indigo-700 hover:text-indigo-900 text-xs font-bold cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
 
             {createdStudentCreds && (
               <div className="p-5 rounded-2xl bg-emerald-50 border-2 border-emerald-500/50 shadow-sm space-y-4">
@@ -4060,6 +4497,250 @@ export default function PrincipalDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: BULK STUDENT CLASS PROMOTION */}
+      {showPromoteModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-2xl space-y-5">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center shadow-2xs flex-shrink-0">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">
+                    {isRtl ? "طلبہ کی اگلی کلاس میں اجتماعی ترقی (پروموشن)" : "Bulk Student Class Promotion"}
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    {isRtl
+                      ? "نئے تعلیمی سیشن کے لیے طلبہ کو اگلی جماعت میں پروموٹ کریں — سابقہ حاضری اور فیس کا ریکارڈ محفوظ رہے گا۔"
+                      : "Promote students to next grade for the new academic session. Past attendance & fees remain intact."}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPromoteModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-base font-semibold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Step 1: Select Source & Target Class */}
+            <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                  {isRtl ? "مرحلہ ۱: موجودہ اور اگلی کلاس کا انتخاب" : "Step 1 — Select Source & Target Class"}
+                </span>
+                {promoteSourceClassId === promoteTargetClassId && promoteSourceClassId && (
+                  <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                    {isRtl ? "دونوں کلاسز مختلف ہونی چاہئیں" : "Source and target must be different"}
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    {isRtl ? "موجودہ کلاس (Source Class) *" : "Current Class (Source) *"}
+                  </label>
+                  <select
+                    value={promoteSourceClassId}
+                    onChange={(e) => handleSourceClassChange(e.target.value)}
+                    className="w-full px-3 py-2.5 min-h-[44px] text-xs rounded-xl border border-slate-300 bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {classesList.map((c) => {
+                      const count = studentsList.filter((s) => s.class_id === c.id).length;
+                      return (
+                        <option key={c.id} value={c.id}>
+                          {c.name} - Section {c.section} ({count} {isRtl ? "طلبہ" : "students"})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    {isRtl ? "اگلی کلاس (Target Class) *" : "Destination Class (Target) *"}
+                  </label>
+                  <select
+                    value={promoteTargetClassId}
+                    onChange={(e) => setPromoteTargetClassId(e.target.value)}
+                    className="w-full px-3 py-2.5 min-h-[44px] text-xs rounded-xl border border-slate-300 bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="" disabled>
+                      {isRtl ? "-- اگلی کلاس منتخب کریں --" : "-- Select Destination Class --"}
+                    </option>
+                    {classesList.map((c) => (
+                      <option key={c.id} value={c.id} disabled={c.id === promoteSourceClassId}>
+                        {c.name} - Section {c.section} {c.id === promoteSourceClassId ? "(Current)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 2: Student Checklist */}
+            {(() => {
+              const sourceStudents = studentsList.filter((s) => s.class_id === promoteSourceClassId);
+              const allSelected =
+                sourceStudents.length > 0 &&
+                selectedStudentIdsForPromotion.length === sourceStudents.length;
+
+              return (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                        {isRtl ? "مرحلہ ۲: پروموٹ ہونے والے طلبہ کی تصدیق" : "Step 2 — Student Checklist"}
+                      </span>
+                      <div className="text-xs text-slate-500">
+                        {selectedStudentIdsForPromotion.length} of {sourceStudents.length} {isRtl ? "طلبہ منتخب شدہ" : "students selected"}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          allSelected
+                            ? handleDeselectAllStudents()
+                            : handleSelectAllStudents(sourceStudents.map((s) => s.id))
+                        }
+                        className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 cursor-pointer shadow-2xs"
+                      >
+                        {allSelected ? (isRtl ? "تمام غیر منتخب کریں" : "Deselect All") : (isRtl ? "تمام منتخب کریں" : "Select All")}
+                      </button>
+
+                      <label className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold cursor-pointer pl-1">
+                        <input
+                          type="checkbox"
+                          checked={updateRollNumbers}
+                          onChange={(e) => setUpdateRollNumbers(e.target.checked)}
+                          className="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"
+                        />
+                        <span>{isRtl ? "رول نمبر تبدیل کریں" : "Update Roll Numbers"}</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {sourceStudents.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
+                      {isRtl ? "اس کلاس میں کوئی طالب علم داخل نہیں ہے۔" : "No enrolled students found in this source class."}
+                    </div>
+                  ) : (
+                    <div className="max-h-56 overflow-y-auto space-y-1.5 p-1 border border-slate-200 rounded-xl bg-slate-50/50">
+                      {sourceStudents.map((st) => {
+                        const isChecked = selectedStudentIdsForPromotion.includes(st.id);
+                        return (
+                          <div
+                            key={st.id}
+                            className={`p-2.5 rounded-lg border transition-all flex items-center justify-between gap-3 ${
+                              isChecked
+                                ? "bg-white border-indigo-200 shadow-2xs"
+                                : "bg-slate-100/70 border-slate-200 opacity-60"
+                            }`}
+                          >
+                            <label className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => handleToggleSelectStudent(st.id)}
+                                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                              />
+                              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 flex-shrink-0">
+                                #{st.roll_no}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <span className="font-bold text-xs text-slate-900 truncate block">
+                                  {st.name}
+                                </span>
+                                <span className="text-[10px] text-slate-400 truncate block">
+                                  ID: {st.student_id} • WhatsApp: {st.parent_whatsapp}
+                                </span>
+                              </div>
+                            </label>
+
+                            {updateRollNumbers && isChecked && (
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <span className="text-[10px] text-slate-400 font-medium">New Roll:</span>
+                                <input
+                                  type="text"
+                                  value={newRollNumbersMap[st.id] ?? st.roll_no}
+                                  onChange={(e) =>
+                                    setNewRollNumbersMap({
+                                      ...newRollNumbersMap,
+                                      [st.id]: e.target.value,
+                                    })
+                                  }
+                                  placeholder={st.roll_no}
+                                  className="w-16 px-2 py-1 text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Step 3: Confirmation Summary Box */}
+            <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 text-xs space-y-1">
+              <div className="font-bold text-emerald-950 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>
+                  {isRtl
+                    ? `تصدیق: ${selectedStudentIdsForPromotion.length} طلبہ اگلی جماعت میں منتقل ہوں گے`
+                    : `Promoting ${selectedStudentIdsForPromotion.length} selected students to target class`}
+                </span>
+              </div>
+              <p className="text-[11px] text-emerald-800 leading-relaxed">
+                {isRtl
+                  ? "✓ تمام سابقہ حاضری کے ریکارڈ، امتحانی نمبرات اور فیس ادائیگیوں کی رسیدیں مکمل طور پر محفوظ رہیں گی۔"
+                  : "✓ All historical attendance logs, past exam marks, and paid/unpaid fee vouchers remain 100% intact and linked to student profiles."}
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowPromoteModal(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-all cursor-pointer"
+              >
+                {isRtl ? "منسوخ کریں" : "Cancel"}
+              </button>
+              <button
+                type="button"
+                onClick={handleExecutePromotion}
+                disabled={
+                  isPromoting ||
+                  selectedStudentIdsForPromotion.length === 0 ||
+                  !promoteTargetClassId ||
+                  promoteSourceClassId === promoteTargetClassId
+                }
+                className="px-5 py-2.5 rounded-xl bg-[#0B3B2E] hover:bg-[#082C22] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs shadow-sm flex items-center gap-2 transition-all cursor-pointer"
+              >
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-300" />
+                <span>
+                  {isPromoting
+                    ? (isRtl ? "پروموٹ ہو رہے ہیں..." : "Promoting...")
+                    : (isRtl
+                      ? `${selectedStudentIdsForPromotion.length} طلبہ کو پروموٹ کریں`
+                      : `Promote ${selectedStudentIdsForPromotion.length} Students`)}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       )}

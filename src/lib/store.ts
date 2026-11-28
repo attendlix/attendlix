@@ -1789,6 +1789,72 @@ export function updateStudent(
   return { success: true, student: students[index] };
 }
 
+export function bulkPromoteStudents(
+  school_id: string,
+  studentIds: string[],
+  targetClassId: string,
+  newRollNumbers?: Record<string, string>
+): { success: boolean; promotedCount: number; targetClassName: string } {
+  initializeStore();
+  const classes = getClasses(school_id);
+  const targetClass = classes.find((c) => c.id === targetClassId);
+  if (!targetClass) {
+    return { success: false, promotedCount: 0, targetClassName: "" };
+  }
+
+  const allStudents = getStorage<Student[]>(KEY_STUDENTS, SEED_STUDENTS);
+  let count = 0;
+
+  const updatedStudents = allStudents.map((std) => {
+    if (studentIds.includes(std.id) && (std.school_id === school_id || school_id === SEED_SCHOOL_ID)) {
+      count++;
+      const newRoll = newRollNumbers && newRollNumbers[std.id] ? newRollNumbers[std.id].trim() : std.roll_no;
+      return {
+        ...std,
+        class_id: targetClass.id,
+        class_name: targetClass.name,
+        section: targetClass.section,
+        roll_no: newRoll || std.roll_no,
+      };
+    }
+    return std;
+  });
+
+  setStorage(KEY_STUDENTS, updatedStudents);
+
+  // Non-blocking sync to Supabase students table
+  try {
+    (async () => {
+      try {
+        for (const sId of studentIds) {
+          const s = updatedStudents.find((st) => st.id === sId);
+          if (s) {
+            await supabase
+              .from("students")
+              .update({
+                class_id: targetClass.id,
+                class_name: targetClass.name,
+                section: targetClass.section,
+                roll_no: s.roll_no,
+              })
+              .eq("id", sId);
+          }
+        }
+      } catch {
+        // non-blocking
+      }
+    })();
+  } catch {
+    // non-blocking
+  }
+
+  return {
+    success: true,
+    promotedCount: count,
+    targetClassName: `${targetClass.name} - Section ${targetClass.section}`,
+  };
+}
+
 // ----------------------------------------------------
 // ANNOUNCEMENTS
 // ----------------------------------------------------
