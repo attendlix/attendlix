@@ -36,6 +36,8 @@ import {
   Search,
   ArrowRight,
   School,
+  Copy,
+  Phone,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -51,6 +53,7 @@ import {
   getExamMarks,
   saveExamMarksBatch,
   getStudentMessages,
+  getAllTeacherMessages,
   sendTeacherMessage,
   isQuietHoursActive,
   getTeacherTimetable,
@@ -105,6 +108,7 @@ export default function TeacherDashboard() {
   const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
   const [attendanceMap, setAttendanceMap] = useState<Record<string, AttendanceStatus>>({});
   const [attendanceSavedNotice, setAttendanceSavedNotice] = useState<string | null>(null);
+  const [notifiedAbsentIds, setNotifiedAbsentIds] = useState<string[]>([]);
 
   // Teacher's Own Staff Attendance History State
   const [teacherStaffHistory, setTeacherStaffHistory] = useState<StaffAttendanceRecord[]>([]);
@@ -127,6 +131,7 @@ export default function TeacherDashboard() {
   const [examTotalMarks, setExamTotalMarks] = useState<number>(50);
   const [marksInputMap, setMarksInputMap] = useState<Record<string, number>>({});
   const [marksSavedNotice, setMarksSavedNotice] = useState<string | null>(null);
+  const [filterLowScoringOnly, setFilterLowScoringOnly] = useState<boolean>(false);
 
   // Tab 4: Messages State
   const [selectedStudentForChat, setSelectedStudentForChat] = useState<Student | null>(null);
@@ -287,6 +292,57 @@ export default function TeacherDashboard() {
     setTimeout(() => setAttendanceSavedNotice(null), 6000);
   };
 
+  // Absent Students List
+  const absentStudents = useMemo(() => {
+    return classStudents.filter((st) => (attendanceMap[st.id] || "PRESENT") === "ABSENT");
+  }, [classStudents, attendanceMap]);
+
+  // 1-Tap Notify Absent Parent via Chat
+  const handleNotifyAbsentParent = (st: Student) => {
+    if (!currentUser) return;
+    const message = isRtl
+      ? `السلام علیکم، ${st.name} (رول نمبر #${st.roll_no}) کو آج (${selectedDate}) اسکول میں غیر حاضر نشان زد کیا گیا ہے۔ اگر کوئی عذر یا بیماری ہے تو براہ کرم خیریت سے آگاہ فرمائیں یا رخصت کا نوٹ ارسال کریں۔`
+      : `Assalam-o-Alaikum, ${st.name} (Roll #${st.roll_no}) was marked absent today (${selectedDate}) at ${schoolData?.name || "School"}. Please confirm if everything is alright or submit a leave note via portal.`;
+
+    sendTeacherMessage(currentUser.school_id, st.id, st.name, message, "TEACHER");
+    setNotifiedAbsentIds((prev) => [...prev, st.id]);
+
+    notify({
+      title: "Parent Notified via Chat",
+      title_ur: "والدین کو پیغام ارسال کر دیا گیا",
+      message: `Absence follow-up message delivered to parent of ${st.name}.`,
+      message_ur: `${st.name} کے والدین کو غیر حاضری کا پیغام بھیج دیا گیا۔`,
+      type: "SUCCESS",
+      category: "ATTENDANCE",
+      target_role: "TEACHER",
+    });
+  };
+
+  const handleNotifyAllAbsentees = () => {
+    if (!currentUser || absentStudents.length === 0) return;
+    let count = 0;
+    absentStudents.forEach((st) => {
+      if (!notifiedAbsentIds.includes(st.id)) {
+        const message = isRtl
+          ? `السلام علیکم، ${st.name} (رول نمبر #${st.roll_no}) کو آج (${selectedDate}) اسکول میں غیر حاضر نشان زد کیا گیا ہے۔ براہ کرم خیریت سے آگاہ فرمائیں۔`
+          : `Assalam-o-Alaikum, ${st.name} (Roll #${st.roll_no}) was marked absent today (${selectedDate}) at ${schoolData?.name || "School"}. Please confirm if everything is alright or submit a leave note.`;
+        sendTeacherMessage(currentUser.school_id, st.id, st.name, message, "TEACHER");
+        count++;
+      }
+    });
+
+    setNotifiedAbsentIds((prev) => [...prev, ...absentStudents.map((s) => s.id)]);
+    notify({
+      title: `Follow-Up Sent to ${count} Absent Parents`,
+      title_ur: `تمام غیر حاضر والدین کو الرٹ ارسال کر دیا گیا`,
+      message: `Direct absence follow-up messages delivered to ${count} student threads.`,
+      message_ur: `${count} غیر حاضر طلبہ کے والدین کو چیٹ پر پیغامات ارسال کر دیے گئے۔`,
+      type: "SUCCESS",
+      category: "ATTENDANCE",
+      target_role: "TEACHER",
+    });
+  };
+
   // Create Homework
   const handleAddHomework = (e: React.FormEvent) => {
     e.preventDefault();
@@ -322,6 +378,19 @@ export default function TeacherDashboard() {
     setTimeout(() => setHwSuccessNotice(null), 5000);
   };
 
+  // Copy Previous Homework
+  const handleCopyPreviousHomework = () => {
+    if (homeworkList.length === 0) return;
+    const prev = homeworkList[0];
+    setHwFormData({
+      subject: prev.subject,
+      title: prev.title,
+      description: prev.description,
+    });
+    setHwSuccessNotice(`✓ Copied from previous assignment ("${prev.subject}: ${prev.title}"). Adjust details and publish.`);
+    setTimeout(() => setHwSuccessNotice(null), 4000);
+  };
+
   // Save Exam Marks
   const handleSaveMarks = () => {
     if (!currentUser || !selectedClassId) return;
@@ -345,6 +414,60 @@ export default function TeacherDashboard() {
     });
     setMarksSavedNotice(`✓ Marks saved for all ${classStudents.length} students in ${examName}!`);
     setTimeout(() => setMarksSavedNotice(null), 5000);
+  };
+
+  // Live Exam Score Stats
+  const examStats = useMemo(() => {
+    if (classStudents.length === 0 || examTotalMarks <= 0) {
+      return { avgPct: 0, highestScore: 0, lowScoringCount: 0 };
+    }
+    let totalMarksObtained = 0;
+    let highest = 0;
+    let lowCount = 0;
+
+    classStudents.forEach((st) => {
+      const val = marksInputMap[st.id] ?? 40;
+      totalMarksObtained += val;
+      if (val > highest) highest = val;
+      const pct = (val / examTotalMarks) * 100;
+      if (pct < 40) lowCount++;
+    });
+
+    const avgPct = Math.round((totalMarksObtained / (classStudents.length * examTotalMarks)) * 100);
+    return { avgPct, highestScore: highest, lowScoringCount: lowCount };
+  }, [classStudents, marksInputMap, examTotalMarks]);
+
+  const displayedExamStudents = useMemo(() => {
+    if (!filterLowScoringOnly) return classStudents;
+    return classStudents.filter((st) => {
+      const val = marksInputMap[st.id] ?? 40;
+      const pct = examTotalMarks > 0 ? (val / examTotalMarks) * 100 : 0;
+      return pct < 40;
+    });
+  }, [classStudents, filterLowScoringOnly, marksInputMap, examTotalMarks]);
+
+  // Leave Request Detection for all students in class
+  const studentLeaveMap = useMemo(() => {
+    if (!currentUser) return {};
+    const allMsgs = getAllTeacherMessages(currentUser.school_id);
+    const map: Record<string, { date: string; noteText: string }> = {};
+
+    allMsgs.forEach((m) => {
+      if (m.sender_role === "PARENT" && m.content.includes("[LEAVE / ABSENCE NOTE]")) {
+        const dateMatch = m.content.match(/Date:\s*([^\n\r]+)/i);
+        const leaveDate = dateMatch ? dateMatch[1].trim() : "Recent";
+        map[m.student_id] = {
+          date: leaveDate,
+          noteText: m.content,
+        };
+      }
+    });
+
+    return map;
+  }, [currentUser, chatMessages]);
+
+  const handleQuickReply = (replyText: string) => {
+    setNewMessageText(replyText);
   };
 
   // Send Chat Message
@@ -1135,6 +1258,92 @@ export default function TeacherDashboard() {
                 <span className="text-[10px] font-bold uppercase bg-amber-200 px-2 py-0.5 rounded">
                   Local Queue
                 </span>
+              </div>
+            )}
+
+            {/* Absent Students Follow-Up Panel */}
+            {absentStudents.length > 0 && (
+              <div className="bg-amber-50/80 border border-amber-200/90 rounded-2xl p-4 shadow-2xs space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse flex-shrink-0" />
+                    <h4 className="font-bold text-slate-900 text-xs sm:text-sm">
+                      {isRtl ? "غیر حاضر طلبہ فالو اپ" : "Absent Students Follow-Up"}
+                    </h4>
+                    <span className="bg-rose-100 text-rose-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                      {absentStudents.length} {isRtl ? "غیر حاضر" : "Absent Today"}
+                    </span>
+                  </div>
+                  {absentStudents.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={handleNotifyAllAbsentees}
+                      className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>{isRtl ? "تمام غیر حاضرین کو مطلع کریں" : "Notify All Absentees (1-Tap)"}</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {absentStudents.map((st) => {
+                    const isNotified = notifiedAbsentIds.includes(st.id);
+                    const rawPhone = (st.parent_whatsapp || "").replace(/[^0-9]/g, "");
+                    const waNumber = rawPhone.startsWith("0") ? "92" + rawPhone.slice(1) : rawPhone;
+                    const waMessage = encodeURIComponent(
+                      `Assalam-o-Alaikum, ${st.name} (Roll #${st.roll_no}) was marked absent today (${selectedDate}) at ${schoolData?.name || "School"}. Please confirm if everything is alright or submit a leave note.`
+                    );
+
+                    return (
+                      <div
+                        key={st.id}
+                        className="bg-white rounded-xl border border-amber-200 p-2.5 flex items-center justify-between gap-2 shadow-2xs"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                              #{st.roll_no}
+                            </span>
+                            <span className="font-bold text-xs text-slate-900 truncate">{st.name}</span>
+                          </div>
+                          <div className="text-[10px] text-slate-400 truncate">
+                            {st.parent_whatsapp ? `WA: ${st.parent_whatsapp}` : "No phone saved"}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleNotifyAbsentParent(st)}
+                            disabled={isNotified}
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                              isNotified
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-emerald-700 hover:bg-emerald-800 text-white shadow-2xs cursor-pointer"
+                            }`}
+                            title="Send absence note to parent via Teacher Chat"
+                          >
+                            <Send className="w-3 h-3" />
+                            <span>{isNotified ? (isRtl ? "مطلع شدہ" : "Notified") : (isRtl ? "مطلع کریں" : "Notify")}</span>
+                          </button>
+
+                          {waNumber && (
+                            <a
+                              href={`https://wa.me/${waNumber}?text=${waMessage}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors"
+                              title="Direct WhatsApp"
+                            >
+                              <Phone className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
@@ -1979,7 +2188,22 @@ export default function TeacherDashboard() {
             {/* Add Homework Form */}
             {showHwForm && (
               <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
-                <h3 className="font-bold text-slate-900 text-sm">Create New Assignment</h3>
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="font-bold text-slate-900 text-sm">
+                    {isRtl ? "نیا ہوم ورک بنائیں" : "Create New Assignment"}
+                  </h3>
+                  {homeworkList.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleCopyPreviousHomework}
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+                      title="Copy subject, title, and description from most recent homework"
+                    >
+                      <Copy className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{isRtl ? "پچھلا ہوم ورک کاپی کریں" : "Copy Previous Homework"}</span>
+                    </button>
+                  )}
+                </div>
                 <form onSubmit={handleAddHomework} className="space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
@@ -2153,9 +2377,80 @@ export default function TeacherDashboard() {
               </div>
             )}
 
+            {/* Live Exam Analytics & Quick Filter Pills */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 p-2.5 sm:p-3 shadow-2xs">
+                <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase">
+                  {isRtl ? "کلاس کی اوسط" : "Class Average"}
+                </div>
+                <div className="text-base sm:text-lg font-black text-slate-900 mt-0.5">
+                  {examStats.avgPct}%
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 p-2.5 sm:p-3 shadow-2xs">
+                <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase">
+                  {isRtl ? "سب سے زیادہ نمبر" : "Highest Score"}
+                </div>
+                <div className="text-base sm:text-lg font-black text-emerald-600 mt-0.5">
+                  {examStats.highestScore} <span className="text-xs font-normal text-slate-400">/ {examTotalMarks}</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setFilterLowScoringOnly(!filterLowScoringOnly)}
+                className={`rounded-xl sm:rounded-2xl border p-2.5 sm:p-3 text-left transition-all shadow-2xs cursor-pointer ${
+                  filterLowScoringOnly
+                    ? "bg-rose-50 border-rose-300 ring-2 ring-rose-400"
+                    : "bg-white border-slate-200 hover:border-rose-200"
+                }`}
+                title="Click to toggle filtering only students with score below 40%"
+              >
+                <div className="flex items-center justify-between">
+                  <span className={`text-[10px] sm:text-[11px] font-bold uppercase ${filterLowScoringOnly ? "text-rose-700" : "text-slate-400"}`}>
+                    {isRtl ? "توجہ طلب طلبہ" : "Needs Attention"}
+                  </span>
+                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold ${filterLowScoringOnly ? "bg-rose-200 text-rose-800" : "bg-slate-100 text-slate-600"}`}>
+                    &lt; 40%
+                  </span>
+                </div>
+                <div className="text-base sm:text-lg font-black text-rose-600 mt-0.5 flex items-center justify-between">
+                  <span>{examStats.lowScoringCount} {isRtl ? "طلبہ" : "Students"}</span>
+                  <span className="text-[10px] font-semibold text-rose-500 underline hidden sm:inline">
+                    {filterLowScoringOnly ? (isRtl ? "تمام دکھائیں" : "Show All") : (isRtl ? "فلٹر کریں" : "Filter")}
+                  </span>
+                </div>
+              </button>
+            </div>
+
+            {filterLowScoringOnly && (
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs font-semibold flex items-center justify-between">
+                <span>
+                  {isRtl
+                    ? `صرف وہ طلبہ دکھائے جا رہے ہیں جن کے نمبرات 40 فیصد سے کم ہیں (${displayedExamStudents.length})`
+                    : `Filtered: Showing students with score < 40% (${displayedExamStudents.length} students).`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setFilterLowScoringOnly(false)}
+                  className="text-[11px] text-rose-700 underline font-bold hover:text-rose-900 cursor-pointer"
+                >
+                  {isRtl ? "فلٹر ختم کریں" : "Reset Filter"}
+                </button>
+              </div>
+            )}
+
             {/* Students Marks Input Table */}
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs divide-y divide-slate-100">
-              {classStudents.map((st) => {
+              {displayedExamStudents.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-500">
+                  {filterLowScoringOnly
+                    ? (isRtl ? "کوئی طالب علم 40 فیصد سے کم نہیں ہے۔ بہترین کارکردگی!" : "No students scored below 40%. Great job! Click 'Reset Filter' to view full class.")
+                    : "No students in this class."}
+                </div>
+              ) : (
+                displayedExamStudents.map((st) => {
                 const val = marksInputMap[st.id] ?? 40;
                 const pct = examTotalMarks > 0 ? Math.round((val / examTotalMarks) * 100) : 0;
                 return (
@@ -2211,6 +2506,20 @@ export default function TeacherDashboard() {
                           <FileText className="w-3.5 h-3.5 text-indigo-600" />
                           <span className="hidden sm:inline">Report</span>
                         </button>
+                        {pct < 40 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProfileModalInitialTab("reports");
+                              setSelectedStudentForProfile(st);
+                            }}
+                            className="px-2 py-1 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-semibold flex items-center gap-1 transition-all flex-shrink-0 shadow-2xs"
+                            title="Needs practice: add teacher remarks"
+                          >
+                            <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                            <span className="hidden sm:inline">{isRtl ? "توجہ طلب" : "Needs Practice"}</span>
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -2243,7 +2552,7 @@ export default function TeacherDashboard() {
                     </div>
                   </div>
                 );
-              })}
+              }))}
             </div>
           </div>
         )}
@@ -2277,7 +2586,7 @@ export default function TeacherDashboard() {
               {/* Mobile Student Selector Dropdown (< 768px) */}
               <div className="p-3 border-b border-slate-100 bg-slate-50 md:hidden space-y-1">
                 <label className="block text-[11px] font-bold uppercase text-slate-500">
-                  Select Student Conversation:
+                  {isRtl ? "طالب علم کی گفتگو منتخب کریں:" : "Select Student Conversation:"}
                 </label>
                 <select
                   value={selectedStudentForChat?.id || ""}
@@ -2287,20 +2596,27 @@ export default function TeacherDashboard() {
                   }}
                   className="w-full px-3 py-2.5 min-h-[44px] rounded-xl border border-slate-300 bg-white font-bold text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
-                  {classStudents.map((st) => (
-                    <option key={st.id} value={st.id}>
-                      {st.name} (Roll #{st.roll_no} • {st.parent_whatsapp})
-                    </option>
-                  ))}
+                  {classStudents.map((st) => {
+                    const leave = studentLeaveMap[st.id];
+                    return (
+                      <option key={st.id} value={st.id}>
+                        {leave ? `📋 [Leave: ${leave.date}] ` : ""}
+                        {st.name} (Roll #{st.roll_no} • {st.parent_whatsapp})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
               {/* Desktop Student Thread Selector (>= 768px) */}
               <div className="hidden md:block border-r border-slate-100 p-3 space-y-2 bg-slate-50/50">
-                <div className="text-[11px] font-bold uppercase text-slate-400 px-2">Student Conversations</div>
+                <div className="text-[11px] font-bold uppercase text-slate-400 px-2">
+                  {isRtl ? "طلبہ کے ساتھ پیغامات" : "Student Conversations"}
+                </div>
                 <div className="space-y-1">
                   {classStudents.map((st) => {
                     const active = selectedStudentForChat?.id === st.id;
+                    const leave = studentLeaveMap[st.id];
                     return (
                       <button
                         key={st.id}
@@ -2312,8 +2628,17 @@ export default function TeacherDashboard() {
                         }`}
                       >
                         <div className="min-w-0 flex-1 pr-2">
-                          <div className="truncate">{st.name}</div>
-                          <div className="text-[10px] text-slate-400 font-normal truncate">Parent: {st.parent_whatsapp}</div>
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className="truncate">{st.name}</span>
+                            {leave && (
+                              <span className="px-1.5 py-0.5 rounded-full bg-amber-100 border border-amber-300 text-amber-900 font-bold text-[9px] flex items-center gap-0.5 flex-shrink-0">
+                                📋 {leave.date}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-normal truncate">
+                            Parent: {st.parent_whatsapp}
+                          </div>
                         </div>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
                       </button>
@@ -2327,9 +2652,16 @@ export default function TeacherDashboard() {
                 {/* Active Header */}
                 <div className="border-b border-slate-100 pb-3 flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <h3 className="font-bold text-slate-900 text-sm truncate">
-                      {selectedStudentForChat ? selectedStudentForChat.name : "Select Student"} (Parent Thread)
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-slate-900 text-sm truncate">
+                        {selectedStudentForChat ? selectedStudentForChat.name : "Select Student"} (Parent Thread)
+                      </h3>
+                      {selectedStudentForChat && studentLeaveMap[selectedStudentForChat.id] && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-amber-900 font-bold text-[10px] flex items-center gap-1 flex-shrink-0">
+                          📋 Leave: {studentLeaveMap[selectedStudentForChat.id].date}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[11px] text-slate-400 truncate">
                       WhatsApp: {selectedStudentForChat?.parent_whatsapp} • 1-on-1 thread
                     </p>
@@ -2378,8 +2710,30 @@ export default function TeacherDashboard() {
                   )}
                 </div>
 
+                {/* 1-Tap Quick Reply Chips */}
+                <div className="pt-2 pb-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase flex-shrink-0">
+                    {isRtl ? "فوری جواب:" : "Quick Replies:"}
+                  </span>
+                  {[
+                    isRtl ? "نوٹ کر لیا، اپنا خیال رکھیں!" : "Noted, take care!",
+                    isRtl ? "مطلع کرنے کا شکریہ۔" : "Thank you for informing.",
+                    isRtl ? "براہ کرم کل کا کام مکمل کروا لیں۔" : "Please cover missed homework tomorrow.",
+                    isRtl ? "اللہ تعالیٰ جلد صحت یاب فرمائے!" : "Get well soon!",
+                  ].map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => handleQuickReply(chip)}
+                      className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 border border-transparent text-slate-600 text-[11px] font-medium whitespace-nowrap transition-all flex-shrink-0 cursor-pointer shadow-2xs"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+
                 {/* Input form */}
-                <form onSubmit={handleSendMessage} className="pt-3 border-t border-slate-100 flex items-center gap-2">
+                <form onSubmit={handleSendMessage} className="pt-2 border-t border-slate-100 flex items-center gap-2">
                   <input
                     type="text"
                     required
