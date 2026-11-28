@@ -63,6 +63,8 @@ function getCategoryIcon(category: NotificationCategory) {
       return { icon: KeyRound, color: "text-cyan-700 bg-cyan-50 border-cyan-200" };
     case "TENANT":
       return { icon: Building2, color: "text-emerald-800 bg-emerald-100 border-emerald-300" };
+    case "REPORT":
+      return { icon: BookOpen, color: "text-indigo-600 bg-indigo-50 border-indigo-200" };
     case "SYSTEM":
     default:
       return { icon: ShieldCheck, color: "text-slate-600 bg-slate-100 border-slate-200" };

@@ -34,6 +34,9 @@ import {
   Filter,
   Calendar,
   ChevronDown,
+  Shield,
+  Users,
+  Star,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -52,6 +55,7 @@ import {
   isQuietHoursActive,
   getClassTimetable,
   getStudentAttendanceRecords,
+  getStudentReports,
   DAYS_ORDER,
   logout,
 } from "@/lib/store";
@@ -68,6 +72,9 @@ import {
   DayOfWeek,
   AttendanceRecord,
   AttendanceStatus,
+  StudentReport,
+  StudentReportCategory,
+  StudentReportRating,
 } from "@/lib/types";
 import { LanguageToggle, useLanguage } from "@/context/LanguageContext";
 import { useNotifications } from "@/context/NotificationContext";
@@ -81,13 +88,14 @@ export default function StudentDashboard() {
   const { notify } = useNotifications();
 
   // Navigation tab
-  const [activeTab, setActiveTab] = useState<"overview" | "attendance" | "attendance_hw" | "timetable" | "exams" | "fees" | "chat" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "reports" | "attendance" | "attendance_hw" | "timetable" | "exams" | "fees" | "chat" | "settings">("overview");
 
   // State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentStudent, setCurrentStudent] = useState<Student | null>(null);
   const [schoolData, setSchoolData] = useState<any>(null);
 
+  const [studentReports, setStudentReports] = useState<StudentReport[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [homeworkList, setHomeworkList] = useState<Homework[]>([]);
   const [examMarksList, setExamMarksList] = useState<ExamMark[]>([]);
@@ -266,11 +274,19 @@ export default function StudentDashboard() {
       setFeeRecords(getStudentFeeRecords(user.school_id, student.id));
       setChatMessages(getStudentMessages(user.school_id, student.id));
       setAttendanceRecords(getStudentAttendanceRecords(user.school_id, student.id));
+      setStudentReports(getStudentReports(user.school_id, student.id));
     }
   };
 
   useEffect(() => {
     refreshData();
+    const handleReportUpdate = () => {
+      refreshData();
+    };
+    window.addEventListener("attendlix:report-added", handleReportUpdate);
+    return () => {
+      window.removeEventListener("attendlix:report-added", handleReportUpdate);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -334,6 +350,7 @@ export default function StudentDashboard() {
 
   const studentNavItems = [
     { id: "overview", label: t.tabOverview || "Overview & Profile", icon: School },
+    { id: "reports", label: isRtl ? "اساتذہ کی رپورٹس" : "Teacher Remarks", icon: FileText, badge: studentReports.length > 0 ? studentReports.length : undefined },
     { id: "attendance", label: isRtl ? "حاضری کا ریکارڈ" : "Attendance Record", icon: CalendarCheck },
     { id: "attendance_hw", label: isRtl ? "ہوم ورک ڈائری" : "Homework Diary", icon: BookOpen },
     { id: "timetable", label: t.tabTimetable || "Timetable", icon: Clock },
@@ -503,6 +520,81 @@ export default function StudentDashboard() {
               </div>
             </div>
 
+            {/* Teacher Remarks & Student Reports */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-emerald-600" />
+                  <span>{isRtl ? "اساتذہ کی آراء اور رپورٹس" : "Teacher Remarks & Progress Reports"}</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("reports")}
+                  className="text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:underline flex items-center gap-1"
+                >
+                  <span>{isRtl ? "تمام رپورٹس دیکھیں" : "View All Reports"}</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {studentReports.length === 0 ? (
+                <div className="p-4 rounded-xl bg-white border border-slate-200 text-center text-xs text-slate-500 shadow-2xs">
+                  {isRtl
+                    ? "اساتذہ کی طرف سے ابھی کوئی مشاہدہ درج نہیں ہوا۔"
+                    : "No teacher remarks recorded yet for this session."}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {studentReports.slice(0, 2).map((rep) => {
+                    const catMap = {
+                      ACADEMIC: { label: "Academic Progress", labelUr: "تعلیمی کارکردگی", color: "bg-blue-50 text-blue-700 border-blue-200" },
+                      PARTICIPATION: { label: "Class Participation", labelUr: "کلاس میں شرکت", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                      BEHAVIOUR: { label: "Discipline & Conduct", labelUr: "نظم و ضبط و اخلاق", color: "bg-purple-50 text-purple-700 border-purple-200" },
+                      GENERAL: { label: "General Note", labelUr: "عمومی نوٹ", color: "bg-slate-50 text-slate-700 border-slate-200" },
+                    }[rep.category] || { label: "General Note", labelUr: "عمومی نوٹ", color: "bg-slate-50 text-slate-700 border-slate-200" };
+
+                    const ratingMap = {
+                      EXCELLENT: { label: "⭐ Excellent", color: "bg-emerald-100 text-emerald-800 border-emerald-300" },
+                      GOOD: { label: "👍 Good", color: "bg-blue-100 text-blue-800 border-blue-300" },
+                      NEEDS_ATTENTION: { label: "⚠️ Needs Attention", color: "bg-amber-100 text-amber-800 border-amber-300" },
+                      NEEDS_PRACTICE: { label: "🎯 Needs Practice", color: "bg-purple-100 text-purple-800 border-purple-300" },
+                    }[rep.rating || "GOOD"] || { label: "Note", color: "bg-slate-100 text-slate-800 border-slate-300" };
+
+                    return (
+                      <div
+                        key={rep.id}
+                        className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-2 hover:border-emerald-300 transition-all flex flex-col justify-between"
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${catMap.color}`}>
+                              {isRtl ? catMap.labelUr : catMap.label}
+                            </span>
+                            {rep.rating && (
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${ratingMap.color}`}>
+                                {ratingMap.label}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-700 font-sans leading-relaxed italic">
+                            "{rep.remarks}"
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+                          <span className="font-semibold text-slate-800">
+                            {rep.teacher_name}
+                          </span>
+                          <span className="text-slate-400">
+                            {new Date(rep.created_at).toLocaleDateString("en-PK", { day: "numeric", month: "short" })}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* School Announcements */}
             <div className="space-y-3">
               <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
@@ -566,6 +658,96 @@ export default function StudentDashboard() {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 1B: TEACHER REMARKS & PROGRESS REPORTS */}
+        {/* ========================================================================= */}
+        {activeTab === "reports" && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-emerald-600" />
+                  <span>{isRtl ? "اساتذہ کی رپورٹس اور تفصیلی ریمارکس" : "Teacher Remarks & Student Reports"}</span>
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                  {isRtl
+                    ? "اساتذہ کی طرف سے طالب علم کی کارکردگی اور اخلاق کے بارے میں درج کردہ نوٹس۔"
+                    : "Feedback, study habit observations, and behavioral feedback recorded by class teachers."}
+                </p>
+              </div>
+
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 self-start sm:self-auto">
+                {studentReports.length} {isRtl ? "رپورٹس موجود ہیں" : "Reports Recorded"}
+              </span>
+            </div>
+
+            {studentReports.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-white border border-slate-200 text-center space-y-2 shadow-2xs">
+                <FileText className="w-8 h-8 text-slate-300 mx-auto" />
+                <div className="font-bold text-xs text-slate-700">
+                  {isRtl ? "کوئی رپورٹ موجود نہیں" : "No Teacher Remarks Recorded Yet"}
+                </div>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  {isRtl
+                    ? "جب اساتذہ طالب علم کے بارے میں ریمارکس درج کریں گے تو وہ یہاں نظر آئیں گے۔"
+                    : "Teacher observations on class participation, test readiness, and homework habits will appear here."}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {studentReports.map((rep) => {
+                  const catMap = {
+                    ACADEMIC: { label: "Academic Progress", labelUr: "تعلیمی کارکردگی", color: "bg-blue-50 text-blue-700 border-blue-200" },
+                    PARTICIPATION: { label: "Class Participation", labelUr: "کلاس میں شرکت", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                    BEHAVIOUR: { label: "Discipline & Conduct", labelUr: "نظم و ضبط و اخلاق", color: "bg-purple-50 text-purple-700 border-purple-200" },
+                    GENERAL: { label: "General Note", labelUr: "عمومی نوٹ", color: "bg-slate-50 text-slate-700 border-slate-200" },
+                  }[rep.category] || { label: "General Note", labelUr: "عمومی نوٹ", color: "bg-slate-50 text-slate-700 border-slate-200" };
+
+                  const ratingMap = {
+                    EXCELLENT: { label: "⭐ Excellent", color: "bg-emerald-100 text-emerald-800 border-emerald-300" },
+                    GOOD: { label: "👍 Good", color: "bg-blue-100 text-blue-800 border-blue-300" },
+                    NEEDS_ATTENTION: { label: "⚠️ Needs Attention", color: "bg-amber-100 text-amber-800 border-amber-300" },
+                    NEEDS_PRACTICE: { label: "🎯 Needs Practice", color: "bg-purple-100 text-purple-800 border-purple-300" },
+                  }[rep.rating || "GOOD"] || { label: "Note", color: "bg-slate-100 text-slate-800 border-slate-300" };
+
+                  return (
+                    <div
+                      key={rep.id}
+                      className="p-5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3 hover:border-emerald-300 transition-all flex flex-col justify-between"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${catMap.color}`}>
+                            {isRtl ? catMap.labelUr : catMap.label}
+                          </span>
+                          {rep.rating && (
+                            <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold border ${ratingMap.color}`}>
+                              {ratingMap.label}
+                            </span>
+                          )}
+                        </div>
+                        <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100 text-slate-800 text-xs sm:text-sm font-sans leading-relaxed">
+                          "{rep.remarks}"
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
+                        <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                          <span>Teacher:</span>
+                          <span className="text-emerald-800 font-bold">{rep.teacher_name}</span>
+                        </span>
+                        <span className="text-slate-400 font-medium">
+                          {new Date(rep.created_at).toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" })}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

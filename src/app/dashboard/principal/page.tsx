@@ -1678,7 +1678,14 @@ export default function PrincipalDashboard() {
                         </div>
                       )}
                       <div>
-                        <div className="font-extrabold text-slate-900 text-sm">{st.name}</div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedStaffForProfile(st)}
+                          className="font-extrabold text-slate-900 text-sm text-left cursor-pointer hover:text-emerald-700 hover:underline transition-colors block"
+                          title="View Staff Profile"
+                        >
+                          {st.name}
+                        </button>
                         <div className="text-xs text-slate-500 font-mono mt-0.5">ID: {st.identifier}</div>
                       </div>
                     </div>
@@ -1753,7 +1760,14 @@ export default function PrincipalDashboard() {
                               {st.name.substring(0, 2).toUpperCase()}
                             </div>
                           )}
-                          <span>{st.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedStaffForProfile(st)}
+                            className="font-bold text-slate-900 text-left cursor-pointer hover:text-emerald-700 hover:underline transition-colors"
+                            title="View Staff Profile"
+                          >
+                            {st.name}
+                          </button>
                         </div>
                       </td>
                       <td className="py-3.5 px-4">
@@ -1928,7 +1942,14 @@ export default function PrincipalDashboard() {
                         </div>
                       )}
                       <div>
-                        <div className="font-extrabold text-slate-900 text-sm">{std.name}</div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedStudentForProfile(std)}
+                          className="font-extrabold text-slate-900 text-sm text-left cursor-pointer hover:text-emerald-700 hover:underline transition-colors block"
+                          title="View Student Profile"
+                        >
+                          {std.name}
+                        </button>
                         <div className="text-xs text-slate-500 font-mono">ID: {std.student_id}</div>
                       </div>
                     </div>
@@ -2002,7 +2023,14 @@ export default function PrincipalDashboard() {
                               {std.name.substring(0, 2).toUpperCase()}
                             </div>
                           )}
-                          <span>{std.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedStudentForProfile(std)}
+                            className="font-bold text-slate-900 text-left cursor-pointer hover:text-emerald-700 hover:underline transition-colors"
+                            title="View Student Profile"
+                          >
+                            {std.name}
+                          </button>
                         </div>
                       </td>
                       <td className="py-3.5 px-4">
@@ -4925,6 +4953,9 @@ export default function PrincipalDashboard() {
         onClose={() => setSelectedStudentForProfile(null)}
         schoolName={schoolData?.name || "Beacon Grammar School"}
         showFeeInfo={true}
+        teacherName={currentUser?.name}
+        teacherId={currentUser?.id}
+        canAddReport={true}
       />
     </DashboardShell>
   );

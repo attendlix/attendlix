@@ -630,7 +630,14 @@ You can log in and begin managing classes, admissions, attendance, and fee colle
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <div className="font-bold text-slate-900 text-sm">{sch.name}</div>
+                      <button
+                        type="button"
+                        onClick={() => openPrincipalProfileModal(sch)}
+                        className="font-bold text-slate-900 text-sm text-left cursor-pointer hover:text-emerald-700 hover:underline transition-colors block"
+                        title="View Principal Profile & Credentials"
+                      >
+                        {sch.name}
+                      </button>
                       <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                         <span>{sch.city}</span>
                         <span>•</span>
@@ -778,7 +785,14 @@ You can log in and begin managing classes, admissions, attendance, and fee colle
                 return (
                   <tr key={sch.id} className="hover:bg-slate-50/60 transition-colors">
                     <td className="py-3.5 px-4 sm:px-6">
-                      <div className="font-bold text-slate-900">{sch.name}</div>
+                      <button
+                        type="button"
+                        onClick={() => openPrincipalProfileModal(sch)}
+                        className="font-bold text-slate-900 text-left cursor-pointer hover:text-emerald-700 hover:underline transition-colors block"
+                        title="View Principal Profile & Credentials"
+                      >
+                        {sch.name}
+                      </button>
                       <div className="text-[10px] text-slate-400 font-mono">ID: {sch.id}</div>
                       <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
                         <CreditCard className="w-3 h-3 text-emerald-600 flex-shrink-0" />

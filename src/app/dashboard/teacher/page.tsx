@@ -31,6 +31,7 @@ import {
   Eye,
   Calendar,
   Filter,
+  FileText,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -82,6 +83,7 @@ export default function TeacherDashboard() {
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [classStudents, setClassStudents] = useState<Student[]>([]);
   const [selectedStudentForProfile, setSelectedStudentForProfile] = useState<Student | null>(null);
+  const [profileModalInitialTab, setProfileModalInitialTab] = useState<"overview" | "reports">("overview");
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
   // Timetable State
@@ -975,18 +977,45 @@ export default function TeacherDashboard() {
                           </div>
                         )}
                         <div className="min-w-0 flex-1">
-                          <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">{st.name}</div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProfileModalInitialTab("overview");
+                              setSelectedStudentForProfile(st);
+                            }}
+                            className="font-bold text-slate-900 text-xs sm:text-sm truncate text-left cursor-pointer hover:text-emerald-700 hover:underline transition-colors block"
+                            title="View Student Profile"
+                          >
+                            {st.name}
+                          </button>
                           <div className="text-[10px] sm:text-[11px] text-slate-400 truncate">ID: {st.student_id}</div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedStudentForProfile(st)}
-                          className="px-2 py-1 rounded-lg border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 text-[11px] font-semibold flex items-center gap-1 transition-all flex-shrink-0 shadow-2xs"
-                          title="View Student Profile"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">Profile</span>
-                        </button>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProfileModalInitialTab("overview");
+                              setSelectedStudentForProfile(st);
+                            }}
+                            className="px-2 py-1 rounded-lg border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 text-[11px] font-semibold flex items-center gap-1 transition-all flex-shrink-0 shadow-2xs"
+                            title="View Student Profile"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Profile</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProfileModalInitialTab("reports");
+                              setSelectedStudentForProfile(st);
+                            }}
+                            className="px-2 py-1 rounded-lg border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 text-indigo-700 text-[11px] font-semibold flex items-center gap-1 transition-all flex-shrink-0 shadow-2xs"
+                            title="Add / View Teacher Remarks & Report"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                            <span className="hidden sm:inline">Report</span>
+                          </button>
+                        </div>
                       </div>
 
                       {/* 1-Tap Toggle Group (P, A, L) with Large Hit Targets (Min 44px) */}
@@ -1675,18 +1704,45 @@ export default function TeacherDashboard() {
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <div className="font-bold text-slate-900 text-xs sm:text-sm truncate">{st.name}</div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileModalInitialTab("overview");
+                            setSelectedStudentForProfile(st);
+                          }}
+                          className="font-bold text-slate-900 text-xs sm:text-sm truncate text-left cursor-pointer hover:text-emerald-700 hover:underline transition-colors block"
+                          title="View Student Profile"
+                        >
+                          {st.name}
+                        </button>
                         <div className="text-[10px] text-slate-400 truncate">ID: {st.student_id}</div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedStudentForProfile(st)}
-                        className="px-2 py-1 rounded-lg border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 text-[11px] font-semibold flex items-center gap-1 transition-all flex-shrink-0 shadow-2xs"
-                        title="View Student Profile"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Profile</span>
-                      </button>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileModalInitialTab("overview");
+                            setSelectedStudentForProfile(st);
+                          }}
+                          className="px-2 py-1 rounded-lg border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 text-[11px] font-semibold flex items-center gap-1 transition-all flex-shrink-0 shadow-2xs"
+                          title="View Student Profile"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Profile</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileModalInitialTab("reports");
+                            setSelectedStudentForProfile(st);
+                          }}
+                          className="px-2 py-1 rounded-lg border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 text-indigo-700 text-[11px] font-semibold flex items-center gap-1 transition-all flex-shrink-0 shadow-2xs"
+                          title="Add / View Teacher Remarks & Report"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                          <span className="hidden sm:inline">Report</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -2080,6 +2136,10 @@ export default function TeacherDashboard() {
         onClose={() => setSelectedStudentForProfile(null)}
         schoolName={schoolData?.name || "Beacon Grammar School"}
         showFeeInfo={false}
+        initialTab={profileModalInitialTab}
+        teacherName={currentUser?.name}
+        teacherId={currentUser?.id}
+        canAddReport={true}
       />
     </DashboardShell>
   );

@@ -219,6 +219,7 @@ export type NotificationCategory =
   | "TIMETABLE"
   | "ACCOUNT"
   | "TENANT"
+  | "REPORT"
   | "SYSTEM";
 
 export interface AppNotification {
@@ -244,5 +245,25 @@ export interface ToastMessage {
   type: NotificationType;
   duration?: number;
 }
+
+// ----------------------------------------------------
+// STUDENT REPORTS & TEACHER REMARKS
+// ----------------------------------------------------
+export type StudentReportCategory = "ACADEMIC" | "PARTICIPATION" | "BEHAVIOUR" | "GENERAL";
+export type StudentReportRating = "EXCELLENT" | "GOOD" | "NEEDS_ATTENTION" | "NEEDS_PRACTICE";
+
+export interface StudentReport {
+  id: string;
+  school_id: string;
+  student_id: string;
+  student_name?: string;
+  teacher_id: string;
+  teacher_name: string;
+  category: StudentReportCategory;
+  rating?: StudentReportRating;
+  remarks: string;
+  created_at: string;
+}
+
 
 

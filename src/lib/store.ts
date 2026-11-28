@@ -20,6 +20,9 @@ import {
   AppNotification,
   NotificationType,
   NotificationCategory,
+  StudentReport,
+  StudentReportCategory,
+  StudentReportRating,
 } from "./types";
 import { supabase } from "./supabase";
 
@@ -33,6 +36,7 @@ const KEY_ANNOUNCEMENTS = "attendlix_announcements";
 const KEY_TIMETABLES = "attendlix_timetables";
 const KEY_STAFF_ATTENDANCE = "attendlix_staff_attendance";
 const KEY_NOTIFICATIONS = "attendlix_notifications";
+const KEY_STUDENT_REPORTS = "attendlix_student_reports";
 
 // Default Seed Schools
 const SEED_SCHOOL_ID = "school-beacon-001";
@@ -1090,6 +1094,58 @@ const SEED_NOTIFICATIONS: AppNotification[] = [
   },
 ];
 
+// Default Seed Student Reports & Teacher Remarks
+const SEED_STUDENT_REPORTS: StudentReport[] = [
+  {
+    id: "rep-001",
+    school_id: SEED_SCHOOL_ID,
+    student_id: "std-1",
+    student_name: "Muhammad Ahmed",
+    teacher_id: "usr-teacher-01",
+    teacher_name: "Ms. Sadia Tariq",
+    category: "ACADEMIC",
+    rating: "NEEDS_PRACTICE",
+    remarks: "Good grasp of fundamental concepts in Mathematics, but needs consistent practice in Algebra quadratic equations. Homework submitted on time.",
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+  },
+  {
+    id: "rep-002",
+    school_id: SEED_SCHOOL_ID,
+    student_id: "std-1",
+    student_name: "Muhammad Ahmed",
+    teacher_id: "usr-teacher-01",
+    teacher_name: "Ms. Sadia Tariq",
+    category: "PARTICIPATION",
+    rating: "EXCELLENT",
+    remarks: "Very active and attentive during science experiments. Demonstrates curiosity and collaborates well with classmates during group assignments.",
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 120).toISOString(),
+  },
+  {
+    id: "rep-003",
+    school_id: SEED_SCHOOL_ID,
+    student_id: "std-2",
+    student_name: "Fatima Noor",
+    teacher_id: "usr-teacher-01",
+    teacher_name: "Ms. Sadia Tariq",
+    category: "BEHAVIOUR",
+    rating: "EXCELLENT",
+    remarks: "Polite, disciplined, and very helpful to peers. Excellent classroom conduct and always punctual.",
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
+  },
+  {
+    id: "rep-004",
+    school_id: SEED_SCHOOL_ID,
+    student_id: "std-3",
+    student_name: "Zainab Ali",
+    teacher_id: "usr-teacher-01",
+    teacher_name: "Ms. Sadia Tariq",
+    category: "GENERAL",
+    rating: "GOOD",
+    remarks: "Steady improvement in English reading comprehension. Encouraged to read library storybooks over the weekend.",
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 96).toISOString(),
+  },
+];
+
 // Ensure initial seed data exists
 export function initializeStore() {
   if (typeof window === "undefined") return;
@@ -1134,6 +1190,9 @@ export function initializeStore() {
   }
   if (!window.localStorage.getItem(KEY_NOTIFICATIONS)) {
     setStorage(KEY_NOTIFICATIONS, SEED_NOTIFICATIONS);
+  }
+  if (!window.localStorage.getItem(KEY_STUDENT_REPORTS)) {
+    setStorage(KEY_STUDENT_REPORTS, SEED_STUDENT_REPORTS);
   }
 }
 
@@ -3692,5 +3751,81 @@ export function clearAllNotifications(
     window.dispatchEvent(new CustomEvent("attendlix:notification-updated"));
   }
 }
+
+// ----------------------------------------------------
+// STUDENT REPORTS & TEACHER REMARKS
+// ----------------------------------------------------
+export function getStudentReports(
+  school_id?: string,
+  student_id?: string
+): StudentReport[] {
+  initializeStore();
+  const reports = getStorage<StudentReport[]>(KEY_STUDENT_REPORTS, SEED_STUDENT_REPORTS);
+  return reports
+    .filter((r) => {
+      if (school_id && r.school_id && r.school_id !== school_id && r.school_id !== SEED_SCHOOL_ID) {
+        return false;
+      }
+      if (student_id && r.student_id !== student_id) {
+        return false;
+      }
+      return true;
+    })
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
+export function addStudentReport(
+  data: Omit<StudentReport, "id" | "created_at">
+): StudentReport {
+  initializeStore();
+  const newReport: StudentReport = {
+    id: "rep-" + Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 6),
+    school_id: data.school_id || SEED_SCHOOL_ID,
+    student_id: data.student_id,
+    student_name: data.student_name,
+    teacher_id: data.teacher_id,
+    teacher_name: data.teacher_name,
+    category: data.category,
+    rating: data.rating,
+    remarks: data.remarks,
+    created_at: new Date().toISOString(),
+  };
+
+  const current = getStorage<StudentReport[]>(KEY_STUDENT_REPORTS, SEED_STUDENT_REPORTS);
+  setStorage(KEY_STUDENT_REPORTS, [newReport, ...current]);
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("attendlix:report-added", { detail: newReport }));
+  }
+
+  // Non-blocking sync to Supabase student_reports table if available
+  try {
+    (async () => {
+      try {
+        await supabase.from("student_reports").insert([
+          {
+            id: newReport.id,
+            school_id: newReport.school_id,
+            student_id: newReport.student_id,
+            student_name: newReport.student_name,
+            teacher_id: newReport.teacher_id,
+            teacher_name: newReport.teacher_name,
+            category: newReport.category,
+            rating: newReport.rating,
+            remarks: newReport.remarks,
+            created_at: newReport.created_at,
+          },
+        ]);
+      } catch {
+        // non-blocking
+      }
+    })();
+  } catch {
+    // non-blocking
+  }
+
+  return newReport;
+}
+
 
 
