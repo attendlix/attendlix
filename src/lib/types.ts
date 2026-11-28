@@ -116,7 +116,8 @@ export interface Homework {
   subject: string;
   title: string;
   description: string;
-  due_date: string;
+  assigned_date?: string;
+  due_date?: string;
   created_at: string;
 }
 

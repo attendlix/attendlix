@@ -1914,7 +1914,8 @@ const SEED_HOMEWORK: Homework[] = [
     subject: "Mathematics",
     title: "Exercise 4.2 - Algebraic Equations",
     description: "Complete Questions 1 through 6 in your neat notebooks. Show all rough work.",
-    due_date: new Date(Date.now() + 86400000).toISOString().split("T")[0],
+    assigned_date: new Date().toISOString().split("T")[0],
+    due_date: new Date().toISOString().split("T")[0],
     created_at: new Date().toISOString(),
   },
   {
@@ -1924,7 +1925,8 @@ const SEED_HOMEWORK: Homework[] = [
     subject: "Urdu",
     title: "سبق 'قائد اعظم رحمتہ اللہ علیہ' کے سوالات",
     description: "کتاب کے صفحہ نمبر 45 پر دیے گئے سوال نمبر 1 تا 4 کے جوابات تحریر کریں۔",
-    due_date: new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0],
+    assigned_date: new Date().toISOString().split("T")[0],
+    due_date: new Date().toISOString().split("T")[0],
     created_at: new Date().toISOString(),
   },
   {
@@ -1934,8 +1936,20 @@ const SEED_HOMEWORK: Homework[] = [
     subject: "Science",
     title: "Photosynthesis Diagram & Definitions",
     description: "Draw the labeled diagram of plant cell photosynthesis and memorize definitions.",
-    due_date: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
-    created_at: new Date().toISOString(),
+    assigned_date: new Date(Date.now() - 86400000).toISOString().split("T")[0],
+    due_date: new Date(Date.now() - 86400000).toISOString().split("T")[0],
+    created_at: new Date(Date.now() - 86400000).toISOString(),
+  },
+  {
+    id: "hw-04",
+    school_id: SEED_SCHOOL_ID,
+    class_id: "cls-01",
+    subject: "English",
+    title: "Unit 3 Comprehension & Vocabulary",
+    description: "Read Chapter 3 carefully and solve vocabulary exercises A & B on Page 32.",
+    assigned_date: new Date(Date.now() - 86400000 * 2).toISOString().split("T")[0],
+    due_date: new Date(Date.now() - 86400000 * 2).toISOString().split("T")[0],
+    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
   },
 ];
 
@@ -2324,9 +2338,10 @@ export function getHomeworkList(school_id: string, class_id: string): Homework[]
 export function addHomework(
   school_id: string,
   class_id: string,
-  data: { subject: string; title: string; description: string; due_date: string; teacher_id?: string }
+  data: { subject: string; title: string; description: string; assigned_date?: string; due_date?: string; teacher_id?: string }
 ): Homework {
   initializeStore();
+  const todayStr = new Date().toISOString().split("T")[0];
   const newHw: Homework = {
     id: "hw-" + Math.random().toString(36).substring(2, 9),
     school_id,
@@ -2335,7 +2350,8 @@ export function addHomework(
     subject: data.subject.trim(),
     title: data.title.trim(),
     description: data.description.trim(),
-    due_date: data.due_date,
+    assigned_date: data.assigned_date || todayStr,
+    due_date: data.due_date || data.assigned_date || todayStr,
     created_at: new Date().toISOString(),
   };
 
