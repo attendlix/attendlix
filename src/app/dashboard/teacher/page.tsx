@@ -35,6 +35,7 @@ import {
   Megaphone,
   Search,
   ArrowRight,
+  School,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -77,7 +78,7 @@ export default function TeacherDashboard() {
   const { notify } = useNotifications();
 
   // Active navigation tab
-  const [activeTab, setActiveTab] = useState<"attendance" | "announcements" | "my_attendance" | "homework" | "timetable" | "exams" | "messages" | "settings">("attendance");
+  const [activeTab, setActiveTab] = useState<"overview" | "attendance" | "my_attendance" | "homework" | "timetable" | "exams" | "messages" | "announcements" | "settings">("overview");
 
   // User and Class context
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -539,13 +540,14 @@ export default function TeacherDashboard() {
   }, [announcements, announcementFilter, announcementSearch]);
 
   const teacherNavItems = [
+    { id: "overview", label: t.tabOverview || (isRtl ? "اوور ویو اور سمری" : "Overview"), icon: School },
     { id: "attendance", label: isRtl ? "کلاس حاضری رول کال" : "Class Attendance", icon: CalendarCheck },
-    { id: "announcements", label: isRtl ? "اسکول اعلانات" : "Announcements", icon: Megaphone, badge: announcements.length > 0 ? announcements.length : undefined },
     { id: "my_attendance", label: isRtl ? "میری ذاتی حاضری و لاگ" : "My Attendance Log", icon: UserCheck },
     { id: "homework", label: t.tabHomework || "Homework Diary", icon: BookOpen },
     { id: "timetable", label: t.mySchedule || "My Schedule", icon: Clock },
     { id: "exams", label: t.tabExams || "Exam Marks", icon: Award },
     { id: "messages", label: t.tabChat || "Parent Messages", icon: MessageSquare },
+    { id: "announcements", label: isRtl ? "اسکول اعلانات" : "Announcements", icon: Megaphone, badge: announcements.length > 0 ? announcements.length : undefined },
     { id: "settings", label: t.tabSettings || "Settings", icon: Settings },
   ];
 
@@ -646,157 +648,331 @@ export default function TeacherDashboard() {
           </div>
         )}
 
-        {/* Staff & School Official Circulars - Compact Highlight Strip on Class Attendance */}
-        {activeTab === "attendance" && announcements.length > 0 && (
-          <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-50/90 via-teal-50/60 to-white border border-emerald-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-start sm:items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-2xs">
-                <Megaphone className="w-4 h-4" />
+        {/* ========================================================================= */}
+        {/* TAB 0: TEACHER OVERVIEW & DAILY SUMMARY */}
+        {/* ========================================================================= */}
+        {activeTab === "overview" && (
+          <div className="space-y-6">
+            {/* Header / Welcome Strip */}
+            <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                {currentUser?.avatar_url ? (
+                  <img
+                    src={currentUser.avatar_url}
+                    alt={currentUser?.name || "Teacher"}
+                    className="w-13 h-13 rounded-2xl object-cover border-2 border-emerald-300 shadow-2xs flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-13 h-13 rounded-2xl bg-[#0B3B2E] text-emerald-300 flex items-center justify-center font-extrabold text-lg shadow-2xs flex-shrink-0">
+                    {currentUser?.name?.charAt(0) || "T"}
+                  </div>
+                )}
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                      {currentUser?.name || "Teacher"}
+                    </h1>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      FACULTY / TEACHER
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {schoolData?.name || "Beacon Grammar School"} ({schoolData?.city || "Lahore"}) • {classesList.length} Assigned {classesList.length === 1 ? "Class" : "Classes"}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">
-                    {isRtl ? "تازہ ترین اعلان" : "Latest Announcement"}
-                  </span>
-                  <span
-                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-                      announcements[0].priority === "URGENT"
-                        ? "bg-rose-100 text-rose-800 border-rose-300"
-                        : announcements[0].priority === "IMPORTANT"
-                        ? "bg-amber-100 text-amber-800 border-amber-300"
-                        : "bg-emerald-100 text-emerald-800 border-emerald-300"
-                    }`}
+
+              {/* Quick Jump Shortcuts */}
+              <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("attendance")}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#0B3B2E] hover:bg-[#082C22] text-white shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <CalendarCheck className="w-3.5 h-3.5 text-emerald-300" />
+                  <span>{isRtl ? "کلاس رول کال" : "Roll-Call"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("homework")}
+                  className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-slate-500" />
+                  <span>{isRtl ? "ڈائری" : "Homework"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Teacher Check-in Notice Alert if active */}
+            {checkInNotice && (
+              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center justify-between gap-2 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>{checkInNotice}</span>
+                </div>
+                <button onClick={() => setCheckInNotice(null)} className="text-emerald-700 hover:text-emerald-900 text-xs font-bold cursor-pointer">✕</button>
+              </div>
+            )}
+
+            {/* Teacher Daily Check-In / Check-Out Self-Service Bar */}
+            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-2xs ${
+                  todayStaffRecord?.check_out_time
+                    ? "bg-emerald-100 text-emerald-700"
+                    : todayStaffRecord?.check_in_time
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-slate-100 text-slate-700"
+                }`}>
+                  <UserCheck className="w-5 h-5" />
+                </div>
+
+                <div className="space-y-0.5 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-slate-900 text-sm">{t.staffAttendanceTitle || "Daily Staff Attendance"}</span>
+                    {todayStaffRecord?.status === "PRESENT" && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        {t.present || "Present"}
+                      </span>
+                    )}
+                    {todayStaffRecord?.status === "LATE" && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        {t.late || "Late"}
+                      </span>
+                    )}
+                    {todayStaffRecord?.status === "ON_LEAVE" && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300">
+                        {t.onLeave || "On Leave"}
+                      </span>
+                    )}
+                    {!todayStaffRecord?.check_in_time && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                        {t.notCheckedInYet || "Not Checked In"}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
+                    {todayStaffRecord?.check_in_time ? (
+                      <span>
+                        <strong className="text-slate-800">{t.checkIn || "Check-In"}:</strong> {todayStaffRecord.check_in_time}
+                        {todayStaffRecord.check_out_time && (
+                          <> • <strong className="text-slate-800">{t.checkOut || "Check-Out"}:</strong> {todayStaffRecord.check_out_time}</>
+                        )}
+                      </span>
+                    ) : (
+                      <span>{t.schoolHoursNotice || "Morning check-in opens at 7:30 AM (Late after 8:15 AM)"}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-center w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("my_attendance")}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 transition-all flex items-center gap-1.5 min-h-[44px] shadow-2xs cursor-pointer"
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{isRtl ? "مکمل لاگ" : "View Log"}</span>
+                </button>
+
+                {!todayStaffRecord?.check_in_time ? (
+                  <button
+                    type="button"
+                    onClick={handleTeacherCheckIn}
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#0B3B2E] hover:bg-[#082C22] text-white text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
                   >
-                    {announcements[0].priority === "URGENT"
-                      ? `🚨 ${t.priorityUrgent || "URGENT"}`
-                      : announcements[0].priority === "IMPORTANT"
-                      ? `⚡ ${t.priorityImportant || "IMPORTANT"}`
-                      : `📢 ${t.priorityNormal || "NORMAL"}`}
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    {new Date(announcements[0].created_at).toLocaleDateString("en-PK", { day: "numeric", month: "short" })}
-                  </span>
-                </div>
-                <p className="text-xs font-bold text-slate-800 truncate mt-0.5 max-w-xl">
-                  {announcements[0].title} — <span className="font-normal text-slate-600">{announcements[0].content}</span>
-                </p>
+                    <LogIn className="w-4 h-4" />
+                    <span>{t.checkInNow || "Check-In Now"}</span>
+                  </button>
+                ) : !todayStaffRecord?.check_out_time ? (
+                  <button
+                    type="button"
+                    onClick={handleTeacherCheckOut}
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-2xs hover:shadow-md transition-all flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4 text-emerald-400" />
+                    <span>{t.checkOutNow || "Check-Out Now"}</span>
+                  </button>
+                ) : (
+                  <div className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-2.5 rounded-xl border border-emerald-200 min-h-[44px]">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>Shift Completed</span>
+                  </div>
+                )}
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab("announcements")}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-white hover:bg-emerald-50 px-3.5 py-2 rounded-xl border border-emerald-200 shadow-2xs transition-all flex-shrink-0 self-start sm:self-auto cursor-pointer"
-            >
-              <span>{isRtl ? "تمام اعلانات دیکھیں ←" : "View All Announcements →"}</span>
-            </button>
-          </div>
-        )}
-
-        {/* Check-in Notice Alert - Render on attendance views */}
-        {checkInNotice && (activeTab === "attendance" || activeTab === "my_attendance") && (
-          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center justify-between gap-2 shadow-2xs">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-              <span>{checkInNotice}</span>
-            </div>
-            <button onClick={() => setCheckInNotice(null)} className="text-emerald-700 hover:text-emerald-900 text-xs font-bold">✕</button>
-          </div>
-        )}
-
-        {/* Dedicated Teacher Daily Check-In / Check-Out Self-Service Card - Render on attendance views */}
-        {(activeTab === "attendance" || activeTab === "my_attendance") && (
-          <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-start sm:items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-2xs ${
-                todayStaffRecord?.check_out_time
-                  ? "bg-emerald-100 text-emerald-700"
-                  : todayStaffRecord?.check_in_time
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-slate-100 text-slate-700"
-              }`}>
-                <UserCheck className="w-5 h-5" />
-              </div>
-
-              <div className="space-y-0.5 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-bold text-slate-900 text-sm">{t.staffAttendanceTitle || "Daily Staff Attendance"}</span>
-                  {todayStaffRecord?.status === "PRESENT" && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                      {t.present || "Present"}
-                    </span>
-                  )}
-                  {todayStaffRecord?.status === "LATE" && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                      {t.late || "Late"}
-                    </span>
-                  )}
-                  {todayStaffRecord?.status === "ON_LEAVE" && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300">
-                      {t.onLeave || "On Leave"}
-                    </span>
-                  )}
-                  {!todayStaffRecord?.check_in_time && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                      {t.notCheckedInYet || "Not Checked In"}
-                    </span>
-                  )}
-                </div>
-
-                <div className="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
-                  {todayStaffRecord?.check_in_time ? (
-                    <span>
-                      <strong className="text-slate-800">{t.checkIn || "Check-In"}:</strong> {todayStaffRecord.check_in_time}
-                      {todayStaffRecord.check_out_time && (
-                        <> • <strong className="text-slate-800">{t.checkOut || "Check-Out"}:</strong> {todayStaffRecord.check_out_time}</>
-                      )}
-                    </span>
-                  ) : (
-                    <span>{t.schoolHoursNotice || "Morning check-in opens at 7:30 AM (Late after 8:15 AM)"}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-center w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() => setActiveTab("my_attendance")}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 min-h-[44px] shadow-2xs ${
-                  activeTab === "my_attendance"
-                    ? "bg-[#0B3B2E] text-white border-[#0B3B2E]"
-                    : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
-                }`}
+            {/* 4 Summary Metric Cards (Clickable shortcuts to My Attendance) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div
+                onClick={() => {
+                  setTeacherAttStatusFilter("ALL");
+                  setActiveTab("my_attendance");
+                }}
+                className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md hover:-translate-y-0.5 hover:border-emerald-300 transition-all cursor-pointer relative overflow-hidden group"
               >
-                <Clock className="w-3.5 h-3.5" />
-                <span>{isRtl ? "مکمل ہسٹری لاگ" : "View History"}</span>
-              </button>
-
-              {!todayStaffRecord?.check_in_time ? (
-                <button
-                  type="button"
-                  onClick={handleTeacherCheckIn}
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#0B3B2E] hover:bg-[#082C22] text-white text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-2 min-h-[44px]"
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span>{t.checkInNow || "Check-In Now"}</span>
-                </button>
-              ) : !todayStaffRecord?.check_out_time ? (
-                <button
-                  type="button"
-                  onClick={handleTeacherCheckOut}
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-2xs hover:shadow-md transition-all flex items-center justify-center gap-2 min-h-[44px]"
-                >
-                  <LogOut className="w-4 h-4 text-emerald-400" />
-                  <span>{t.checkOutNow || "Check-Out Now"}</span>
-                </button>
-              ) : (
-                <div className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-2.5 rounded-xl border border-emerald-200 min-h-[44px]">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Shift Completed</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {isRtl ? "حاضری کی شرح" : "Attendance Rate"}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
                 </div>
-              )}
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    {teacherAttPercent}%
+                  </span>
+                  <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                    {teacherAttPercent >= 90 ? "Excellent" : "Standard"}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500">
+                    {totalTeacherDays} {isRtl ? "کل کام کے دن" : "working days"}
+                  </span>
+                  <SparklineGreenWave />
+                </div>
+              </div>
+
+              <div
+                onClick={() => {
+                  setTeacherAttStatusFilter("PRESENT");
+                  setActiveTab("my_attendance");
+                }}
+                className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md hover:-translate-y-0.5 hover:border-blue-300 transition-all cursor-pointer relative overflow-hidden group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {isRtl ? "کل حاضر دن" : "Total Present"}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                    <Check className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    {totalTeacherPresent}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">days</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500">
+                    {isRtl ? "وقت پر اسکول آمد" : "On-time arrival"}
+                  </span>
+                  <SparklineBluePulse />
+                </div>
+              </div>
+
+              <div
+                onClick={() => {
+                  setTeacherAttStatusFilter("LATE");
+                  setActiveTab("my_attendance");
+                }}
+                className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md hover:-translate-y-0.5 hover:border-amber-300 transition-all cursor-pointer relative overflow-hidden group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {isRtl ? "تاخیر سے آمد" : "Late Arrivals"}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    {totalTeacherLate}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">days</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[11px] text-amber-600 font-medium">
+                    {isRtl ? "گیٹ پر 8:15 کے بعد" : "After 08:15 AM"}
+                  </span>
+                  <SparklineAmberWave />
+                </div>
+              </div>
+
+              <div
+                onClick={() => {
+                  setTeacherAttStatusFilter("ABSENT");
+                  setActiveTab("my_attendance");
+                }}
+                className="p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-md hover:-translate-y-0.5 hover:border-rose-300 transition-all cursor-pointer relative overflow-hidden group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    {isRtl ? "غیر حاضر دن" : "Absent Days"}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
+                    <AlertCircle className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    {totalTeacherAbsent}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">
+                    {totalTeacherLeave > 0 ? `+ ${totalTeacherLeave} Leave` : "days"}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[11px] text-rose-600 font-medium">
+                    {isRtl ? "ایمرجنسی غیر حاضری" : "Emergency absence"}
+                  </span>
+                  <MiniBarChart />
+                </div>
+              </div>
             </div>
+
+            {/* Compact Latest Announcement Preview Strip (Overview Only) */}
+            {announcements.length > 0 && (
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50/90 via-teal-50/60 to-white border border-emerald-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start sm:items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-2xs">
+                    <Megaphone className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">
+                        {isRtl ? "تازہ ترین اعلان" : "Latest Circular"}
+                      </span>
+                      <span
+                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                          announcements[0].priority === "URGENT"
+                            ? "bg-rose-100 text-rose-800 border-rose-300"
+                            : announcements[0].priority === "IMPORTANT"
+                            ? "bg-amber-100 text-amber-800 border-amber-300"
+                            : "bg-emerald-100 text-emerald-800 border-emerald-300"
+                        }`}
+                      >
+                        {announcements[0].priority === "URGENT"
+                          ? `🚨 ${t.priorityUrgent || "URGENT"}`
+                          : announcements[0].priority === "IMPORTANT"
+                          ? `⚡ ${t.priorityImportant || "IMPORTANT"}`
+                          : `📢 ${t.priorityNormal || "NORMAL"}`}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {new Date(announcements[0].created_at).toLocaleDateString("en-PK", { day: "numeric", month: "short" })}
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-800 truncate mt-0.5 max-w-xl">
+                      {announcements[0].title} — <span className="font-normal text-slate-600">{announcements[0].content}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("announcements")}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-white hover:bg-emerald-50 px-3.5 py-2 rounded-xl border border-emerald-200 shadow-2xs transition-all flex-shrink-0 self-start sm:self-auto cursor-pointer"
+                >
+                  <span>{isRtl ? "تمام اعلانات دیکھیں ←" : "View All Announcements →"}</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -1306,6 +1482,98 @@ export default function TeacherDashboard() {
                 <span>{isRtl ? "کلاس حاضری رول کال پر جائیں" : "Open Class Roll-Call"}</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
+            </div>
+
+            {/* Check-in Notice Alert if active */}
+            {checkInNotice && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center justify-between gap-2 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>{checkInNotice}</span>
+                </div>
+                <button onClick={() => setCheckInNotice(null)} className="text-emerald-700 hover:text-emerald-900 text-xs font-bold cursor-pointer">✕</button>
+              </div>
+            )}
+
+            {/* Dedicated Teacher Daily Check-In / Check-Out Self-Service Card */}
+            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-2xs ${
+                  todayStaffRecord?.check_out_time
+                    ? "bg-emerald-100 text-emerald-700"
+                    : todayStaffRecord?.check_in_time
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-slate-100 text-slate-700"
+                }`}>
+                  <UserCheck className="w-5 h-5" />
+                </div>
+
+                <div className="space-y-0.5 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-slate-900 text-sm">{t.staffAttendanceTitle || "Daily Staff Attendance"}</span>
+                    {todayStaffRecord?.status === "PRESENT" && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        {t.present || "Present"}
+                      </span>
+                    )}
+                    {todayStaffRecord?.status === "LATE" && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        {t.late || "Late"}
+                      </span>
+                    )}
+                    {todayStaffRecord?.status === "ON_LEAVE" && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300">
+                        {t.onLeave || "On Leave"}
+                      </span>
+                    )}
+                    {!todayStaffRecord?.check_in_time && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                        {t.notCheckedInYet || "Not Checked In"}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
+                    {todayStaffRecord?.check_in_time ? (
+                      <span>
+                        <strong className="text-slate-800">{t.checkIn || "Check-In"}:</strong> {todayStaffRecord.check_in_time}
+                        {todayStaffRecord.check_out_time && (
+                          <> • <strong className="text-slate-800">{t.checkOut || "Check-Out"}:</strong> {todayStaffRecord.check_out_time}</>
+                        )}
+                      </span>
+                    ) : (
+                      <span>{t.schoolHoursNotice || "Morning check-in opens at 7:30 AM (Late after 8:15 AM)"}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-center w-full sm:w-auto">
+                {!todayStaffRecord?.check_in_time ? (
+                  <button
+                    type="button"
+                    onClick={handleTeacherCheckIn}
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#0B3B2E] hover:bg-[#082C22] text-white text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span>{t.checkInNow || "Check-In Now"}</span>
+                  </button>
+                ) : !todayStaffRecord?.check_out_time ? (
+                  <button
+                    type="button"
+                    onClick={handleTeacherCheckOut}
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-2xs hover:shadow-md transition-all flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4 text-emerald-400" />
+                    <span>{t.checkOutNow || "Check-Out Now"}</span>
+                  </button>
+                ) : (
+                  <div className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-2.5 rounded-xl border border-emerald-200 min-h-[44px]">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>Shift Completed</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* 4 Compact Metric Cards (Matching Dashboard UI) */}

@@ -768,16 +768,8 @@ export default function PrincipalDashboard() {
       onTabChange={(tabId) => setActiveTab(tabId as any)}
       onLogout={handleLogout}
     >
-      {/* Global Action Banner */}
-      {feeActionNotice && (
-        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-          <span>{feeActionNotice}</span>
-        </div>
-      )}
-
-        {/* ========================================================================= */}
-        {/* TAB 1: OVERVIEW (PRINCIPAL ONLY) */}
+      {/* ========================================================================= */}
+      {/* TAB 1: OVERVIEW (PRINCIPAL ONLY) */}
         {/* ========================================================================= */}
         {activeTab === "overview" && !isAccountant && (
           <div className="space-y-6">
@@ -989,6 +981,17 @@ export default function PrincipalDashboard() {
         {/* ========================================================================= */}
         {activeTab === "fees" && (
           <div className="space-y-6">
+            {/* Fee Action Banner */}
+            {feeActionNotice && (
+              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center justify-between gap-2 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>{feeActionNotice}</span>
+                </div>
+                <button onClick={() => setFeeActionNotice(null)} className="text-emerald-700 hover:text-emerald-900 text-xs font-bold cursor-pointer">✕</button>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">

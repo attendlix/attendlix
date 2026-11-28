@@ -432,154 +432,42 @@ You can log in and begin managing classes, admissions, attendance, and fee colle
           </div>
         )}
 
-        {/* Settings Tab vs Main Platform View */}
-        {activeTab === "settings" ? (
+        {/* ========================================================================= */}
+        {/* TAB 3: PERSONAL SETTINGS */}
+        {/* ========================================================================= */}
+        {activeTab === "settings" && (
           <UserSettingsTab
             currentUser={currentUser}
             onUserUpdate={(updated) => setCurrentUser(updated)}
           />
-        ) : (
-          <>
-            {/* Header Greeting */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              {t.platformOverview}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500">
-              Manage multi-tenant school onboarding, subscriptions, MRR, and platform health across Pakistan.
-            </p>
-          </div>
+        )}
 
-          <button
-            onClick={openOnboardModal}
-            className="w-full sm:w-auto px-4 py-2.5 min-h-[44px] rounded-xl bg-[#0B3B2E] hover:bg-[#082C22] text-white font-semibold text-xs shadow-sm transition-all flex items-center justify-center gap-2"
-          >
-            <Plus className="w-4 h-4 text-emerald-300" />
-            <span>{t.onboardSchool}</span>
-          </button>
-        </div>
+        {/* ========================================================================= */}
+        {/* TAB 1: REGISTERED SCHOOL TENANTS */}
+        {/* ========================================================================= */}
+        {activeTab === "schools" && (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  {t.tenantSchools || "Registered School Tenants"}
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  Manage multi-tenant school onboarding, billing plans, credentials, and payment accounts across Pakistan.
+                </p>
+              </div>
 
-        {/* 4 Platform Stats Cards with Mini Sparklines & Depth - Clickable shortcuts */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Total Schools -> switches to schools tab with ALL filter */}
-          <div
-            onClick={() => {
-              setActiveTab("schools");
-              setStatusFilter("ALL");
-            }}
-            className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3 cursor-pointer hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md transition-all group"
-            title="Click to view all registered school tenants"
-          >
-            <div>
-              <div className="flex items-center justify-between text-slate-500 mb-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.totalSchools}</span>
-                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
-                  <Building2 className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-3xl font-extrabold text-slate-900 tracking-tight">{platformStats?.totalSchools || 0}</div>
-              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Isolated database tenants</div>
+              <button
+                onClick={openOnboardModal}
+                className="w-full sm:w-auto px-4 py-2.5 min-h-[44px] rounded-xl bg-[#0B3B2E] hover:bg-[#082C22] text-white font-semibold text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Plus className="w-4 h-4 text-emerald-300" />
+                <span>{t.onboardSchool}</span>
+              </button>
             </div>
-            <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
-              <SparklineGreenWave />
-              <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
-                <span>Tenants</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </span>
-            </div>
-          </div>
 
-          {/* Card 2: Active Subscriptions -> switches to schools tab with ACTIVE filter */}
-          <div
-            onClick={() => {
-              setActiveTab("schools");
-              setStatusFilter("ACTIVE");
-            }}
-            className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3 cursor-pointer hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md transition-all group"
-            title="Click to filter active paid subscriptions"
-          >
-            <div>
-              <div className="flex items-center justify-between text-slate-500 mb-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.activeSubscriptions}</span>
-                <div className="p-2 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
-                  <CheckCircle2 className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-3xl font-extrabold text-blue-600 tracking-tight">{platformStats?.activeSubscriptions || 0}</div>
-              <div className="text-[11px] font-medium text-slate-400 mt-0.5">
-                {platformStats?.totalSchools
-                  ? Math.round((platformStats.activeSubscriptions / platformStats.totalSchools) * 100)
-                  : 0}
-                % conversion rate
-              </div>
-            </div>
-            <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
-              <SparklineBluePulse />
-              <span className="text-[11px] font-bold text-blue-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
-                <span>Active Only</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </span>
-            </div>
-          </div>
-
-          {/* Card 3: Total Students Platform -> switches to schools tab */}
-          <div
-            onClick={() => {
-              setActiveTab("schools");
-              setStatusFilter("ALL");
-            }}
-            className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3 cursor-pointer hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-md transition-all group"
-            title="Click to inspect campus student rosters"
-          >
-            <div>
-              <div className="flex items-center justify-between text-slate-500 mb-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.totalStudentsPlatform}</span>
-                <div className="p-2 rounded-xl bg-amber-50 text-amber-600 group-hover:bg-amber-100 transition-colors">
-                  <Users className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-3xl font-extrabold text-slate-900 tracking-tight">{platformStats?.totalStudentsPlatform || 0}</div>
-              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Enrolled across all campuses</div>
-            </div>
-            <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
-              <MiniBarChart />
-              <span className="text-[11px] font-bold text-amber-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
-                <span>Campuses</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </span>
-            </div>
-          </div>
-
-          {/* Card 4: Platform MRR -> switches to stats tab */}
-          <div
-            onClick={() => setActiveTab("stats")}
-            className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3 cursor-pointer hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md transition-all group"
-            title="Click to view Platform Stats & MRR Analytics"
-          >
-            <div>
-              <div className="flex items-center justify-between text-slate-500 mb-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.platformMRR}</span>
-                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
-                  <TrendingUp className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-extrabold text-emerald-600 tracking-tight">
-                PKR {(platformStats?.platformMRR || 0).toLocaleString()}
-              </div>
-              <div className="text-[11px] font-medium text-slate-400 mt-0.5">Recurring SaaS billing in PKR</div>
-            </div>
-            <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
-              <SparklineAmberWave />
-              <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
-                <span>MRR Analytics</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Filter and Search Bar */}
+            {/* Filter and Search Bar */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
           <div className="relative flex-1 max-w-sm w-full">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -902,7 +790,218 @@ You can log in and begin managing classes, admissions, attendance, and fee colle
             </tbody>
           </table>
         </div>
-          </>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 2: PLATFORM STATS & MRR ANALYTICS */}
+        {/* ========================================================================= */}
+        {activeTab === "stats" && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  {t.platformOverview || "Platform Stats & MRR Analytics"}
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  Platform metrics, subscription health, MRR recurring revenue, and tenant distribution across Pakistan.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => setActiveTab("schools")}
+                  className="px-4 py-2.5 min-h-[44px] rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 font-semibold text-xs shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Building2 className="w-4 h-4 text-emerald-600" />
+                  <span>View Tenants Directory</span>
+                </button>
+                <button
+                  onClick={openOnboardModal}
+                  className="px-4 py-2.5 min-h-[44px] rounded-xl bg-[#0B3B2E] hover:bg-[#082C22] text-white font-semibold text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 text-emerald-300" />
+                  <span>{t.onboardSchool}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 4 Platform Stats Cards with Mini Sparklines & Depth */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Card 1: Total Schools */}
+              <div
+                onClick={() => {
+                  setActiveTab("schools");
+                  setStatusFilter("ALL");
+                }}
+                className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3 cursor-pointer hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md transition-all group"
+                title="Click to view all registered school tenants"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-slate-500 mb-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.totalSchools}</span>
+                    <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
+                      <Building2 className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-3xl font-extrabold text-slate-900 tracking-tight">{platformStats?.totalSchools || 0}</div>
+                  <div className="text-[11px] font-medium text-slate-400 mt-0.5">Isolated database tenants</div>
+                </div>
+                <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
+                  <SparklineGreenWave />
+                  <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                    <span>Tenants</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+              </div>
+
+              {/* Card 2: Active Subscriptions */}
+              <div
+                onClick={() => {
+                  setActiveTab("schools");
+                  setStatusFilter("ACTIVE");
+                }}
+                className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3 cursor-pointer hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md transition-all group"
+                title="Click to filter active paid subscriptions"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-slate-500 mb-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.activeSubscriptions}</span>
+                    <div className="p-2 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-3xl font-extrabold text-blue-600 tracking-tight">{platformStats?.activeSubscriptions || 0}</div>
+                  <div className="text-[11px] font-medium text-slate-400 mt-0.5">
+                    {platformStats?.totalSchools
+                      ? Math.round((platformStats.activeSubscriptions / platformStats.totalSchools) * 100)
+                      : 0}
+                    % conversion rate
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
+                  <SparklineBluePulse />
+                  <span className="text-[11px] font-bold text-blue-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                    <span>Active Only</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+              </div>
+
+              {/* Card 3: Total Students Platform */}
+              <div
+                onClick={() => {
+                  setActiveTab("schools");
+                  setStatusFilter("ALL");
+                }}
+                className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3 cursor-pointer hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-md transition-all group"
+                title="Click to inspect campus student rosters"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-slate-500 mb-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.totalStudentsPlatform}</span>
+                    <div className="p-2 rounded-xl bg-amber-50 text-amber-600 group-hover:bg-amber-100 transition-colors">
+                      <Users className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-3xl font-extrabold text-slate-900 tracking-tight">{platformStats?.totalStudentsPlatform || 0}</div>
+                  <div className="text-[11px] font-medium text-slate-400 mt-0.5">Enrolled across all campuses</div>
+                </div>
+                <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
+                  <MiniBarChart />
+                  <span className="text-[11px] font-bold text-amber-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                    <span>Campuses</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+              </div>
+
+              {/* Card 4: Platform MRR */}
+              <div className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden flex flex-col justify-between space-y-3 group">
+                <div>
+                  <div className="flex items-center justify-between text-slate-500 mb-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.platformMRR}</span>
+                    <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
+                      <TrendingUp className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-extrabold text-emerald-600 tracking-tight">
+                    PKR {(platformStats?.platformMRR || 0).toLocaleString()}
+                  </div>
+                  <div className="text-[11px] font-medium text-slate-400 mt-0.5">Recurring SaaS billing in PKR</div>
+                </div>
+                <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
+                  <SparklineAmberWave />
+                  <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5">
+                    <span>Active Revenue</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* MRR Contribution by School Tenant */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">Monthly Recurring Revenue (MRR) Breakdown</h3>
+                  <p className="text-xs text-slate-500">Subscription revenue and billing notes per active tenant</p>
+                </div>
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 self-start sm:self-auto">
+                  Total MRR: PKR {(platformStats?.platformMRR || 0).toLocaleString()} / mo
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px]">
+                    <tr>
+                      <th className="px-4 py-2.5 rounded-l-xl">School Tenant</th>
+                      <th className="px-4 py-2.5">City</th>
+                      <th className="px-4 py-2.5">Students</th>
+                      <th className="px-4 py-2.5">Plan & Note</th>
+                      <th className="px-4 py-2.5">Status</th>
+                      <th className="px-4 py-2.5 text-right rounded-r-xl">Monthly MRR</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-sans">
+                    {schoolsList.map((sch) => (
+                      <tr key={sch.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-4 py-3 font-bold text-slate-900">
+                          {sch.name}
+                          <div className="text-[10px] font-mono text-slate-400 font-normal">ID: {sch.id}</div>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">{sch.city}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-800">{sch.student_count || 0}</td>
+                        <td className="px-4 py-3">
+                          <span className="font-bold text-slate-800">{sch.plan || "STANDARD"}</span>
+                          {sch.billing_note && (
+                            <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600">
+                              {sch.billing_note}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                            sch.status === "ACTIVE"
+                              ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                              : sch.status === "TRIAL"
+                              ? "bg-amber-100 text-amber-800 border border-amber-200"
+                              : "bg-rose-100 text-rose-800 border border-rose-200"
+                          }`}>
+                            {sch.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right font-extrabold text-emerald-700">
+                          PKR {(sch.mrr_pkr !== undefined ? sch.mrr_pkr : (sch.plan === "PREMIUM" ? 45000 : sch.plan === "TRIAL" ? 20000 : 35000)).toLocaleString()} / mo
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 

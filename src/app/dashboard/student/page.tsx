@@ -395,54 +395,53 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* Student Profile Card (Always visible at top) */}
-        <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3.5">
-              {(currentStudent?.avatar_url || currentUser?.avatar_url) ? (
-                <img
-                  src={currentStudent?.avatar_url || currentUser?.avatar_url}
-                  alt={currentStudent?.name || "Student"}
-                  className="w-12 h-12 rounded-xl object-cover border border-emerald-300 shadow-2xs flex-shrink-0"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-extrabold text-base border border-emerald-200 flex-shrink-0">
-                  {currentStudent?.name?.charAt(0) || currentUser?.name?.charAt(0) || "S"}
-                </div>
-              )}
-              <div>
-                <h1 className="text-xl font-extrabold text-slate-900">{currentStudent?.name || currentUser?.name}</h1>
-                <p className="text-xs text-slate-500">
-                  {currentStudent?.class_name} - Section {currentStudent?.section} • Roll #{currentStudent?.roll_no}
-                </p>
-                <div className="text-[11px] text-slate-400">{schoolData?.name} ({schoolData?.city})</div>
-              </div>
-            </div>
-
-            {/* Attendance Badge - Clickable to Attendance Tab */}
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              <button
-                type="button"
-                onClick={() => setActiveTab("attendance")}
-                className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-right transition-colors"
-                title="View Full Attendance History"
-              >
-                <span className="block text-[10px] font-bold uppercase tracking-wider text-emerald-600">
-                  {isRtl ? "حاضری کی شرح" : "Attendance Rate"}
-                </span>
-                <span className="text-lg font-extrabold">
-                  {overallAttendancePercent}% {isRtl ? "حاضر" : "Present"}
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* ========================================================================= */}
         {/* TAB 1: OVERVIEW & ANNOUNCEMENTS */}
         {/* ========================================================================= */}
         {activeTab === "overview" && (
           <div className="space-y-6">
+            {/* Student Profile Card (Rendered ONLY on Overview) */}
+            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3.5">
+                  {(currentStudent?.avatar_url || currentUser?.avatar_url) ? (
+                    <img
+                      src={currentStudent?.avatar_url || currentUser?.avatar_url}
+                      alt={currentStudent?.name || "Student"}
+                      className="w-12 h-12 rounded-xl object-cover border border-emerald-300 shadow-2xs flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-extrabold text-base border border-emerald-200 flex-shrink-0">
+                      {currentStudent?.name?.charAt(0) || currentUser?.name?.charAt(0) || "S"}
+                    </div>
+                  )}
+                  <div>
+                    <h1 className="text-xl font-extrabold text-slate-900">{currentStudent?.name || currentUser?.name}</h1>
+                    <p className="text-xs text-slate-500">
+                      {currentStudent?.class_name} - Section {currentStudent?.section} • Roll #{currentStudent?.roll_no}
+                    </p>
+                    <div className="text-[11px] text-slate-400">{schoolData?.name} ({schoolData?.city})</div>
+                  </div>
+                </div>
+
+                {/* Attendance Badge - Clickable to Attendance Tab */}
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("attendance")}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-right transition-colors cursor-pointer"
+                    title="View Full Attendance History"
+                  >
+                    <span className="block text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                      {isRtl ? "حاضری کی شرح" : "Attendance Rate"}
+                    </span>
+                    <span className="text-lg font-extrabold">
+                      {overallAttendancePercent}% {isRtl ? "حاضر" : "Present"}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
             {/* Elevated Quick Status Cards with Inline Mini Sparklines */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Card 1: Today's Attendance -> switches to attendance */}
