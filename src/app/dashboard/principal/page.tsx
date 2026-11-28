@@ -255,7 +255,7 @@ export default function PrincipalDashboard() {
 
   // School Profile & Settings State
   const [profileSubTab, setProfileSubTab] = useState<
-    "school-info" | "timings" | "classes-subjects" | "fees-accounts" | "policies"
+    "school-info" | "timings" | "policies"
   >("school-info");
   const [profileNotice, setProfileNotice] = useState<string | null>(null);
   const [profileForm, setProfileForm] = useState({
@@ -1319,21 +1319,28 @@ export default function PrincipalDashboard() {
               </div>
             </div>
 
-            {/* Quick Preview Grid (Classroom Distribution + Fee Recovery Pulse) */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-4">
-                <div className="flex items-center justify-between">
+            {/* Quick Preview Grid (Classroom Distribution) */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
                   <h3 className="font-bold text-slate-900 text-sm">Classroom Distribution</h3>
-                  <button
-                    onClick={() => setActiveTab("classes")}
-                    className="text-xs text-emerald-700 font-semibold hover:underline flex items-center gap-1"
-                  >
-                    <span>Manage Classes</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
+                  <p className="text-xs text-slate-500">Active class sections and assigned in-charge teachers.</p>
                 </div>
+                <button
+                  onClick={() => setActiveTab("classes")}
+                  className="text-xs text-emerald-700 font-semibold hover:underline flex items-center gap-1"
+                >
+                  <span>Manage Classes</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {classesList.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
+                  No classes created yet. Click &apos;Manage Classes&apos; to configure your grades.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {classesList.slice(0, 4).map((c) => (
                     <div
                       key={c.id}
@@ -1351,38 +1358,7 @@ export default function PrincipalDashboard() {
                     </div>
                   ))}
                 </div>
-              </div>
-
-              {/* Fee Recovery Pulse Featured Highlight Card */}
-              <div className="bg-[#ECFDF5]/80 border border-emerald-100 rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] space-y-4 flex flex-col justify-between">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-[11px] uppercase tracking-wider">
-                    <Receipt className="w-4 h-4 text-emerald-600" />
-                    <span>Fee Recovery Pulse</span>
-                  </div>
-                  <h3 className="text-base font-bold text-slate-900">JazzCash & Easypaisa Active</h3>
-                  <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                    Accountants and Principals manage monthly dues and send 1-click WhatsApp payment reminders with ease.
-                  </p>
-                  <div className="p-3 bg-white/80 rounded-xl border border-emerald-100 text-xs text-emerald-900 space-y-1 shadow-2xs">
-                    <div className="font-semibold flex items-center gap-1.5 text-slate-800">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{feeSummary?.paidCount || 0} Payments Reconciled</span>
-                    </div>
-                    <div className="text-[11px] text-slate-600">
-                      PKR {(feeSummary?.totalPendingPKR || 0).toLocaleString()} awaiting parent clearance.
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setActiveTab("fees")}
-                  className="w-full py-2.5 rounded-xl bg-[#0B3B2E] hover:bg-[#082C22] text-white font-semibold text-xs shadow-sm transition-all flex items-center justify-center gap-2"
-                >
-                  <CreditCard className="w-3.5 h-3.5 text-emerald-300" />
-                  <span>Open Fee Management Tab</span>
-                </button>
-              </div>
+              )}
             </div>
           </div>
         )}
@@ -3640,14 +3616,12 @@ export default function PrincipalDashboard() {
               </div>
             )}
 
-            {/* 5 Sub-tab Navigation Bar (Horizontal Scrollable) */}
+            {/* 3 Sub-tab Navigation Bar (Horizontal Scrollable) */}
             <div className="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-2xs">
               <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none py-1">
                 {[
                   { id: "school-info", label: t.schoolInfo || "School Info", icon: Building2 },
                   { id: "timings", label: t.timingsAndCalendar || "Timings & Calendar", icon: Clock },
-                  { id: "classes-subjects", label: t.classesAndSubjects || "Classes & Subjects", icon: BookOpen },
-                  { id: "fees-accounts", label: t.feesAndAccounts || "Fees & Accounts", icon: CreditCard },
                   { id: "policies", label: t.policiesAndQuietHours || "Policies & Quiet Hours", icon: ShieldCheck },
                 ].map((sub) => {
                   const SubIcon = sub.icon;
@@ -3893,291 +3867,7 @@ export default function PrincipalDashboard() {
               </form>
             )}
 
-            {/* Sub-tab 3: Classes & Subjects */}
-            {profileSubTab === "classes-subjects" && (
-              <div className="space-y-6">
-                {/* Metrics */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-1">
-                    <div className="text-[11px] font-bold uppercase text-slate-400">Active Classes</div>
-                    <div className="text-2xl font-black text-slate-900">{classesList.length}</div>
-                    <div className="text-[10px] text-emerald-600 font-semibold">Active Grades</div>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-1">
-                    <div className="text-[11px] font-bold uppercase text-slate-400">Total Sections</div>
-                    <div className="text-2xl font-black text-slate-900">{classesList.length}</div>
-                    <div className="text-[10px] text-blue-600 font-semibold">Classrooms</div>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-1">
-                    <div className="text-[11px] font-bold uppercase text-slate-400">Enrolled Students</div>
-                    <div className="text-2xl font-black text-slate-900">{studentsList.length}</div>
-                    <div className="text-[10px] text-purple-600 font-semibold">Registered Kids</div>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-1">
-                    <div className="text-[11px] font-bold uppercase text-slate-400">Teaching Faculty</div>
-                    <div className="text-2xl font-black text-slate-900">
-                      {staffList.filter((s) => s.role === "TEACHER").length}
-                    </div>
-                    <div className="text-[10px] text-amber-600 font-semibold">Active Teachers</div>
-                  </div>
-                </div>
-
-                {/* Active Grades & Sections */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-2xs space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                        <BookOpen className="w-5 h-5 text-emerald-600" />
-                        <span>Active Classes & Assigned Teachers</span>
-                      </h3>
-                      <p className="text-xs text-slate-500">Summary of all registered class sections in this campus</p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("classes")}
-                      className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs flex items-center gap-1.5 self-start sm:self-auto min-h-[38px]"
-                    >
-                      <span>Manage Classes</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {classesList.map((cls) => {
-                      const count = studentsList.filter((s) => s.class_id === cls.id).length;
-                      return (
-                        <div
-                          key={cls.id}
-                          className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2 hover:bg-white transition-all shadow-2xs"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-slate-900 text-sm">
-                              {cls.name} ({cls.section})
-                            </span>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                              {count} Students
-                            </span>
-                          </div>
-                          <div className="text-xs text-slate-500 flex items-center gap-1.5">
-                            <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                            <span>Teacher: {cls.class_teacher_name || "Unassigned"}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Core Curriculum Subjects Overview */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-2xs space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-base">Core Curriculum Subjects</h3>
-                      <p className="text-xs text-slate-500">Subjects configured across primary, middle, and matric schedules</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("timetable")}
-                      className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold text-xs flex items-center gap-1.5 min-h-[38px]"
-                    >
-                      <span>View Timetable</span>
-                      <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                    </button>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {[
-                      "Mathematics (ریاضی)",
-                      "English Language",
-                      "Urdu (اردو لازمی)",
-                      "General Science",
-                      "Physics",
-                      "Chemistry",
-                      "Biology",
-                      "Computer Science",
-                      "Pakistan Studies (مطالعہ پاکستان)",
-                      "Islamiyat (اسلامیات)",
-                    ].map((subj) => (
-                      <span
-                        key={subj}
-                        className="px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 font-semibold text-xs flex items-center gap-1.5"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        {subj}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Sub-tab 4: Fees & Accounts */}
-            {profileSubTab === "fees-accounts" && (
-              <form onSubmit={handleSaveProfile} className="space-y-6">
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-2xs space-y-5">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                        <CreditCard className="w-5 h-5 text-emerald-600" />
-                        <span>Receiving Payment Accounts & Late Fee Rules</span>
-                      </h3>
-                      <p className="text-xs text-slate-500">
-                        Direct account details displayed to parents in the Student Portal Pay Fee modal
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Bank Details */}
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Landmark className="w-4 h-4 text-emerald-600" />
-                      <h4 className="font-bold text-slate-800 text-xs sm:text-sm">Official Bank Account</h4>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">Bank Name</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Meezan Bank / HBL"
-                          value={profileForm.bank_name}
-                          onChange={(e) => setProfileForm({ ...profileForm, bank_name: e.target.value })}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 bg-white"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">Account Title</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Beacon Grammar School"
-                          value={profileForm.bank_account_title}
-                          onChange={(e) => setProfileForm({ ...profileForm, bank_account_title: e.target.value })}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 bg-white"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">Account / IBAN</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. PK36MEZN0001234567890123"
-                          value={profileForm.bank_account_number}
-                          onChange={(e) => setProfileForm({ ...profileForm, bank_account_number: e.target.value })}
-                          className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-emerald-500 bg-white"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Mobile Wallets */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Easypaisa */}
-                    <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-200 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Wallet className="w-4 h-4 text-emerald-600" />
-                        <h4 className="font-bold text-emerald-900 text-xs sm:text-sm">Easypaisa Account</h4>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div>
-                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">Account Title</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. Beacon Grammar Official"
-                            value={profileForm.easypaisa_title}
-                            onChange={(e) => setProfileForm({ ...profileForm, easypaisa_title: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-emerald-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">Mobile Number</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. 0300-1234567"
-                            value={profileForm.easypaisa_number}
-                            onChange={(e) => setProfileForm({ ...profileForm, easypaisa_number: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono bg-white focus:ring-2 focus:ring-emerald-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* JazzCash */}
-                    <div className="p-4 rounded-xl bg-amber-50/50 border border-amber-200 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Wallet className="w-4 h-4 text-amber-600" />
-                        <h4 className="font-bold text-amber-900 text-xs sm:text-sm">JazzCash Account</h4>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div>
-                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">Account Title</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. Beacon Grammar School"
-                            value={profileForm.jazzcash_title}
-                            onChange={(e) => setProfileForm({ ...profileForm, jazzcash_title: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-emerald-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">Mobile Number</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. 0321-9876543"
-                            value={profileForm.jazzcash_number}
-                            onChange={(e) => setProfileForm({ ...profileForm, jazzcash_number: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono bg-white focus:ring-2 focus:ring-emerald-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Late Fee Rule */}
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-slate-700" />
-                      <h4 className="font-bold text-slate-800 text-xs sm:text-sm">
-                        {t.defaultLateFee || "Default Late Fee Surcharge (PKR)"}
-                      </h4>
-                    </div>
-
-                    <div className="max-w-xs">
-                      <div className="relative">
-                        <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-400">PKR</span>
-                        <input
-                          type="number"
-                          min={0}
-                          value={profileForm.late_fee_amount}
-                          onChange={(e) =>
-                            setProfileForm({ ...profileForm, late_fee_amount: Number(e.target.value) || 0 })
-                          }
-                          className="w-full pl-12 pr-3 py-2 rounded-lg border border-slate-300 text-sm font-bold text-slate-900 bg-white focus:ring-2 focus:ring-emerald-500"
-                        />
-                      </div>
-                      <span className="text-[10px] text-slate-500 mt-1 block">
-                        Added to unpaid monthly fee vouchers after the 10th of every month
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end pt-3 border-t border-slate-100">
-                    <button
-                      type="submit"
-                      className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-md transition-all flex items-center gap-2 min-h-[42px]"
-                    >
-                      <Save className="w-4 h-4 text-white" />
-                      <span>{t.saveChanges || "Save Changes"}</span>
-                    </button>
-                  </div>
-                </div>
-              </form>
-            )}
-
-            {/* Sub-tab 5: Policies & Quiet Hours */}
+            {/* Sub-tab 3: Policies & Quiet Hours */}
             {profileSubTab === "policies" && (
               <form onSubmit={handleSaveProfile} className="space-y-6">
                 <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-2xs space-y-5">

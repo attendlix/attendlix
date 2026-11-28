@@ -73,19 +73,6 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const cleanId = identifier.trim().toLowerCase();
-
-      // Explicit Super Admin Check & Session set
-      if (
-        cleanId === "superadmin@attendlix.com" ||
-        cleanId === "superadmin" ||
-        cleanId === "super_admin"
-      ) {
-        setCurrentUser(SEED_SUPER_ADMIN_USER);
-        router.push("/dashboard/super-admin");
-        return;
-      }
-
       const res = await loginUser(identifier, password);
       if (res.success && res.user) {
         if (

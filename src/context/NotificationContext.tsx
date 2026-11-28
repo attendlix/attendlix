@@ -123,7 +123,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         duration: toast.duration || 3500,
       };
 
-      setToasts((prev) => [newToast, ...prev.slice(0, 4)]); // max 5 concurrent toasts
+      setToasts((prev) => [newToast, ...prev.slice(0, 2)]); // max 3 concurrent toasts
 
       // Auto dismiss
       setTimeout(() => {
@@ -236,7 +236,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 rtl:right-auto rtl:left-4 rtl:sm:left-6 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-2 sm:px-0"
         aria-live="polite"
       >
-        {toasts.map((toast) => {
+        {toasts.slice(0, 3).map((toast) => {
           const typeStyles = {
             SUCCESS: {
               border: "border-emerald-200 bg-emerald-50/95 text-emerald-950 shadow-emerald-500/10",

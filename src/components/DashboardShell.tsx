@@ -11,7 +11,6 @@ import {
   ChevronRight,
   Shield,
   Bell,
-  Search,
   User as UserIcon,
 } from "lucide-react";
 import { User, UserRole } from "@/lib/types";
@@ -459,20 +458,10 @@ export default function DashboardShell({
             <span className="font-bold text-slate-900 truncate">{currentTitle}</span>
           </div>
 
-          {/* Right: Notification Bell + Search Pill + Profile Shortcut + Extra + Language Toggle */}
+          {/* Right: Notification Bell + Profile Shortcut + Extra + Language Toggle */}
           <div className="flex items-center gap-2.5 flex-shrink-0">
             {/* Notification Bell with Dropdown */}
             <NotificationBellContainer variant="desktop" />
-
-            {/* Clean Pill Search Bar */}
-            <div className="hidden sm:flex items-center gap-2 bg-white border border-slate-200/80 rounded-full px-3.5 py-1.5 text-xs text-slate-400 shadow-2xs hover:border-slate-300 transition-colors">
-              <Search className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-              <input
-                type="text"
-                placeholder="Search"
-                className="bg-transparent border-none text-xs text-slate-700 focus:outline-none w-20 lg:w-32 placeholder:text-slate-400"
-              />
-            </div>
 
             {/* Profile Shortcut Icon / Avatar */}
             <button

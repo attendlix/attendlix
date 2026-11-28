@@ -1342,10 +1342,10 @@ export async function loginUser(identifier: string, password: string): Promise<{
     cleanId.includes("superadmin")
   ) {
     if (
-      cleanPass &&
-      cleanPass !== "admin" &&
-      cleanPass !== "demo123" &&
-      cleanPass !== SEED_SUPER_ADMIN_USER.tempPassword
+      !cleanPass ||
+      (cleanPass !== "admin" &&
+        cleanPass !== "demo123" &&
+        cleanPass !== SEED_SUPER_ADMIN_USER.tempPassword)
     ) {
       return { success: false, error: "Incorrect password for Super Admin. (Tip: Try 'admin')" };
     }
@@ -1588,7 +1588,7 @@ export function getClasses(school_id?: string): SchoolClass[] {
   const students = getStorage<Student[]>(KEY_STUDENTS, SEED_STUDENTS);
 
   return classes
-    .filter((c) => c.school_id === targetId || targetId === SEED_SCHOOL_ID)
+    .filter((c) => c.school_id === targetId)
     .map((c) => {
       const count = students.filter((s) => s.class_id === c.id).length;
       return { ...c, student_count: count > 0 ? count : c.student_count || 0 };
@@ -1621,7 +1621,7 @@ export function getStaff(school_id?: string): User[] {
   const targetId = school_id || SEED_SCHOOL_ID;
   const users = getStorage<User[]>(KEY_USERS, SEED_USERS);
   return users.filter(
-    (u) => (u.school_id === targetId || targetId === SEED_SCHOOL_ID) && (u.role === "TEACHER" || u.role === "ACCOUNTANT")
+    (u) => u.school_id === targetId && (u.role === "TEACHER" || u.role === "ACCOUNTANT")
   );
 }
 
@@ -1662,7 +1662,7 @@ export function getStudents(school_id?: string): Student[] {
   initializeStore();
   const targetId = school_id || SEED_SCHOOL_ID;
   const students = getStorage<Student[]>(KEY_STUDENTS, SEED_STUDENTS);
-  return students.filter((s) => s.school_id === targetId || targetId === SEED_SCHOOL_ID);
+  return students.filter((s) => s.school_id === targetId);
 }
 
 export function addStudent(
@@ -1806,7 +1806,7 @@ export function bulkPromoteStudents(
   let count = 0;
 
   const updatedStudents = allStudents.map((std) => {
-    if (studentIds.includes(std.id) && (std.school_id === school_id || school_id === SEED_SCHOOL_ID)) {
+    if (studentIds.includes(std.id) && std.school_id === school_id) {
       count++;
       const newRoll = newRollNumbers && newRollNumbers[std.id] ? newRollNumbers[std.id].trim() : std.roll_no;
       return {
@@ -1862,7 +1862,7 @@ export function getAnnouncements(school_id?: string): Announcement[] {
   initializeStore();
   const targetId = school_id || SEED_SCHOOL_ID;
   const announcements = getStorage<Announcement[]>(KEY_ANNOUNCEMENTS, SEED_ANNOUNCEMENTS);
-  return announcements.filter((a) => a.school_id === targetId || targetId === SEED_SCHOOL_ID);
+  return announcements.filter((a) => a.school_id === targetId);
 }
 
 export function getAnnouncementsForAudience(
@@ -2309,7 +2309,7 @@ export function getStudentAttendanceRecords(school_id: string, student_id: strin
   initializeStore();
   const all = getStorage<AttendanceRecord[]>(KEY_ATTENDANCE, SEED_ATTENDANCE);
   const filtered = all.filter(
-    (r) => (r.school_id === school_id || school_id === SEED_SCHOOL_ID) && r.student_id === student_id
+    (r) => r.school_id === school_id && r.student_id === student_id
   );
   if (filtered.length > 0) {
     return filtered.sort((a, b) => b.date.localeCompare(a.date));
@@ -2399,7 +2399,7 @@ export function syncOfflineAttendanceQueue(): { syncedBatches: number; totalReco
 export function getHomeworkList(school_id: string, class_id: string): Homework[] {
   initializeStore();
   const all = getStorage<Homework[]>(KEY_HOMEWORK, SEED_HOMEWORK);
-  return all.filter((h) => (h.school_id === school_id || school_id === SEED_SCHOOL_ID) && h.class_id === class_id);
+  return all.filter((h) => h.school_id === school_id && h.class_id === class_id);
 }
 
 export function addHomework(
@@ -2435,7 +2435,7 @@ export function getExamMarks(school_id: string, class_id: string, exam_name: str
   const all = getStorage<ExamMark[]>(KEY_EXAM_MARKS, SEED_EXAM_MARKS);
   return all.filter(
     (m) =>
-      (m.school_id === school_id || school_id === SEED_SCHOOL_ID) &&
+      m.school_id === school_id &&
       m.class_id === class_id &&
       m.exam_name === exam_name &&
       m.subject === subject
@@ -2447,7 +2447,7 @@ export function getStudentExamMarks(school_id: string, student_id: string): Exam
   const all = getStorage<ExamMark[]>(KEY_EXAM_MARKS, SEED_EXAM_MARKS);
   return all.filter(
     (m) =>
-      (m.school_id === school_id || school_id === SEED_SCHOOL_ID) &&
+      m.school_id === school_id &&
       m.student_id === student_id
   );
 }
@@ -2503,12 +2503,13 @@ export function isQuietHoursActive(): { isActive: boolean; hoursText: string } {
 export function getStudentMessages(school_id: string, student_id: string): ChatMessage[] {
   initializeStore();
   const all = getStorage<ChatMessage[]>(KEY_MESSAGES, SEED_MESSAGES);
-  return all.filter((m) => (m.school_id === school_id || school_id === SEED_SCHOOL_ID) && m.student_id === student_id);
+  return all.filter((m) => m.school_id === school_id && m.student_id === student_id);
 }
 
 export function getAllTeacherMessages(school_id: string): ChatMessage[] {
   initializeStore();
-  return getStorage<ChatMessage[]>(KEY_MESSAGES, SEED_MESSAGES);
+  const all = getStorage<ChatMessage[]>(KEY_MESSAGES, SEED_MESSAGES);
+  return all.filter((m) => m.school_id === school_id);
 }
 
 export function sendTeacherMessage(
@@ -2643,7 +2644,7 @@ export function getFeeRecords(
   const classes = getClasses(school_id);
 
   // Auto ensure fee records exist for current students if missing
-  let records = all.filter((r) => r.school_id === school_id || school_id === SEED_SCHOOL_ID);
+  let records = all.filter((r) => r.school_id === school_id);
 
   if (filters?.month) {
     records = records.filter((r) => r.month.toLowerCase() === filters.month?.toLowerCase());
@@ -2715,7 +2716,7 @@ export function payStudentFee(
   const all = getStorage<FeeRecord[]>(KEY_FEE_RECORDS, SEED_FEE_RECORDS);
   const foundIndex = all.findIndex(
     (r) =>
-      (r.school_id === school_id || school_id === SEED_SCHOOL_ID) &&
+      r.school_id === school_id &&
       r.student_id === student_id &&
       r.month.toLowerCase() === month.toLowerCase() &&
       r.year === year
@@ -3165,7 +3166,7 @@ export function getTimetables(school_id?: string): TimetableSlot[] {
   initializeStore();
   const targetSchoolId = school_id || SEED_SCHOOL_ID;
   const list = getStorage<TimetableSlot[]>(KEY_TIMETABLES, SEED_TIMETABLES);
-  return list.filter((item) => item.school_id === targetSchoolId || targetSchoolId === SEED_SCHOOL_ID);
+  return list.filter((item) => item.school_id === targetSchoolId);
 }
 
 export function getClassTimetable(school_id: string, class_id: string): TimetableSlot[] {
@@ -3548,7 +3549,7 @@ export function getStaffAttendanceHistory(
   initializeStore();
   const allSaved = getStorage<StaffAttendanceRecord[]>(KEY_STAFF_ATTENDANCE, SEED_STAFF_ATTENDANCE);
   const found = allSaved.filter(
-    (r) => (r.school_id === school_id || school_id === SEED_SCHOOL_ID) && r.user_id === user_id
+    (r) => r.school_id === school_id && r.user_id === user_id
   );
   if (found.length >= 5) {
     return found.sort((a, b) => b.date.localeCompare(a.date));
@@ -3737,7 +3738,7 @@ export function addNotification(
   };
 
   const notifications = getStorage<AppNotification[]>(KEY_NOTIFICATIONS, SEED_NOTIFICATIONS);
-  setStorage(KEY_NOTIFICATIONS, [notif, ...notifications]);
+  setStorage(KEY_NOTIFICATIONS, [notif, ...notifications].slice(0, 50));
 
   // Dispatch custom event for real-time notification sync
   if (typeof window !== "undefined") {
@@ -3846,7 +3847,7 @@ export function getStudentReports(
   const reports = getStorage<StudentReport[]>(KEY_STUDENT_REPORTS, SEED_STUDENT_REPORTS);
   return reports
     .filter((r) => {
-      if (school_id && r.school_id && r.school_id !== school_id && r.school_id !== SEED_SCHOOL_ID) {
+      if (school_id && r.school_id && r.school_id !== school_id) {
         return false;
       }
       if (student_id && r.student_id !== student_id) {
