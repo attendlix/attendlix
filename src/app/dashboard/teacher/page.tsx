@@ -2351,16 +2351,23 @@ export default function TeacherDashboard() {
                           className={`flex flex-col ${isTeacher ? "items-end" : "items-start"}`}
                         >
                           <div
-                            className={`max-w-[85%] p-3 rounded-2xl text-xs ${
+                            className={`max-w-[85%] p-3.5 rounded-2xl text-xs space-y-1 ${
                               isTeacher
                                 ? "bg-slate-900 text-white rounded-br-none"
+                                : msg.content.includes("[LEAVE / ABSENCE NOTE]")
+                                ? "bg-amber-50 border border-amber-200 text-amber-950 rounded-bl-none shadow-2xs"
                                 : "bg-slate-100 text-slate-900 rounded-bl-none"
                             }`}
                           >
-                            <div className="text-[10px] font-bold opacity-60 mb-1">
-                              {isTeacher ? "You (Teacher)" : "Parent"}
+                            <div className="flex items-center justify-between gap-2 text-[10px] font-bold opacity-70 mb-1">
+                              <span>{isTeacher ? "You (Teacher)" : "Parent"}</span>
+                              {msg.content.includes("[LEAVE / ABSENCE NOTE]") && (
+                                <span className="px-1.5 py-0.2 rounded bg-amber-200 text-amber-900 font-extrabold text-[9px] uppercase tracking-wide">
+                                  Leave Note
+                                </span>
+                              )}
                             </div>
-                            <p className="leading-relaxed">{msg.content}</p>
+                            <p className="leading-relaxed whitespace-pre-line font-sans">{msg.content}</p>
                           </div>
                           <span className="text-[9px] text-slate-400 mt-0.5 px-1">
                             {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}

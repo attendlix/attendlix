@@ -127,6 +127,16 @@ export default function StudentDashboard() {
   const [paymentSuccessToast, setPaymentSuccessToast] = useState<string | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
+  // Leave Note Modal State
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [leaveDate, setLeaveDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [leaveReason, setLeaveReason] = useState<"Sick / Medical" | "Family Emergency" | "Urgent Work" | "Other">("Sick / Medical");
+  const [leaveNote, setLeaveNote] = useState("");
+  const [leaveSuccessToast, setLeaveSuccessToast] = useState<string | null>(null);
+
+  // Chat Context Badge State ("Ask Teacher" shortcut)
+  const [chatContextBadge, setChatContextBadge] = useState<{ title: string; category: "HOMEWORK" | "REMARK" } | null>(null);
+
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard?.writeText(text);
     setCopiedText(label);
@@ -475,7 +485,81 @@ export default function StudentDashboard() {
       target_role: "STUDENT_PARENT",
     });
     setNewMessageText("");
+    setChatContextBadge(null);
     setChatMessages(getStudentMessages(currentUser.school_id, currentStudent.id));
+  };
+
+  const handleAskTeacherAboutHomework = (hw: Homework) => {
+    const defaultText = isRtl
+      ? `محترم استاد، مجھے ${hw.subject} کے ہوم ورک "${hw.title}" کے بارے میں سوال ہے: `
+      : `Respected Teacher, I have a question regarding the ${hw.subject} homework "${hw.title}": `;
+    setNewMessageText(defaultText);
+    setChatContextBadge({
+      title: `${hw.subject}: ${hw.title}`,
+      category: "HOMEWORK",
+    });
+    setActiveTab("chat");
+  };
+
+  const handleAskTeacherAboutRemark = (rep: StudentReport) => {
+    const categoryName = {
+      ACADEMIC: "Academic Progress",
+      PARTICIPATION: "Class Participation",
+      BEHAVIOUR: "Discipline & Conduct",
+      GENERAL: "General Note",
+    }[rep.category] || "Teacher Remark";
+
+    const defaultText = isRtl
+      ? `محترم استاد، آپ کے مشاہدے (${categoryName}) کے بارے میں سوال ہے: `
+      : `Respected ${rep.teacher_name || "Teacher"}, regarding your remark on ${categoryName} ("${rep.remarks.slice(0, 45)}${rep.remarks.length > 45 ? "..." : ""}"): `;
+    setNewMessageText(defaultText);
+    setChatContextBadge({
+      title: `${categoryName}: "${rep.remarks.slice(0, 30)}..."`,
+      category: "REMARK",
+    });
+    setActiveTab("chat");
+  };
+
+  const handleSendLeaveNote = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser || !currentStudent) return;
+
+    const formattedLeaveMessage = `📋 [LEAVE / ABSENCE NOTE]\n📅 Date: ${leaveDate}\n📌 Reason: ${leaveReason}${leaveNote.trim() ? `\n📝 Details: "${leaveNote.trim()}"` : ""}\n👤 Student: ${currentStudent.name} (Roll #${currentStudent.roll_no})\n✉️ Submitted by: ${currentUser.name} (Parent)`;
+
+    sendTeacherMessage(
+      currentUser.school_id,
+      currentStudent.id,
+      currentStudent.name,
+      formattedLeaveMessage,
+      "PARENT"
+    );
+
+    setChatMessages(getStudentMessages(currentUser.school_id, currentStudent.id));
+
+    notify({
+      title: "Leave Note Sent to Teacher",
+      title_ur: "رخصت کا نوٹ استاد کو ارسال کر دیا گیا",
+      message: `Leave note for ${leaveDate} (${leaveReason}) has been recorded and sent to class teacher.`,
+      message_ur: `${leaveDate} کے لیے رخصت کا نوٹ کلاس ٹیچر کو بھیج دیا گیا۔`,
+      type: "SUCCESS",
+      category: "ATTENDANCE",
+      target_role: "STUDENT_PARENT",
+    });
+
+    notify({
+      title: "New Leave / Absence Note Received",
+      title_ur: "رخصت کا نیا نوٹ موصول ہوا",
+      message: `${currentStudent.name} (Roll #${currentStudent.roll_no}) reported absent/leave for ${leaveDate}: ${leaveReason}.`,
+      message_ur: `${currentStudent.name} نے ${leaveDate} کے لیے رخصت کی اطلاع دی ہے۔`,
+      type: "INFO",
+      category: "ATTENDANCE",
+      target_role: "TEACHER",
+    });
+
+    setLeaveSuccessToast(`✓ Leave note for ${leaveDate} sent to class teacher!`);
+    setTimeout(() => setLeaveSuccessToast(null), 6000);
+    setShowLeaveModal(false);
+    setLeaveNote("");
   };
 
   // Filtered school announcements for dedicated tab
@@ -787,9 +871,15 @@ export default function StudentDashboard() {
                           <span className="font-semibold text-slate-800">
                             {rep.teacher_name}
                           </span>
-                          <span className="text-slate-400">
-                            {new Date(rep.created_at).toLocaleDateString("en-PK", { day: "numeric", month: "short" })}
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleAskTeacherAboutRemark(rep)}
+                            className="inline-flex items-center gap-1 font-bold text-indigo-700 hover:text-indigo-900 transition-colors cursor-pointer"
+                            title={isRtl ? "استاد سے پوچھیں" : "Ask Teacher"}
+                          >
+                            <MessageSquare className="w-3 h-3 text-indigo-600" />
+                            <span>{isRtl ? "استاد سے پوچھیں" : "Ask Teacher"}</span>
+                          </button>
                         </div>
                       </div>
                     );
@@ -1128,14 +1218,26 @@ export default function StudentDashboard() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
-                        <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-                          <span>Teacher:</span>
-                          <span className="text-emerald-800 font-bold">{rep.teacher_name}</span>
-                        </span>
-                        <span className="text-slate-400 font-medium">
-                          {new Date(rep.created_at).toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" })}
-                        </span>
+                      <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100 flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                            <span>Teacher:</span>
+                            <span className="text-emerald-800 font-bold">{rep.teacher_name}</span>
+                          </span>
+                          <span className="text-slate-400 font-medium text-[11px]">
+                            • {new Date(rep.created_at).toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" })}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleAskTeacherAboutRemark(rep)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100 border border-indigo-200/80 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                          title={isRtl ? "استاد سے اس رپورٹ کے بارے میں پوچھیں" : "Ask teacher about this remark"}
+                        >
+                          <MessageSquare className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>{isRtl ? "استاد سے پوچھیں" : "Ask Teacher"}</span>
+                        </button>
                       </div>
                     </div>
                   );
@@ -1150,7 +1252,7 @@ export default function StudentDashboard() {
         {/* ========================================================================= */}
         {activeTab === "attendance" && (
           <div className="space-y-6">
-            {/* Header with Title & Quick Switch */}
+            {/* Header with Title, Leave Action & Quick Switch */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
@@ -1164,16 +1266,45 @@ export default function StudentDashboard() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab("attendance_hw")}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-2xs self-start sm:self-auto"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
-                <span>{isRtl ? "ہوم ورک ڈائری دیکھیں" : "View Homework Diary"}</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setShowLeaveModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#0B3B2E] hover:bg-[#082C22] text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
+                  title={isRtl ? "اساتذہ کو رخصت کی اطلاع بھیجیں" : "Inform teacher of leave or absence"}
+                >
+                  <Send className="w-3.5 h-3.5 text-emerald-300" />
+                  <span>{isRtl ? "اساتذہ کو مطلع کریں / رخصت نوٹ" : "Inform Teacher / Leave Note"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("attendance_hw")}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-2xs"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>{isRtl ? "ہوم ورک ڈائری دیکھیں" : "View Homework Diary"}</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
+
+            {/* Leave Success Alert */}
+            {leaveSuccessToast && (
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center justify-between gap-2 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>{leaveSuccessToast}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("chat")}
+                  className="text-[11px] font-bold text-emerald-900 underline hover:text-emerald-700 ml-2 shrink-0 cursor-pointer"
+                >
+                  {isRtl ? "چیٹ تھریڈ دیکھیں →" : "View in Chat →"}
+                </button>
+              </div>
+            )}
 
             {/* Top 4 Attendance Metric Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -1849,6 +1980,16 @@ export default function StudentDashboard() {
                               {assignedDateFormatted}
                             </span>
                           </span>
+
+                          <button
+                            type="button"
+                            onClick={() => handleAskTeacherAboutHomework(hw)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100 border border-indigo-200/80 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                            title={isRtl ? "استاد سے اس ہوم ورک کے بارے میں پوچھیں" : "Ask teacher about this homework"}
+                          >
+                            <MessageSquare className="w-3 h-3 text-indigo-600" />
+                            <span>{isRtl ? "استاد سے پوچھیں" : "Ask Teacher"}</span>
+                          </button>
                         </div>
                       </div>
 
@@ -2283,19 +2424,27 @@ export default function StudentDashboard() {
               <div className="flex-1 p-4 space-y-3 overflow-y-auto max-h-[300px]">
                 {chatMessages.map((msg) => {
                   const isParent = msg.sender_role === "PARENT";
+                  const isLeaveNote = msg.content.includes("[LEAVE / ABSENCE NOTE]");
                   return (
                     <div key={msg.id} className={`flex flex-col ${isParent ? "items-end" : "items-start"}`}>
                       <div
-                        className={`max-w-[85%] p-3 rounded-2xl text-xs ${
-                          isParent
-                            ? "bg-emerald-600 text-white rounded-br-none"
+                        className={`max-w-[85%] p-3.5 rounded-2xl text-xs space-y-1 ${
+                          isLeaveNote
+                            ? "bg-amber-50 border border-amber-200 text-amber-950 rounded-br-none shadow-2xs"
+                            : isParent
+                            ? "bg-[#0B3B2E] text-white rounded-br-none"
                             : "bg-slate-100 text-slate-900 rounded-bl-none"
                         }`}
                       >
-                        <div className="text-[10px] font-bold opacity-70 mb-1">
-                          {isParent ? "You (Parent)" : "Class Teacher"}
+                        <div className="flex items-center justify-between gap-2 text-[10px] font-bold opacity-80 mb-1">
+                          <span>{isParent ? (isRtl ? "آپ (والدین)" : "You (Parent)") : (isRtl ? "کلاس ٹیچر" : "Class Teacher")}</span>
+                          {isLeaveNote && (
+                            <span className="px-1.5 py-0.2 rounded bg-amber-200 text-amber-900 font-extrabold text-[9px] uppercase tracking-wide">
+                              {isRtl ? "رخصت کا نوٹ" : "Leave Note"}
+                            </span>
+                          )}
                         </div>
-                        <p className="leading-relaxed">{msg.content}</p>
+                        <p className="leading-relaxed whitespace-pre-line font-sans">{msg.content}</p>
                       </div>
                       <span className="text-[9px] text-slate-400 mt-0.5 px-1">
                         {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -2305,22 +2454,48 @@ export default function StudentDashboard() {
                 })}
               </div>
 
-              {/* Input Form */}
-              <form onSubmit={handleSendMessageToTeacher} className="p-3 border-t border-slate-100 flex items-center gap-2 bg-white">
-                <input
-                  type="text"
-                  required
-                  placeholder="Type message to class teacher..."
-                  value={newMessageText}
-                  onChange={(e) => setNewMessageText(e.target.value)}
-                  className="flex-1 px-3.5 py-2.5 min-h-[44px] text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <button
-                  type="submit"
-                  className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-2xs transition-all flex items-center justify-center flex-shrink-0"
-                >
-                  <Send className="w-4 h-4 text-emerald-400" />
-                </button>
+              {/* Input Form with Context Badge */}
+              <form onSubmit={handleSendMessageToTeacher} className="p-3 border-t border-slate-100 space-y-2 bg-white">
+                {chatContextBadge && (
+                  <div className="p-2.5 px-3 rounded-xl bg-indigo-50 border border-indigo-200 text-xs font-semibold text-indigo-900 flex items-center justify-between gap-2 shadow-2xs">
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-600 text-white shrink-0">
+                        {chatContextBadge.category === "HOMEWORK" ? (isRtl ? "ہوم ورک سوال" : "Homework Query") : (isRtl ? "رپورٹ سوال" : "Remark Query")}
+                      </span>
+                      <span className="truncate text-slate-800">
+                        {chatContextBadge.title}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setChatContextBadge(null);
+                        setNewMessageText("");
+                      }}
+                      className="text-indigo-400 hover:text-indigo-700 text-xs font-bold px-1 cursor-pointer"
+                      title="Clear context"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    required
+                    placeholder={isRtl ? "کلاس ٹیچر کو پیغام لکھیں..." : "Type message to class teacher..."}
+                    value={newMessageText}
+                    onChange={(e) => setNewMessageText(e.target.value)}
+                    className="flex-1 px-3.5 py-2.5 min-h-[44px] text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-sans"
+                  />
+                  <button
+                    type="submit"
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-2xs transition-all flex items-center justify-center flex-shrink-0 cursor-pointer"
+                    title={isRtl ? "ارسال کریں" : "Send message"}
+                  >
+                    <Send className="w-4 h-4 text-emerald-400" />
+                  </button>
+                </div>
               </form>
             </div>
           </div>
@@ -2700,6 +2875,154 @@ export default function StudentDashboard() {
                   className="px-5 py-2.5 min-h-[44px] rounded-xl bg-[#0B3B2E] hover:bg-[#082C22] text-white font-bold shadow-sm"
                 >
                   Verify & Mark Paid
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Leave / Absence Note Modal */}
+      {showLeaveModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="w-full max-w-md bg-white rounded-3xl border border-slate-200 shadow-2xl p-5 sm:p-6 space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold">
+                  <Send className="w-4 h-4 text-emerald-700" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">
+                    {isRtl ? "استاد کو رخصت کی اطلاع بھیجیں" : "Inform Teacher / Send Leave Note"}
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    {currentStudent?.name} • Roll #{currentStudent?.roll_no}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLeaveModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 text-sm font-semibold transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSendLeaveNote} className="space-y-4 text-xs">
+              {/* Date Selection */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                  <span>{isRtl ? "رخصت کی تاریخ *" : "Absence / Leave Date *"}</span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setLeaveDate(new Date().toISOString().split("T")[0])}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
+                        leaveDate === new Date().toISOString().split("T")[0]
+                          ? "bg-emerald-800 text-white border-emerald-800"
+                          : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      {isRtl ? "آج" : "Today"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLeaveDate(new Date(Date.now() + 86400000).toISOString().split("T")[0])}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
+                        leaveDate === new Date(Date.now() + 86400000).toISOString().split("T")[0]
+                          ? "bg-emerald-800 text-white border-emerald-800"
+                          : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      {isRtl ? "کل" : "Tomorrow"}
+                    </button>
+                  </div>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={leaveDate}
+                  onChange={(e) => setLeaveDate(e.target.value)}
+                  className="w-full px-3.5 py-2.5 min-h-[44px] text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-medium cursor-pointer"
+                />
+              </div>
+
+              {/* Reason Pills */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  {isRtl ? "رخصت کی وجہ *" : "Reason for Leave *"}
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: "Sick / Medical", labelEn: "Sick / Medical", labelUr: "طبی عذر / بیماری", icon: "🩺" },
+                    { id: "Family Emergency", labelEn: "Family Emergency", labelUr: "خاندانی مجبوری", icon: "🚨" },
+                    { id: "Urgent Work", labelEn: "Urgent Work", labelUr: "ضروری گھریلو کام", icon: "📌" },
+                    { id: "Other", labelEn: "Other Reason", labelUr: "دیگر عذر", icon: "📝" },
+                  ].map((r) => {
+                    const isSelected = leaveReason === r.id;
+                    return (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => setLeaveReason(r.id as any)}
+                        className={`p-2.5 rounded-xl text-left flex items-center gap-2 border font-semibold text-xs transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-emerald-50 border-emerald-500 text-emerald-900 shadow-2xs"
+                            : "bg-slate-50/60 border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span className="text-sm">{r.icon}</span>
+                        <span className="truncate">{isRtl ? r.labelUr : r.labelEn}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Note / Details */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  {isRtl ? "مختصر وضاحت (اختیاری)" : "Brief Details / Doctor Note (Optional)"}
+                </label>
+                <textarea
+                  rows={3}
+                  value={leaveNote}
+                  onChange={(e) => setLeaveNote(e.target.value)}
+                  placeholder={
+                    isRtl
+                      ? "مثال کے طور پر: تیز بخار ہے، ڈاکٹر نے ایک دن آرام کا مشورہ دیا ہے..."
+                      : "e.g., Doctor advised 1-day rest due to flu. Will attend school tomorrow..."
+                  }
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-sans"
+                />
+              </div>
+
+              {/* Info Callout */}
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-start gap-2">
+                <span className="text-emerald-600 font-bold text-xs mt-0.5">ℹ</span>
+                <span>
+                  {isRtl
+                    ? "یہ نوٹ براہ راست کلاس ٹیچر کے چیٹ تھریڈ میں بھیج دیا جائے گا اور استاد کو الرٹ موصول ہوگا۔"
+                    : "This will post directly into the class Teacher Chat thread and notify the teacher instantly."}
+                </span>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowLeaveModal(false)}
+                  className="px-4 py-2.5 min-h-[44px] rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  {isRtl ? "منسوخ کریں" : "Cancel"}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 min-h-[44px] rounded-xl bg-[#0B3B2E] hover:bg-[#082C22] text-white font-bold shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5 text-emerald-300" />
+                  <span>{isRtl ? "نوٹ ارسال کریں" : "Send Leave Note"}</span>
                 </button>
               </div>
             </form>
