@@ -104,6 +104,7 @@ export default function StudentDashboard() {
   const [homeworkList, setHomeworkList] = useState<Homework[]>([]);
   const [homeworkDateFilter, setHomeworkDateFilter] = useState<string>("ALL");
   const [customCalendarDate, setCustomCalendarDate] = useState<string>("");
+  const [completedHwIds, setCompletedHwIds] = useState<string[]>([]);
   const [examMarksList, setExamMarksList] = useState<ExamMark[]>([]);
   const [feeRecords, setFeeRecords] = useState<FeeRecord[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -315,6 +316,59 @@ export default function StudentDashboard() {
     });
   }, [homeworkList, homeworkDateFilter, customCalendarDate, todayDateStr, yesterdayDateStr]);
 
+  const todayAttendance = useMemo(() => {
+    const todayRec = attendanceRecords.find((r) => r.date === todayDateStr);
+    if (todayRec) return todayRec;
+    return attendanceRecords.length > 0 && attendanceRecords[0].date === todayDateStr
+      ? attendanceRecords[0]
+      : {
+          status: "PRESENT" as AttendanceStatus,
+          remarks: "On time (08:05 AM)",
+        };
+  }, [attendanceRecords, todayDateStr]);
+
+  const unpaidFeeRecords = useMemo(() => {
+    return feeRecords.filter((f) => f.status === "UNPAID");
+  }, [feeRecords]);
+
+  const totalFeeDue = useMemo(() => {
+    return unpaidFeeRecords.reduce((acc, f) => acc + (f.amount || 0), 0);
+  }, [unpaidFeeRecords]);
+
+  const totalViewedHomework = filteredHomeworkList.length;
+  const doneViewedHomework = filteredHomeworkList.filter((hw) => completedHwIds.includes(hw.id)).length;
+  const progressPercent = totalViewedHomework > 0 ? Math.round((doneViewedHomework / totalViewedHomework) * 100) : 0;
+
+  const todayDoneCount = homeworkList
+    .filter((hw) => (hw.assigned_date || hw.created_at?.split("T")[0]) === todayDateStr)
+    .filter((hw) => completedHwIds.includes(hw.id)).length;
+
+  const toggleHomeworkDone = (hwId: string, hwTitle: string) => {
+    setCompletedHwIds((prev) => {
+      const isAlreadyDone = prev.includes(hwId);
+      const updated = isAlreadyDone ? prev.filter((id) => id !== hwId) : [...prev, hwId];
+      try {
+        const studentId = currentStudent?.id || currentUser?.id || "std";
+        const schoolId = currentUser?.school_id || "sch";
+        localStorage.setItem(`attendlix_student_hw_done_${schoolId}_${studentId}`, JSON.stringify(updated));
+      } catch (e) {
+        console.error("Failed to save completed homework status:", e);
+      }
+
+      notify({
+        title: isAlreadyDone ? "Task Marked as Pending" : "Task Completed! 🎉",
+        title_ur: isAlreadyDone ? "ٹاسک زیر التواء کر دیا گیا" : "ٹاسک مکمل ہو گیا! 🎉",
+        message: `${hwTitle} is marked as ${isAlreadyDone ? "pending" : "done"}.`,
+        message_ur: isAlreadyDone ? "ہوم ورک زیر التواء ہے" : "ہوم ورک کامیابی سے مکمل ہو گیا",
+        type: isAlreadyDone ? "INFO" : "SUCCESS",
+        category: "HOMEWORK",
+        target_role: "STUDENT_PARENT",
+      });
+
+      return updated;
+    });
+  };
+
   const refreshData = () => {
     const user = getCurrentUser();
     if (!user) {
@@ -342,6 +396,15 @@ export default function StudentDashboard() {
       setChatMessages(getStudentMessages(user.school_id, student.id));
       setAttendanceRecords(getStudentAttendanceRecords(user.school_id, student.id));
       setStudentReports(getStudentReports(user.school_id, student.id));
+
+      try {
+        const savedHwDone = localStorage.getItem(`attendlix_student_hw_done_${user.school_id}_${student.id}`);
+        if (savedHwDone) {
+          setCompletedHwIds(JSON.parse(savedHwDone));
+        }
+      } catch (e) {
+        console.error("Failed to parse saved completed homework:", e);
+      }
     }
   };
 
@@ -505,94 +568,157 @@ export default function StudentDashboard() {
                 </div>
               </div>
             </div>
-            {/* Elevated Quick Status Cards with Inline Mini Sparklines */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Card 1: Today's Attendance -> switches to attendance */}
-              <div
-                onClick={() => setActiveTab("attendance")}
-                className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md transition-all group"
-                title="Click to view full date-wise attendance log"
-              >
-                <div className="flex items-center justify-between text-slate-400">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    {isRtl ? "آج کی حاضری" : "Today's Attendance"}
-                  </span>
-                  <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
-                    <CheckCircle2 className="w-4 h-4" />
-                  </div>
+            {/* Today's Snapshot Quick Action Strip */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <h3 className="font-extrabold text-slate-900 text-sm tracking-tight flex items-center gap-1.5">
+                    <span>{isRtl ? "آج کا خلاصہ" : "Today's Snapshot"}</span>
+                    <span className="text-[11px] font-semibold text-slate-500">
+                      • {new Date().toLocaleDateString(isRtl ? "ur-PK" : "en-PK", { weekday: "short", day: "numeric", month: "short" })}
+                    </span>
+                  </h3>
                 </div>
-                <div className="flex items-end justify-between">
-                  <div className="text-2xl font-extrabold text-emerald-700">
-                    {isRtl ? "حاضر" : "Present"}
-                  </div>
-                  <SparklineGreenWave className="w-20 h-7" />
-                </div>
-                <div className="text-xs text-slate-500 font-medium flex items-center justify-between pt-0.5">
-                  <span>{isRtl ? `آمد: 08:05 AM` : `Marked at 08:05 AM`}</span>
-                  <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
-                    <span>{isRtl ? "ریکارڈ دیکھیں" : "View Record"}</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </span>
-                </div>
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  {isRtl ? "فوری رسائی (1-Tap)" : "1-Tap Quick Actions"}
+                </span>
               </div>
 
-              {/* Card 2: November Fee -> switches to fees */}
-              <div
-                onClick={() => setActiveTab("fees")}
-                className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md transition-all group"
-                title="Click to view and pay school fees"
-              >
-                <div className="flex items-center justify-between text-slate-400">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    {isRtl ? "نومبر فیس" : "November Fee"}
-                  </span>
-                  <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600 group-hover:bg-amber-100 transition-colors">
-                    <CreditCard className="w-4 h-4" />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                {/* Card 1: Today's Attendance -> switches to attendance */}
+                <div
+                  onClick={() => setActiveTab("attendance")}
+                  className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer group active:scale-[0.99] space-y-2 relative overflow-hidden"
+                  title={isRtl ? "مکمل حاضری ریکارڈ کھولنے کے لیے کلک کریں" : "Click to view full attendance record"}
+                >
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      {isRtl ? "آج کی حاضری" : "Today's Attendance"}
+                    </span>
+                    <div className="p-1.5 rounded-xl bg-emerald-50 text-emerald-700 group-hover:bg-emerald-100 transition-colors">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-end justify-between">
-                  <div className="text-2xl font-extrabold text-slate-900">
-                    {feeRecords.some((f) => f.month === "November" && f.status === "PAID") ? (
-                      <span className="text-emerald-700">Paid ✓</span>
-                    ) : (
-                      <span className="text-amber-600">PKR 4,500</span>
-                    )}
-                  </div>
-                  <SparklineAmberWave className="w-20 h-7" />
-                </div>
-                <div className="text-xs text-slate-500 font-medium flex items-center justify-between pt-0.5">
-                  <span>Via JazzCash / Easypaisa</span>
-                  <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
-                    <span>{isRtl ? "فیس تفصیل" : "Fee Status"}</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-              </div>
 
-              {/* Card 3: Pending Homework -> switches to attendance_hw */}
-              <div
-                onClick={() => setActiveTab("attendance_hw")}
-                className="p-5 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2 relative overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md transition-all group"
-                title="Click to view daily homework diary"
-              >
-                <div className="flex items-center justify-between text-slate-400">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    {isRtl ? "زیر التواء ہوم ورک" : "Pending Homework"}
-                  </span>
-                  <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 transition-colors">
-                    <BookOpen className="w-4 h-4" />
+                  <div className="flex items-end justify-between gap-2">
+                    <div className="text-xl sm:text-2xl font-extrabold text-slate-900">
+                      {todayAttendance.status === "PRESENT" ? (
+                        <span className="text-emerald-700">{isRtl ? "حاضر — 08:05 AM" : "Present — 08:05 AM"}</span>
+                      ) : todayAttendance.status === "LATE" ? (
+                        <span className="text-amber-600">{isRtl ? "تاخیر — 08:24 AM" : "Late — 08:24 AM"}</span>
+                      ) : todayAttendance.status === "ABSENT" ? (
+                        <span className="text-rose-600">{isRtl ? "غیر حاضر" : "Absent"}</span>
+                      ) : todayAttendance.status === "LEAVE" ? (
+                        <span className="text-blue-600">{isRtl ? "رخصت پر" : "On Leave"}</span>
+                      ) : (
+                        <span className="text-slate-500">{isRtl ? "زیر جائزہ" : "Not Marked Yet"}</span>
+                      )}
+                    </div>
+                    <SparklineGreenWave className="w-16 h-6 flex-shrink-0" />
+                  </div>
+
+                  <div className="text-xs text-slate-500 font-medium flex items-center justify-between pt-1 border-t border-slate-100">
+                    <span className="truncate">
+                      {todayAttendance.status === "PRESENT"
+                        ? isRtl ? "وقت پر آمد" : "On-Time Arrival"
+                        : todayAttendance.status === "LATE"
+                        ? isRtl ? "تاخیر سے آمد" : "Late Check-in"
+                        : todayAttendance.status === "ABSENT"
+                        ? isRtl ? "غیر حاضری الرٹ" : "No Attendance"
+                        : isRtl ? "گیٹ حاضری لاگ" : "Gate Entry Log"}
+                    </span>
+                    <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 group-hover:translate-x-0.5 transition-all flex-shrink-0">
+                      <span>{isRtl ? "ریکارڈ دیکھیں" : "View Record"}</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-end justify-between">
-                  <div className="text-2xl font-extrabold text-slate-900">{homeworkList.length} Tasks</div>
-                  <MiniBarChart className="w-16 h-7" />
+
+                {/* Card 2: Today's Homework -> switches to attendance_hw filtered to TODAY */}
+                <div
+                  onClick={() => {
+                    setHomeworkDateFilter("TODAY");
+                    setCustomCalendarDate("");
+                    setActiveTab("attendance_hw");
+                  }}
+                  className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer group active:scale-[0.99] space-y-2 relative overflow-hidden"
+                  title={isRtl ? "آج کا ہوم ورک دیکھنے کے لیے کلک کریں" : "Click to view today's homework"}
+                >
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      {isRtl ? "آج کا ہوم ورک" : "Today's Homework"}
+                    </span>
+                    <div className="p-1.5 rounded-xl bg-indigo-50 text-indigo-700 group-hover:bg-indigo-100 transition-colors">
+                      <BookOpen className="w-4 h-4" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-end justify-between gap-2">
+                    <div className="text-xl sm:text-2xl font-extrabold text-slate-900">
+                      {todayHomeworkCount > 0 ? (
+                        <span>
+                          {todayHomeworkCount} {todayHomeworkCount === 1 ? (isRtl ? "ٹاسک آج" : "Task Today") : (isRtl ? "ٹاسکس آج" : "Tasks Today")}
+                        </span>
+                      ) : (
+                        <span className="text-slate-500 text-lg sm:text-xl font-bold">
+                          {isRtl ? "کوئی ٹاسک نہیں" : "No Tasks Today"}
+                        </span>
+                      )}
+                    </div>
+                    <MiniBarChart className="w-14 h-6 flex-shrink-0" />
+                  </div>
+
+                  <div className="text-xs text-slate-500 font-medium flex items-center justify-between pt-1 border-t border-slate-100">
+                    <span className="truncate">
+                      {todayHomeworkCount > 0 && todayDoneCount > 0
+                        ? `${todayDoneCount}/${todayHomeworkCount} ${isRtl ? "مکمل شدہ" : "Completed"}`
+                        : isRtl ? "آج کی ڈائری" : "Teacher Assigned"}
+                    </span>
+                    <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 group-hover:translate-x-0.5 transition-all flex-shrink-0">
+                      <span>{isRtl ? "ڈائری کھولیں" : "Open Diary"}</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
                 </div>
-                <div className="text-xs text-slate-500 font-medium flex items-center justify-between pt-0.5">
-                  <span>{isRtl ? "ٹیچر ڈائری سے مطابقت" : "Teacher Diary"}</span>
-                  <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
-                    <span>{isRtl ? "ڈائری دیکھیں" : "View Diary"}</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </span>
+
+                {/* Card 3: Fee Status -> switches to fees */}
+                <div
+                  onClick={() => setActiveTab("fees")}
+                  className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer group active:scale-[0.99] space-y-2 relative overflow-hidden"
+                  title={isRtl ? "اسکول فیس کی تفصیلات کے لیے کلک کریں" : "Click to view and pay school fees"}
+                >
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      {isRtl ? "فیس کی صورتحال" : "Fee Status"}
+                    </span>
+                    <div className="p-1.5 rounded-xl bg-amber-50 text-amber-700 group-hover:bg-amber-100 transition-colors">
+                      <CreditCard className="w-4 h-4" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-end justify-between gap-2">
+                    <div className="text-xl sm:text-2xl font-extrabold text-slate-900">
+                      {totalFeeDue === 0 ? (
+                        <span className="text-emerald-700">Paid ✓</span>
+                      ) : (
+                        <span className="text-amber-600">PKR {totalFeeDue.toLocaleString()} Due</span>
+                      )}
+                    </div>
+                    <SparklineAmberWave className="w-16 h-6 flex-shrink-0" />
+                  </div>
+
+                  <div className="text-xs text-slate-500 font-medium flex items-center justify-between pt-1 border-t border-slate-100">
+                    <span className="truncate">
+                      {totalFeeDue === 0
+                        ? isRtl ? "تمام واجبات کلیئر ہیں" : "All Dues Cleared"
+                        : "Via JazzCash / Easypaisa"}
+                    </span>
+                    <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-0.5 group-hover:translate-x-0.5 transition-all flex-shrink-0">
+                      <span>{isRtl ? "فیس تفصیل" : "Fee Details"}</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1384,15 +1510,37 @@ export default function StudentDashboard() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab("attendance")}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-2xs self-start sm:self-auto"
-              >
-                <CalendarCheck className="w-3.5 h-3.5 text-emerald-700" />
-                <span>{isRtl ? "مکمل حاضری ریکارڈ دیکھیں" : "View Attendance Log"}</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+                {/* Lightweight Progress Summary Pill */}
+                {totalViewedHomework > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 shadow-2xs">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                    <span>{isRtl ? "پیش رفت:" : "Progress:"}</span>
+                    <span className="font-extrabold text-emerald-950">
+                      {doneViewedHomework} / {totalViewedHomework} {isRtl ? "مکمل" : "Done"}
+                    </span>
+                    <div className="w-12 sm:w-16 h-2 bg-emerald-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-600 rounded-full transition-all duration-300"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-extrabold text-emerald-700 bg-white px-1.5 py-0.2 rounded border border-emerald-200">
+                      {progressPercent}%
+                    </span>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("attendance")}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition-colors shadow-2xs"
+                >
+                  <CalendarCheck className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>{isRtl ? "مکمل حاضری ریکارڈ دیکھیں" : "View Attendance Log"}</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
             {/* Date Filter & Calendar Picker Bar */}
@@ -1628,30 +1776,89 @@ export default function StudentDashboard() {
                 </div>
               ) : (
                 filteredHomeworkList.map((hw) => {
+                  const isDone = completedHwIds.includes(hw.id);
                   const assignedDateFormatted = formatHomeworkDate(
                     hw.assigned_date || hw.created_at?.split("T")[0]
                   );
                   return (
                     <div
                       key={hw.id}
-                      className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:border-emerald-200 transition-all space-y-3"
+                      className={`p-4 sm:p-5 rounded-2xl bg-white border transition-all space-y-3 ${
+                        isDone
+                          ? "border-emerald-300/80 bg-emerald-50/20 shadow-2xs"
+                          : "border-slate-200/80 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:border-emerald-200"
+                      }`}
                     >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          {/* Done / Pending Checkbox & Toggle Button */}
+                          <button
+                            type="button"
+                            onClick={() => toggleHomeworkDone(hw.id, hw.title)}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all min-h-[36px] ${
+                              isDone
+                                ? "bg-emerald-700 text-white shadow-2xs hover:bg-emerald-800"
+                                : "bg-slate-100 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200"
+                            }`}
+                            title={isDone ? (isRtl ? "زیر التواء پر تبدیل کریں" : "Mark as Pending") : (isRtl ? "مکمل نشان لگائیں" : "Mark as Done")}
+                          >
+                            <div
+                              className={`w-4 h-4 rounded-md flex items-center justify-center border transition-all ${
+                                isDone
+                                  ? "bg-white text-emerald-700 border-white"
+                                  : "border-slate-400 bg-white"
+                              }`}
+                            >
+                              {isDone && <Check className="w-3 h-3 stroke-[3]" />}
+                            </div>
+                            <span>
+                              {isDone
+                                ? isRtl
+                                  ? "مکمل شدہ ✓"
+                                  : "Done ✓"
+                                : isRtl
+                                ? "مکمل نشان لگائیں"
+                                : "Mark as Done"}
+                            </span>
+                          </button>
+
                           <span className="px-2.5 py-0.5 rounded-lg font-bold text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-200">
                             {hw.subject}
                           </span>
-                          <h4 className="font-bold text-slate-900 text-sm sm:text-base">{hw.title}</h4>
+
+                          <h4
+                            className={`font-bold text-sm sm:text-base transition-colors ${
+                              isDone ? "text-emerald-950 line-through opacity-75" : "text-slate-900"
+                            }`}
+                          >
+                            {hw.title}
+                          </h4>
                         </div>
-                        <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-lg flex items-center gap-1.5 self-start sm:self-auto shadow-2xs">
-                          <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>
-                            {isRtl ? "تفویض کردہ تاریخ: " : "Assigned: "}
-                            {assignedDateFormatted}
+
+                        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                          {isDone && (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>{isRtl ? "مکمل ہو گیا" : "Completed"}</span>
+                            </span>
+                          )}
+                          <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-2xs">
+                            <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>
+                              {isRtl ? "تفویض کردہ تاریخ: " : "Assigned: "}
+                              {assignedDateFormatted}
+                            </span>
                           </span>
-                        </span>
+                        </div>
                       </div>
-                      <p className="text-xs text-slate-600 leading-relaxed font-sans bg-slate-50/60 p-3 rounded-xl border border-slate-100">
+
+                      <p
+                        className={`text-xs leading-relaxed font-sans p-3 rounded-xl border transition-colors ${
+                          isDone
+                            ? "bg-white/80 border-emerald-100 text-slate-500"
+                            : "bg-slate-50/60 border-slate-100 text-slate-600"
+                        }`}
+                      >
                         {hw.description}
                       </p>
                     </div>

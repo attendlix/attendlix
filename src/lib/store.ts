@@ -1867,6 +1867,7 @@ const KEY_MESSAGES = "attendlix_chat_messages";
 
 // Seed Student Attendance Records (Historical & Daily)
 export const SEED_ATTENDANCE: AttendanceRecord[] = [
+  { id: "att-seed-00", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: new Date().toISOString().split("T")[0], status: "PRESENT", remarks: "On time (08:05 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
   { id: "att-seed-01", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-24", status: "PRESENT", remarks: "On time (08:05 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
   { id: "att-seed-02", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-23", status: "PRESENT", remarks: "On time (08:08 AM)", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
   { id: "att-seed-03", school_id: SEED_SCHOOL_ID, class_id: "cls-01", student_id: "std-01", student_name: "Hamza Naveed", roll_no: "01", date: "2026-11-21", status: "PRESENT", remarks: "Saturday Activity Session", marked_by: "Ms. Sadia Tariq", synced_at: new Date().toISOString() },
