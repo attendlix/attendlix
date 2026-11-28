@@ -32,6 +32,9 @@ import {
   Calendar,
   Filter,
   FileText,
+  Megaphone,
+  Search,
+  ArrowRight,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -74,7 +77,7 @@ export default function TeacherDashboard() {
   const { notify } = useNotifications();
 
   // Active navigation tab
-  const [activeTab, setActiveTab] = useState<"attendance" | "my_attendance" | "homework" | "timetable" | "exams" | "messages" | "settings">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "announcements" | "my_attendance" | "homework" | "timetable" | "exams" | "messages" | "settings">("attendance");
 
   // User and Class context
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -85,6 +88,8 @@ export default function TeacherDashboard() {
   const [selectedStudentForProfile, setSelectedStudentForProfile] = useState<Student | null>(null);
   const [profileModalInitialTab, setProfileModalInitialTab] = useState<"overview" | "reports">("overview");
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [announcementSearch, setAnnouncementSearch] = useState("");
+  const [announcementFilter, setAnnouncementFilter] = useState<"ALL" | "URGENT" | "IMPORTANT" | "NORMAL">("ALL");
 
   // Timetable State
   const [teacherSchedule, setTeacherSchedule] = useState<TimetableSlot[]>([]);
@@ -523,8 +528,19 @@ export default function TeacherDashboard() {
   const absentCount = Object.values(attendanceMap).filter((s) => s === "ABSENT").length;
   const leaveCount = Object.values(attendanceMap).filter((s) => s === "LEAVE").length;
 
+  // Filtered school announcements for dedicated tab
+  const filteredAnnouncements = useMemo(() => {
+    return announcements.filter((ann) => {
+      const matchesPriority = announcementFilter === "ALL" || ann.priority === announcementFilter;
+      const q = announcementSearch.toLowerCase().trim();
+      const matchesQuery = !q || ann.title.toLowerCase().includes(q) || ann.content.toLowerCase().includes(q);
+      return matchesPriority && matchesQuery;
+    });
+  }, [announcements, announcementFilter, announcementSearch]);
+
   const teacherNavItems = [
     { id: "attendance", label: isRtl ? "کلاس حاضری رول کال" : "Class Attendance", icon: CalendarCheck },
+    { id: "announcements", label: isRtl ? "اسکول اعلانات" : "Announcements", icon: Megaphone, badge: announcements.length > 0 ? announcements.length : undefined },
     { id: "my_attendance", label: isRtl ? "میری ذاتی حاضری و لاگ" : "My Attendance Log", icon: UserCheck },
     { id: "homework", label: t.tabHomework || "Homework Diary", icon: BookOpen },
     { id: "timetable", label: t.mySchedule || "My Schedule", icon: Clock },
@@ -630,54 +646,50 @@ export default function TeacherDashboard() {
           </div>
         )}
 
-        {/* Staff & School Official Circulars - Render ONLY on primary landing tab (Class Attendance) */}
+        {/* Staff & School Official Circulars - Compact Highlight Strip on Class Attendance */}
         {activeTab === "attendance" && announcements.length > 0 && (
-          <div className="space-y-2.5">
-            {announcements.map((ann) => (
-              <div
-                key={ann.id}
-                className={`p-3.5 sm:p-4 rounded-2xl border shadow-2xs space-y-1.5 transition-all ${
-                  ann.priority === "URGENT"
-                    ? "bg-rose-50/80 border-rose-300 ring-1 ring-rose-200"
-                    : ann.priority === "IMPORTANT"
-                    ? "bg-amber-50/70 border-amber-300"
-                    : "bg-white border-slate-200/90"
-                }`}
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-bold text-slate-900 text-xs sm:text-sm">{ann.title}</span>
-                    <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-extrabold border ${
-                        ann.priority === "URGENT"
-                          ? "bg-rose-100 text-rose-800 border-rose-300 animate-pulse"
-                          : ann.priority === "IMPORTANT"
-                          ? "bg-amber-100 text-amber-800 border-amber-300"
-                          : "bg-slate-100 text-slate-700 border-slate-200"
-                      }`}
-                    >
-                      {ann.priority === "URGENT" && (
-                        <AlertCircle className="w-3 h-3 text-rose-600 flex-shrink-0" />
-                      )}
-                      {ann.priority === "URGENT"
-                        ? `🚨 ${t.priorityUrgent || "URGENT"}`
-                        : ann.priority === "IMPORTANT"
-                        ? `⚡ ${t.priorityImportant || "IMPORTANT"}`
-                        : `📢 ${t.priorityNormal || "NORMAL"}`}
-                    </span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
-                      {ann.audience === "STAFF" || (ann.audience as any) === "TEACHERS"
-                        ? "Staff & Teachers Only"
-                        : "All School"}
-                    </span>
-                  </div>
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-50/90 via-teal-50/60 to-white border border-emerald-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-2xs">
+                <Megaphone className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">
+                    {isRtl ? "تازہ ترین اعلان" : "Latest Announcement"}
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                      announcements[0].priority === "URGENT"
+                        ? "bg-rose-100 text-rose-800 border-rose-300"
+                        : announcements[0].priority === "IMPORTANT"
+                        ? "bg-amber-100 text-amber-800 border-amber-300"
+                        : "bg-emerald-100 text-emerald-800 border-emerald-300"
+                    }`}
+                  >
+                    {announcements[0].priority === "URGENT"
+                      ? `🚨 ${t.priorityUrgent || "URGENT"}`
+                      : announcements[0].priority === "IMPORTANT"
+                      ? `⚡ ${t.priorityImportant || "IMPORTANT"}`
+                      : `📢 ${t.priorityNormal || "NORMAL"}`}
+                  </span>
                   <span className="text-[10px] text-slate-400">
-                    {new Date(ann.created_at).toLocaleDateString("en-PK", { day: "numeric", month: "short" })}
+                    {new Date(announcements[0].created_at).toLocaleDateString("en-PK", { day: "numeric", month: "short" })}
                   </span>
                 </div>
-                <p className="text-xs text-slate-700 leading-relaxed font-sans">{ann.content}</p>
+                <p className="text-xs font-bold text-slate-800 truncate mt-0.5 max-w-xl">
+                  {announcements[0].title} — <span className="font-normal text-slate-600">{announcements[0].content}</span>
+                </p>
               </div>
-            ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("announcements")}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-white hover:bg-emerald-50 px-3.5 py-2 rounded-xl border border-emerald-200 shadow-2xs transition-all flex-shrink-0 self-start sm:self-auto cursor-pointer"
+            >
+              <span>{isRtl ? "تمام اعلانات دیکھیں ←" : "View All Announcements →"}</span>
+            </button>
           </div>
         )}
 
@@ -1076,6 +1088,193 @@ export default function TeacherDashboard() {
                 </span>
               </button>
             </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB: SCHOOL CIRCULARS & ANNOUNCEMENTS */}
+        {/* ========================================================================= */}
+        {activeTab === "announcements" && (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                  <Megaphone className="w-5 h-5 text-emerald-600" />
+                  <span>{isRtl ? "اسکول اعلانات اور سرکاری نوٹسز" : "School Announcements & Circulars"}</span>
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                  {isRtl
+                    ? "انتظامیہ کی طرف سے اساتذہ اور اسٹاف کے لیے جاری کردہ سرکاری نوٹسز اور واٹس ایپ پیغامات۔"
+                    : "Official circulars, staff policy notices, and school-wide alerts broadcasted by school leadership."}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <span className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>{announcements.length} {isRtl ? "کل اعلانات" : "Total Notices"}</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                {/* Search Input */}
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={announcementSearch}
+                    onChange={(e) => setAnnouncementSearch(e.target.value)}
+                    placeholder={isRtl ? "عنوان یا مواد سے تلاش کریں..." : "Search circulars by title or keyword..."}
+                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all"
+                  />
+                  {announcementSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setAnnouncementSearch("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Priority Filter Pills */}
+                <div className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap pb-1 sm:pb-0 scrollbar-none">
+                  {(["ALL", "URGENT", "IMPORTANT", "NORMAL"] as const).map((p) => {
+                    const active = announcementFilter === p;
+                    const count = p === "ALL" ? announcements.length : announcements.filter((a) => a.priority === p).length;
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setAnnouncementFilter(p)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 flex-shrink-0 cursor-pointer ${
+                          active
+                            ? "bg-[#0B3B2E] text-white shadow-xs"
+                            : "bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200"
+                        }`}
+                      >
+                        <span>
+                          {p === "ALL"
+                            ? isRtl ? "تمام" : "All"
+                            : p === "URGENT"
+                            ? `🚨 ${t.priorityUrgent || "Urgent"}`
+                            : p === "IMPORTANT"
+                            ? `⚡ ${t.priorityImportant || "Important"}`
+                            : `📢 ${t.priorityNormal || "Normal"}`}
+                        </span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${active ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-700"}`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Announcements List Feed */}
+            {filteredAnnouncements.length === 0 ? (
+              <div className="p-10 rounded-2xl bg-white border border-slate-200 text-center space-y-2">
+                <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+                  <Megaphone className="w-6 h-6" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-800">
+                  {isRtl ? "کوئی اعلان نہیں ملا" : "No Announcements Found"}
+                </h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  {isRtl
+                    ? "آپ کے منتخب کردہ فلٹر یا تلاش کے مطابق کوئی اعلان موجود نہیں۔"
+                    : "No notices match your active priority filter or search keyword."}
+                </p>
+                {(announcementSearch || announcementFilter !== "ALL") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAnnouncementSearch("");
+                      setAnnouncementFilter("ALL");
+                    }}
+                    className="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline mt-2"
+                  >
+                    {isRtl ? "فلٹرز صاف کریں" : "Clear filters"}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3.5">
+                {filteredAnnouncements.map((ann) => (
+                  <div
+                    key={ann.id}
+                    className={`p-4 sm:p-5 rounded-2xl bg-white border shadow-2xs space-y-3 transition-all hover:shadow-xs ${
+                      ann.priority === "URGENT"
+                        ? "border-rose-300 ring-1 ring-rose-200 bg-rose-50/15"
+                        : ann.priority === "IMPORTANT"
+                        ? "border-amber-300 ring-1 ring-amber-100 bg-amber-50/15"
+                        : "border-slate-200/90"
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-extrabold text-slate-900 text-sm sm:text-base">
+                          {ann.title}
+                        </span>
+
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                            ann.priority === "URGENT"
+                              ? "bg-rose-100 text-rose-800 border-rose-300 animate-pulse"
+                              : ann.priority === "IMPORTANT"
+                              ? "bg-amber-100 text-amber-800 border-amber-300"
+                              : "bg-slate-100 text-slate-700 border-slate-200"
+                          }`}
+                        >
+                          {ann.priority === "URGENT" && (
+                            <AlertCircle className="w-3 h-3 text-rose-600 flex-shrink-0" />
+                          )}
+                          {ann.priority === "URGENT"
+                            ? `🚨 ${t.priorityUrgent || "URGENT"}`
+                            : ann.priority === "IMPORTANT"
+                            ? `⚡ ${t.priorityImportant || "IMPORTANT"}`
+                            : `📢 ${t.priorityNormal || "NORMAL"}`}
+                        </span>
+
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                          {ann.audience === "STAFF" || (ann.audience as any) === "TEACHERS"
+                            ? "Staff & Teachers Only"
+                            : "All School"}
+                        </span>
+                      </div>
+
+                      <span className="text-[11px] text-slate-400 font-medium">
+                        {new Date(ann.created_at).toLocaleDateString("en-PK", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+
+                    <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-sans whitespace-pre-line">
+                      {ann.content}
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
+                      <div className="inline-flex items-center gap-1.5 text-emerald-700 font-semibold">
+                        <Check className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                        <span>Broadcasted via WhatsApp & Attendlix Portal</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider font-mono">
+                        Ref #{ann.id.slice(0, 8)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
